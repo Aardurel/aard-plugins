@@ -1852,7 +1852,14 @@ Examples:
      [key1] [value1] || [key2] [value2]
      "@Gdinv search wearable finger || wearable wrist@W"
 
-  4) Things get a little more complicated if we want to use both "and" and "or" clauses
+  4) Use the "@Cmin@W" and "@Cmax@W" prefixes.  You can prepend "min" or "max" prefixes to
+     any numeric key (e.g., level, weight, str, etc.) to indicate that you only want
+     to match items up to a minimum or maximum value.  Let's find all wearable head
+     items between levels 50 to 100.
+     "min"[key 1] [value1] "max"[key2] [value 2]
+     "@Gdinv search wearable head minlevel 50 maxlevel 100@W"
+
+  5) Things get a little more complicated if we want to use both "and" and "or" clauses
      in the same query.  The "and" operation (putting two key-value pairs next to each
      other) has a higher precedence than "or", as represented by the "@C||@W" symbols.
      If we want to find weapons with the "mental" or "pierce" damage types that are at
@@ -1862,12 +1869,12 @@ Examples:
      [key1] [value1] [key2] [value2] || [key3] [value3] [key2] [value2]
      "@Gdinv search damtype mental minlevel 100 || damtype pierce minlevel 100@W"
 
-  5) Find all armor that has a weight of at least 10 and at most 20 that does not have
+  6) Find all armor that has a weight of at least 10 and at most 20 that does not have
      an "anti-evil" flag.  The "@C~@W" symbol indicates "not" when it is used as a prefix
      for a key in a key-value pair.
-     "@Gdinv search type armor minweight 10 maxweight 20 ~flags anti-evil@W"
+     "@Gdinv search type armor minweight 10 maxweight 20 ~flag anti-evil@W"
 
-  6) Find everything in the container with relative location name "2.bag"
+  7) Find everything in the container with relative location name "2.bag"
      "@Gdinv search rloc 2.bag@W"
 
 Queries support lots of keys that are found when you identify an item.  Here is the
