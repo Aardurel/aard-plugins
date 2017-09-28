@@ -836,7 +836,7 @@ function OnPluginSend(msg)
     -- example, we might be sending a command to the mud to go AFK, or quit, or write a note.
     setPending(baseCommand)
 
-    check (Send(baseCommand))
+    check (SendNoEcho(baseCommand))
     return false
   end -- if
 
