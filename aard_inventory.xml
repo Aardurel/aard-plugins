@@ -780,7 +780,37 @@ function OnPluginBroadcast(msg, pluginId, pluginName, text)
     end -- if
 
   end -- if
-  end -- OnPluginBroadcast
+end -- OnPluginBroadcast
+
+
+-- We monitor traffic to the mud in OnPluginSend() in order to scan for a few specific commands.
+-- If we find one of the special commands that can impact safe execution calls, then we set an
+-- appropriate "pending" flag.  For example, if the plugin sees that an "afk" message is in
+-- transit to the mud, we want to let the safe execution framework know that we'll be in the
+-- AFK state shortly.
+function setPending(msg)
+
+  if (string.lower(msg) == "afk") and (dbot.gmcp.getState() ~= dbot.stateAFK) then
+    dbot.execute.afkIsPending = true
+
+  elseif (string.lower(msg) == "quit") then
+    dbot.execute.quitIsPending = true
+
+  elseif (string.lower(msg) == "note write") then
+    dbot.execute.noteIsPending = true
+
+    -- Add a trigger to clear the noteIsPending flag once the note starts
+    AddTriggerEx("drlNoteWriteConfirmationTrigger",
+                 "^("                                                   ..
+                    "You are now creating a new post in the .* forum.|" ..
+                    "You cannot post notes in this forum."              ..
+                 ")$",
+                 "dbot.execute.noteIsPending = false", 
+                 drlTriggerFlagsBaseline + trigger_flag.OneShot,
+                 custom_colour.NoChange, 0, "", "", sendto.script, 0)
+  end -- if
+
+end -- setPending
 
 
 function OnPluginSend(msg)
@@ -802,13 +832,9 @@ function OnPluginSend(msg)
   if (baseCommand ~= nil) then
     --dbot.note("@mBypass command = @W\"@G" .. (baseCommand or "nil") .. "@W\"")
 
-    -- It is helpful in some scenarios for us to know that we will soon be in AFK mode or that
-    -- the user has started to quit
-    if (string.lower(baseCommand) == "afk") and (dbot.gmcp.getState() ~= dbot.stateAFK) then
-      dbot.execute.afkIsPending = true
-    elseif (string.lower(baseCommand) == "quit") then
-      dbot.execute.quitIsPending = true
-    end -- if
+    -- It is helpful in some scenarios for us to know that something special is pending.  For
+    -- example, we might be sending a command to the mud to go AFK, or quit, or write a note.
+    setPending(baseCommand)
 
     check (Send(baseCommand))
     return false
@@ -830,12 +856,9 @@ function OnPluginSend(msg)
     return false -- Don't send the command right now
 
   else
-    -- It is helpful in some scenarios for us to know that we will soon be in AFK mode
-    if (string.lower(msg) == "afk") and (dbot.gmcp.getState() ~= dbot.stateAFK) then
-      dbot.execute.afkIsPending = true
-    elseif (string.lower(msg) == "quit") then
-      dbot.execute.quitIsPending = true
-    end -- if
+    -- It is helpful in some scenarios for us to know that something special is pending.  For
+    -- example, we might be sending a command to the mud to go AFK, or quit, or write a note.
+    setPending(msg)
 
     return true  -- Allow the command to go to the mud server
   end -- if
@@ -18336,6 +18359,7 @@ dbot.execute.doDelayCommands    = false
 dbot.execute.isDequeueRunning   = false
 dbot.execute.afkIsPending       = false
 dbot.execute.quitIsPending      = false
+dbot.execute.noteIsPending      = false
 dbot.execute.fenceIsDetected    = false
 dbot.execute.bypassPrefix       = "DINV_BYPASS "
 
@@ -18361,6 +18385,7 @@ function dbot.execute.fini(doSaveState)
   dbot.execute.isDequeueRunning = false
   dbot.execute.afkIsPending     = false
   dbot.execute.quitIsPending    = false
+  dbot.execute.noteIsPending    = false
 
   if (doSaveState) then
     -- Placeholder: If we ever add state to the execute module we should save it here
@@ -18712,6 +18737,11 @@ function dbot.execute.queue.dequeueCR()
       elseif dbot.execute.afkIsPending then
         dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
                   "@W\": a request to go AFK is pending on the mud server")
+        retval = DRL_RET_NOT_ACTIVE
+
+      elseif dbot.execute.noteIsPending then
+        dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
+                  "@W\": a request start a note is pending on the mud server")
         retval = DRL_RET_NOT_ACTIVE
 
       else
