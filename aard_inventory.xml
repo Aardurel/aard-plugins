@@ -579,7 +579,7 @@ require "serialize"
 require "tprint"
 require "gmcphelper"
 
-dofile(pluginPath .. "aardwolf_colors.lua")
+dofile(GetInfo(56) .. "\\worlds\\plugins\\aardwolf_colors.lua")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -1003,12 +1003,14 @@ function inv.init.atActiveCR()
       -- Kick off an immediate full inventory refresh so that we have an accurate view of what
       -- the user has.  They may have logged in without using the plugin and moved things around
       -- or added and removed items.
+--[[FIXME: temporarily disable the login refresh because it was confusing for chars on a new build
       retval = inv.items.refresh(0, invItemsRefreshLocAll, nil, nil)
       if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
          dbot.info("Initial full inventory rescan could not complete: " .. dbot.retval.getString(retval))
          dbot.info("Please run \"@Gdinv refresh all@W\" to ensure the plugin knows that you didn't do " ..
                    "something evil like logging in via telnet to move items around :P")
       end -- if
+--]]
     end -- if
   end -- if
 
@@ -13546,10 +13548,11 @@ function inv.statBonus.load()
   -- inv.statBonus.timer.update() function here.  Unfortunately, that function relies on mushclient
   -- components that may not be available when we load right at the start.  Instead, we simply
   -- kick off the timer manually and then let it self-perpetuate once it is going.
+--[[FIXME: this appears to cause a conflict for one user during the initial build step
   check (AddTimer(inv.statBonus.timer.name, 0, inv.statBonus.timer.min, inv.statBonus.timer.sec, "",
                   timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
                   "inv.statBonus.set"))
-
+--]]
   if (spellRetval ~= DRL_RET_SUCCESS) then
     return spellRetval
   else
