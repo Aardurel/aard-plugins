@@ -1,4 +1,4 @@
-<?xml version="1.4" encoding="iso-8859-1"?>
+<?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE muclient>
 <!-- Saved on Saturday, August 12, 2017, 8:51 AM -->
 <!-- MuClient version 4.98 -->
@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.0"
+   version="1.4"
    >
 <description trim="y">
 <![CDATA[
@@ -571,9 +571,8 @@ pluginId        = "88c86ea252fc1918556df9fe"
 -- care where the plugin file is installed because we will use mush's state directory for our
 -- saved data regardless of where the plugin xml file lives.
 pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
---print(pluginNameAbbr .. " state:  \"" .. pluginStatePath .. "\"")
 
---FIXME: print("Plugin version: " .. GetPluginInfo(GetPluginID(), 19))
+--print("Plugin version: " .. GetPluginInfo(GetPluginID(), 19))
 
 ----------------------------------------------------------------------------------------------------
 -- External dependencies
@@ -1158,7 +1157,7 @@ end -- inv.reload
 ----------------------------------------------------------------------------------------------------
 
 inv.version = {}
-inv.version.table = { pluginVer      = { major = 0, minor = 1, build = 4 },
+inv.version.table = { pluginVer      = { major = 0, minor = 1, build = 4 }, --FIXME: use plugin format info?
                       tableFormat    = { major = 0, minor = 1 },
                       cacheFormat    = { major = 0, minor = 1 },
                       consumeFormat  = { major = 0, minor = 1 },
@@ -5845,6 +5844,7 @@ end -- inv.items.refreshAtTime
 
 
 function inv.items.refreshDefault()
+  local retval = DRL_RET_SUCCESS
 
   if (inv.state == nil) then
     dbot.warn("inv.items.refreshDefault: inventory module is not initialized")
@@ -5853,7 +5853,11 @@ function inv.items.refreshDefault()
 
   -- By default, refresh only dirty locations and skip item locations that don't contain any
   -- unidentified items.
-  return inv.items.refresh(0, invItemsRefreshLocDirty, nil, nil)
+  if (inv.items.refreshGetPeriod() > 0) then
+    retval = inv.items.refresh(0, invItemsRefreshLocDirty, nil, nil)
+  end -- if
+
+  return retval
 end -- inv.items.refreshDefault
 
 
