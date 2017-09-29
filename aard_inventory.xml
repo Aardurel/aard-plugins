@@ -565,8 +565,13 @@ Feature Wishlist
 pluginNameCmd   = "dinv" 
 pluginNameAbbr  = "DINV" 
 pluginId        = "88c86ea252fc1918556df9fe"
-pluginPath      = GetPluginInfo(GetPluginID(), 20)
-pluginStatePath = (pluginPath or "nil") .. "state\\" .. pluginNameCmd .. "-" .. pluginId
+
+-- Get an absolute path to the plugin's state directory.  We don't want to use just the relative
+-- path in GetInfo(85) in case someone's current directory isn't where we'd expect.  We no longer
+-- care where the plugin file is installed because we will use mush's state directory for our
+-- saved data regardless of where the plugin xml file lives.
+pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
+--print(pluginNameAbbr .. " state:  \"" .. pluginStatePath .. "\"")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -579,7 +584,8 @@ require "serialize"
 require "tprint"
 require "gmcphelper"
 
-dofile(GetInfo(56) .. "\\worlds\\plugins\\aardwolf_colors.lua")
+-- Use the absolute path to the file in case a user's current directory isn't what we'd expect
+dofile(GetInfo(56) .. GetInfo(60) .. "aardwolf_colors.lua")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -10903,6 +10909,31 @@ function inv.priority.addDefault()
     dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric\": " .. dbot.retval.getString(retval))
   end -- if
 
+  retval = inv.priority.add(
+    "cleric-tank", -- Equipment priorities using the default cleric weightings from the aardwolf scoring system
+    { 
+      { -- Priorities for levels 1 - 291
+        minLevel = 1, 
+        maxLevel = 291, 
+        priorities = { 
+                       str        = 12,  
+                       int        = 12,
+                       wis        = 15,
+                       dex        = 13, 
+                       con        = 15,  
+                       luck       = 13,  
+                       hit        = 5,  
+                       dam        = 5,
+                       avedam     = 4,
+                       offhandDam = 4,
+                     }
+      }
+    })
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric-tank\": " ..
+              dbot.retval.getString(retval))
+  end -- if
+
   -------------------------
   -- Priority: psi-no-melee
   -------------------------
@@ -16906,7 +16937,7 @@ function dbot.backup.current()
   end -- if
 
   if (not inv.config.table.isBackupEnabled) then
-    dbot.note("Backups are disabled")
+    dbot.note("Automatic ackups are disabled")
     return DRL_RET_SUCCESS
   end -- if
 
