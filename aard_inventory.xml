@@ -3536,40 +3536,48 @@ function inv.cli.backup.fn(name, line, wildcards)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping backup request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsBackup, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping backup request: character is not in the active state")
-    return inv.tags.stop(invTagsBackup, line, DRL_RET_NOT_ACTIVE)
-  end -- if
+    retval = inv.tags.stop(invTagsBackup, line, DRL_RET_UNINITIALIZED)
 
-  if (command == "on") then
+  elseif (command == "on") then
     inv.config.table.isBackupEnabled = true
     dbot.info("Automatic backups are @GENABLED@W")
     retval = inv.config.save()
     retval = inv.tags.stop(invTagsBackup, line, retval)
+
   elseif (command == "off") then
     inv.config.table.isBackupEnabled = false
     dbot.info("Automatic backups are @RDISABLED@W")
     retval = inv.config.save()
     retval = inv.tags.stop(invTagsBackup, line, retval)
+
+  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
+    dbot.info("Skipping backup request: character is not in the active state")
+    retval = inv.tags.stop(invTagsBackup, line, DRL_RET_NOT_ACTIVE)
+
   elseif (command == "list") then
     retval = dbot.backup.list(line)
+
   elseif (command == "create") and (backupName ~= "") then
     retval = dbot.backup.create(backupName, line)
+
   elseif (command == "delete") and (backupName ~= "") then
     retval = dbot.backup.delete(backupName, line, false)
+
   elseif (command == "restore") and (backupName ~= "") then
     retval = dbot.backup.restore(backupName, line)   
+
   elseif (command == "auto") then -- Note: auto is a hidden mode and not included in the help file
     retval = dbot.backup.current()
+
   else
     inv.cli.backup.usage()
     retval = inv.tags.stop(invTagsBackup, line, DRL_RET_INVALID_PARAM)
+
   end -- if
 
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.cli.backup.fn: Failed to perform backup request \"@Y" .. command .. " " .. backupName ..
-              "@W\": " .. dbot.retval.getString(retval))
+    dbot.debug("inv.cli.backup.fn: Unable to perform backup request \"@Y" .. command .. " " .. backupName ..
+               "@W\": " .. dbot.retval.getString(retval))
   end -- if
 end -- inv.cli.backup.fn
 
@@ -16940,7 +16948,7 @@ function dbot.backup.current()
   end -- if
 
   if (not inv.config.table.isBackupEnabled) then
-    dbot.note("Automatic ackups are disabled")
+    dbot.note("Automatic backups are disabled")
     return DRL_RET_SUCCESS
   end -- if
 
