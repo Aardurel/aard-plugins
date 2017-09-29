@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.3"
+   version="1.4"
    >
 <description trim="y">
 <![CDATA[
@@ -1179,7 +1179,11 @@ end -- inv.reload
 ----------------------------------------------------------------------------------------------------
 
 inv.version = {}
-inv.version.table = { pluginVer      = { major = 0, minor = 1, build = 4 }, --FIXME: use plugin format info?
+
+_, _, inv.version.pluginMajor, inv.version.pluginMinor =
+   string.find(tostring(GetPluginInfo(GetPluginID(), 19)), "(%d+).(%d+)")
+
+inv.version.table = { pluginVer      = { major = inv.version.pluginMajor, minor = inv.version.pluginMinor },
                       tableFormat    = { major = 0, minor = 1 },
                       cacheFormat    = { major = 0, minor = 1 },
                       consumeFormat  = { major = 0, minor = 1 },
@@ -1195,29 +1199,28 @@ end -- inv.version.get
 
 
 function inv.version.display()
-  dbot.print("\n @y" .. pluginNameAbbr .. " Aardwolf Plugin\n" ..
-                "------------------------@w")
+  dbot.print("\n @y" .. pluginNameAbbr .. "  Aardwolf Plugin\n" ..
+                "-----------------------@w")
   dbot.print("@WPlugin Version:    @G" .. 
                 inv.version.table.pluginVer.major .. "." ..
-                inv.version.table.pluginVer.minor .. "." ..
-                inv.version.table.pluginVer.build .. "@w")
+                inv.version.table.pluginVer.minor .. "@w")
   dbot.print("")
-  dbot.print("@WInv. Table Format:   @G" .. 
+  dbot.print("@WInv. Table Format: @G" .. 
                 inv.version.table.tableFormat.major .. "." ..
                 inv.version.table.tableFormat.minor .. "@w")
-  dbot.print("@WInv. Cache Format:   @G" .. 
+  dbot.print("@WInv. Cache Format: @G" .. 
                 inv.version.table.cacheFormat.major .. "." ..
                 inv.version.table.cacheFormat.minor .. "@w")
-  dbot.print("@WConsumable Format:   @G" .. 
+  dbot.print("@WConsumable Format: @G" .. 
                 inv.version.table.consumeFormat.major .. "." ..
                 inv.version.table.consumeFormat.minor .. "@w")
-  dbot.print("@WPriorities Format:   @G" .. 
+  dbot.print("@WPriorities Format: @G" .. 
                 inv.version.table.priorityFormat.major .. "." ..
                 inv.version.table.priorityFormat.minor .. "@w")
-  dbot.print("@WEquip Set Format:    @G" .. 
+  dbot.print("@WEquip Set Format:  @G" .. 
                 inv.version.table.setFormat.major .. "." ..
                 inv.version.table.setFormat.minor .. "@w")
-  dbot.print("@WSnapshot Format:     @G" .. 
+  dbot.print("@WSnapshot Format:   @G" .. 
                 inv.version.table.snapshotFormat.major .. "." ..
                 inv.version.table.snapshotFormat.minor .. "@w")
   dbot.print("")
@@ -10347,7 +10350,8 @@ function inv.priority.load()
                                         inv.priority.reset)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.priority.load: Failed to load table from file \"@R" .. 
-              dbot.backup.getCurrentDir() .. inv.priority.stateName .. "@W\": " .. dbot.retval.getString(retval))
+              dbot.backup.getCurrentDir() .. inv.priority.stateName .. "@W\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
   -- Check if the priority table version we loaded is compatible with the current code
@@ -16061,7 +16065,7 @@ function dbot.updateRaw(retval, page, status, headers, fullStatus, requestUrl)
     local remoteVersion = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) or 0
 
     if (remoteVersion == currentVersion) then
-      dbot.info("Your plugin is up-to-date at version \"" .. currentVersion .. "\"")
+      dbot.info("Your plugin is up-to-date at version " .. currentVersion)
 
     elseif (remoteVersion < currentVersion) then
       dbot.warn("Your current plugin (v" .. currentVersion .. ") is reporting that it " ..
