@@ -542,7 +542,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.backup.fn"
-   match="^[ ]*dinv[ ]+backup[ ]+(list|create|delete|restore|auto)[ ]*([^ ]+)?[ ]*$"
+   match="^[ ]*dinv[ ]+backup[ ]+(on|off|list|create|delete|restore|auto)[ ]*([^ ]+)?[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1316,7 +1316,8 @@ function inv.config.new()
            setFormat       = version.setFormat,
            snapshotFormat  = version.snapshotFormat,
            isPromptEnabled = true,
-           buildExecuted   = false,
+           isBackupEnabled = true,
+           isBuildExecuted = false,
            refreshPeriod   = inv.items.timer.refreshMin
          }
 end -- inv.config.new
@@ -3532,7 +3533,17 @@ function inv.cli.backup.fn(name, line, wildcards)
     return inv.tags.stop(invTagsBackup, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  if (command == "list") then
+  if (command == "on") then
+    inv.config.table.isBackupEnabled = true
+    dbot.info("Automatic backups are @GENABLED@W")
+    retval = inv.config.save()
+    retval = inv.tags.stop(invTagsBackup, line, retval)
+  elseif (command == "off") then
+    inv.config.table.isBackupEnabled = false
+    dbot.info("Automatic backups are @RDISABLED@W")
+    retval = inv.config.save()
+    retval = inv.tags.stop(invTagsBackup, line, retval)
+  elseif (command == "list") then
     retval = dbot.backup.list(line)
   elseif (command == "create") and (backupName ~= "") then
     retval = dbot.backup.create(backupName, line)
@@ -3555,7 +3566,8 @@ end -- inv.cli.backup.fn
 
 
 function inv.cli.backup.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " backup @G[list | create | delete | restore] <backup name>@w")
+  dbot.print("@W    " .. pluginNameCmd ..
+             " backup @G[on | off | list | create | delete | restore] <backup name>@w")
 end -- inv.cli.backup.usage
 
 
@@ -3567,6 +3579,9 @@ function inv.cli.backup.examples()
 The plugin creates automatic backups for all of your plugin data.  It also gives
 you the ability to create manual backups at any time.  By default, the plugin
 keeps 4 automatic backups.
+
+By default, automatic backups are enabled.  You can enable or disable the 
+automatic backups with "@Gdinv backup on@W" or "@Gdinv backup off@W".
 
 Most automatic backup systems rotate all previous automatic backups when a new 
 backup is created.  In other words, if you have automatic backups 1, 2, 3, and 4
@@ -5632,7 +5647,7 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
   -- the build.  The main concern is that we don't want an auto-refresh to
   -- clog up the system for several minutes without warning the first time the
   -- user enables this plugin.
-  if (inv.config.table.buildExecuted == false) then
+  if (inv.config.table.isBuildExecuted == false) then
     dbot.print(
 [[@W
   You must perform at least one manual inventory build before we allow inventory refresh
@@ -5877,7 +5892,7 @@ function inv.items.build(endTag)
     return inv.tags.stop(invTagsBuild, endTag, retval)
   end -- if
 
-  inv.config.table.buildExecuted = true
+  inv.config.table.isBuildExecuted = true
   inv.state = invStateIdle
 
   -- The call to refresh is a little unusual in that we pass the build endTag to the refresh
@@ -16608,17 +16623,18 @@ function dbot.storage.init.atActive()
 
   -- Create directories for our state if they do not yet exist
   assert(os.execute("if not exist \"" .. pluginStatePath .. "\" mkdir " .. pluginStatePath .. " > nul"),
-         "dbot.backup.init.atActive: Failed to create plugin state directory \"" .. pluginStatePath .. "\"")
+         "dbot.storage.init.atActive: Failed to create plugin state directory \"" .. pluginStatePath .. "\"")
 
   local baseDir = dbot.backup.getBaseDir()
-  dbot.debug("dbot.backup.init.atActive: baseDir=\"" .. baseDir .. "\"")
+  dbot.debug("dbot.storage.init.atActive: baseDir=\"" .. baseDir .. "\"")
   assert(os.execute("if not exist \"" .. baseDir .. "\" mkdir " .. baseDir .. " > nul"),
-         "dbot.backup.init.atActive: Failed to create character-specific state directory \"" .. baseDir .. "\"")
+         "dbot.storage.init.atActive: Failed to create character-specific state directory \"" ..
+         baseDir .. "\"")
 
   local currentDir = dbot.backup.getCurrentDir()
-  dbot.debug("dbot.backup.init.atActive: currentDir=\"" .. currentDir .. "\"")
+  dbot.debug("dbot.storage.init.atActive: currentDir=\"" .. currentDir .. "\"")
   assert(os.execute("if not exist \"" .. currentDir .. "\" mkdir " .. currentDir .. " > nul"),
-         "dbot.backup.init.atActive: Failed to create current state directory \"" .. currentDir .. "\"")
+         "dbot.storage.init.atActive: Failed to create current state directory \"" .. currentDir .. "\"")
 
   return DRL_RET_SUCCESS
 
@@ -16887,6 +16903,11 @@ function dbot.backup.current()
   if (dbot.gmcp.isInitialized == false) then
     dbot.debug("dbot.backup.current: Skipping backup request: GMCP is not initialized")
     return DRL_RET_UNINITIALIZED
+  end -- if
+
+  if (not inv.config.table.isBackupEnabled) then
+    dbot.note("Backups are disabled")
+    return DRL_RET_SUCCESS
   end -- if
 
   if dbot.gmcp.isInCombat() then
