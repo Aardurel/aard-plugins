@@ -16948,7 +16948,7 @@ function dbot.backup.current()
   end -- if
 
   if (not inv.config.table.isBackupEnabled) then
-    dbot.note("Automatic backups are disabled")
+    dbot.debug("Automatic backups are disabled")
     return DRL_RET_SUCCESS
   end -- if
 
