@@ -12109,7 +12109,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
 
-    if (objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull) and
+    if ((objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull)) and
        (objLevel ~= nil) and (objLevel <= level) then
 
       if (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
@@ -16845,7 +16845,12 @@ function dbot.backup.init.atActive()
   assert(os.execute("if not exist \"" .. backupDir .. "\" mkdir " .. backupDir .. " > nul"),
          "dbot.backup.init.atActive: Failed to create backup directory \"" .. backupDir .. "\"")
 
-  -- Add a backup timer to periodically back up the plugin state
+  -- Add a backup timer to periodically back up the plugin state.  We keep the timer running
+  -- even if automatic backups are currently disabled.  The dbot.backup.current() function
+  -- only does the backup if automatic backups are enabled so it doesn't hurt to call it
+  -- periodically from the timer.  Yes, I should probably redo this so that we start the
+  -- timer when someone re-enables automatic backups but I'm feeling a bit lazy and this
+  -- only runs once every 4 hours by default so there's not a ton of overhead...
   check (AddTimer(dbot.backup.timer.name, 
                   dbot.backup.timer.hour, dbot.backup.timer.min, dbot.backup.timer.sec, "",
                   timer_flag.Enabled + timer_flag.Replace,
