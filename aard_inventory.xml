@@ -1004,19 +1004,22 @@ function inv.init.atActiveCR()
 
     if (retval == DRL_RET_SUCCESS) then
       inv.init.initializedActive = true
-      dbot.info("Plugin is fully initialized: Scanning all items and containers")
+      dbot.info("Plugin is fully initialized")
 
       -- Kick off an immediate full inventory refresh so that we have an accurate view of what
       -- the user has.  They may have logged in without using the plugin and moved things around
-      -- or added and removed items.
---[[FIXME: temporarily disable the login refresh because it was confusing for chars on a new build
-      retval = inv.items.refresh(0, invItemsRefreshLocAll, nil, nil)
-      if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
-         dbot.info("Initial full inventory rescan could not complete: " .. dbot.retval.getString(retval))
-         dbot.info("Please run \"@Gdinv refresh all@W\" to ensure the plugin knows that you didn't do " ..
-                   "something evil like logging in via telnet to move items around :P")
+      -- or added and removed items.  Ideally, we would do this at every login.  However, some
+      -- users may have refreshes disabled because they want to handle things manually.  That's
+      -- fine too.  If refreshes are disabled (their period is 0 minutes) then we skip this.
+      if (inv.items.refreshGetPeriod() > 0) then
+        dbot.info("Running a full scan to check if anything was moved outside of this client")
+        retval = inv.items.refresh(0, invItemsRefreshLocAll, nil, nil)
+        if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
+           dbot.info("Initial full inventory rescan could not complete: " .. dbot.retval.getString(retval))
+           dbot.info("Please run \"@Gdinv refresh all@W\" to ensure the plugin knows that you didn't do " ..
+                     "something evil like logging in via telnet to move items around :P")
+        end -- if
       end -- if
---]]
     end -- if
   end -- if
 
@@ -1324,7 +1327,7 @@ function inv.config.new()
            isPromptEnabled = true,
            isBackupEnabled = true,
            isBuildExecuted = false,
-           refreshPeriod   = inv.items.timer.refreshMin
+           refreshPeriod   = 0
          }
 end -- inv.config.new
 
