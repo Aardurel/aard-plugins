@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
+<?xml version="1.4" encoding="iso-8859-1"?>
 <!DOCTYPE muclient>
 <!-- Saved on Saturday, August 12, 2017, 8:51 AM -->
 <!-- MuClient version 4.98 -->
@@ -573,6 +573,7 @@ pluginId        = "88c86ea252fc1918556df9fe"
 pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
 --print(pluginNameAbbr .. " state:  \"" .. pluginStatePath .. "\"")
 
+--FIXME: print("Plugin version: " .. GetPluginInfo(GetPluginID(), 19))
 
 ----------------------------------------------------------------------------------------------------
 -- External dependencies
@@ -1157,7 +1158,7 @@ end -- inv.reload
 ----------------------------------------------------------------------------------------------------
 
 inv.version = {}
-inv.version.table = { pluginVer      = { major = 0, minor = 1, build = 3 },
+inv.version.table = { pluginVer      = { major = 0, minor = 1, build = 4 },
                       tableFormat    = { major = 0, minor = 1 },
                       cacheFormat    = { major = 0, minor = 1 },
                       consumeFormat  = { major = 0, minor = 1 },
@@ -13504,6 +13505,7 @@ end -- inv.snapshot.wearCR
 
 inv.statBonus              = {}
 inv.statBonus.init         = {}
+inv.statBonus.closingMsg   = "{ \\dinv inv.statBonus }"
 inv.statBonus.currentBonus = { int = 0, luck = 0, wis = 0, str = 0, dex = 0, con = 0 }
 
 inv.statBonus.stateNameSpells = "inv-stats-spells.state"
@@ -13969,8 +13971,11 @@ function inv.statBonus.setCR()
 
     -- Run the stats command so that we can trigger on the stats and save them
     local resultData = dbot.callback.new()
-    retval = dbot.execute.safe.command("stats", inv.statBonus.setSetupFn, nil,
-                                       dbot.callback.default, resultData)
+    local commandArray = {}
+    table.insert(commandArray, "stats")
+    table.insert(commandArray, "echo " .. inv.statBonus.closingMsg)
+    retval = dbot.execute.safe.commands(commandArray, inv.statBonus.setSetupFn, nil,
+                                        dbot.callback.default, resultData)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.statBonus.setCR: Failed to safely execute \"@Gstats@W\": " ..
                 dbot.retval.getString(retval))
@@ -14110,7 +14115,7 @@ function inv.statBonus.trigger.get(line)
   end -- if
 
   -- Shut off the trigger if we hit the end of the stats output
-  if (string.find(line, "See \'help maxstats\' for details on limits")) then
+  if (line == inv.statBonus.closingMsg) then
     EnableTrigger(inv.statBonus.trigger.getName, false)
   end -- if
 
