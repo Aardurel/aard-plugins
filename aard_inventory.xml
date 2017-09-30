@@ -1026,7 +1026,8 @@ function inv.init.atActiveCR()
 
     if (retval == DRL_RET_SUCCESS) then
       inv.init.initializedActive = true
-      dbot.info("Plugin is fully initialized")
+      dbot.info("Plugin version " .. inv.version.pluginMajor .. "." .. inv.version.pluginMinor ..
+                " is fully initialized")
 
       -- Kick off an immediate full inventory refresh so that we have an accurate view of what
       -- the user has.  They may have logged in without using the plugin and moved things around
@@ -13697,11 +13698,10 @@ function inv.statBonus.load()
   -- inv.statBonus.timer.update() function here.  Unfortunately, that function relies on mushclient
   -- components that may not be available when we load right at the start.  Instead, we simply
   -- kick off the timer manually and then let it self-perpetuate once it is going.
---[[FIXME: this appears to cause a conflict for one user during the initial build step
   check (AddTimer(inv.statBonus.timer.name, 0, inv.statBonus.timer.min, inv.statBonus.timer.sec, "",
                   timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
                   "inv.statBonus.set"))
---]]
+
   if (spellRetval ~= DRL_RET_SUCCESS) then
     return spellRetval
   else
@@ -18310,13 +18310,16 @@ function dbot.wish.getCR()
   -- we can't get the list of wishes and we need to try again later
   if (charState ~= dbot.stateActive) then
     dbot.note("Skipping request to get list of active wishes: you are in the state \"" .. 
-            dbot.gmcp.getStateString(charState) .. "\"")
+              dbot.gmcp.getStateString(charState) .. "\"")
     retval = DRL_RET_NOT_ACTIVE
 
   -- We are in the active state and can execute commands on the server side
   elseif (pageLines ~= nil) then
 
     -- Execute the "wish list" command
+    -- TODO: Doh!  I just found the pagesize option in the "help telnet" helpfile.  This is in
+    --       the telnet 102 interface and it lets you enable or disable paging easily.  It even
+    --       remembers pagesize for you.  We may want to switch to that at some point.
     local commandArray = {}
     table.insert(commandArray, "pagesize 0")
     table.insert(commandArray, "wish list")
