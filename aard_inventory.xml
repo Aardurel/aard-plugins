@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.4"
+   version="1.5"
    >
 <description trim="y">
 <![CDATA[
@@ -16847,18 +16847,18 @@ dbot.storage.hashChars   = (2 * 20) -- utils.hash uses a 160-bit (20 byte) hash 
 function dbot.storage.init.atActive()
 
   -- Create directories for our state if they do not yet exist
-  assert(os.execute("if not exist \"" .. pluginStatePath .. "\" mkdir " .. pluginStatePath .. " > nul"),
+  assert(os.execute("if not exist \"" .. pluginStatePath .. "\" mkdir \"" .. pluginStatePath .. "\" > nul"),
          "dbot.storage.init.atActive: Failed to create plugin state directory \"" .. pluginStatePath .. "\"")
 
   local baseDir = dbot.backup.getBaseDir()
   dbot.debug("dbot.storage.init.atActive: baseDir=\"" .. baseDir .. "\"")
-  assert(os.execute("if not exist \"" .. baseDir .. "\" mkdir " .. baseDir .. " > nul"),
+  assert(os.execute("if not exist \"" .. baseDir .. "\" mkdir \"" .. baseDir .. "\" > nul"),
          "dbot.storage.init.atActive: Failed to create character-specific state directory \"" ..
          baseDir .. "\"")
 
   local currentDir = dbot.backup.getCurrentDir()
   dbot.debug("dbot.storage.init.atActive: currentDir=\"" .. currentDir .. "\"")
-  assert(os.execute("if not exist \"" .. currentDir .. "\" mkdir " .. currentDir .. " > nul"),
+  assert(os.execute("if not exist \"" .. currentDir .. "\" mkdir \"" .. currentDir .. "\" > nul"),
          "dbot.storage.init.atActive: Failed to create current state directory \"" .. currentDir .. "\"")
 
   return DRL_RET_SUCCESS
@@ -17025,7 +17025,7 @@ function dbot.backup.init.atActive()
 
   local backupDir = dbot.backup.getBackupDir()
   dbot.debug("dbot.backup.init.atActive: backupDir=\"" .. backupDir .. "\"")
-  assert(os.execute("if not exist \"" .. backupDir .. "\" mkdir " .. backupDir .. " > nul"),
+  assert(os.execute("if not exist \"" .. backupDir .. "\" mkdir \"" .. backupDir .. "\" > nul"),
          "dbot.backup.init.atActive: Failed to create backup directory \"" .. backupDir .. "\"")
 
   -- Add a backup timer to periodically back up the plugin state.  We keep the timer running
@@ -17077,8 +17077,8 @@ function dbot.backup.getBackups()
   end -- if
 
   local tmpFile = backupDir .. "temp.txt"
-
-  assert(os.execute("dir /s /b /o:n /a:d " .. backupDir .. " > \"" .. tmpFile .. "\""))
+  dbot.debug("CLI: " .. "dir /s /b /o:n /a:d \"" .. backupDir .. "\" > \"" .. tmpFile .. "\"")
+  assert(os.execute("dir /s /b /o:n /a:d \"" .. backupDir .. "\" > \"" .. tmpFile .. "\""))
 
   for dirName in io.lines(tmpFile) do
     local fullName = string.gsub(dirName, "^.*backup.*\\", "") or ""
@@ -17186,8 +17186,10 @@ function dbot.backup.current()
     if (backupFile ~= nil) then
       dbot.note("Moving backup \"@G" .. currentBackup .. "@W\" to \"@G" .. olderBackup .. "@W\"")
       local fullOlderBackup = string.gsub(backupFile.dirName, currentBackup, olderBackup)
-      dbot.debug("CLI: " .. "move " .. backupFile.dirName .. " " .. fullOlderBackup .. " > nul")
-      assert(os.execute("move " .. backupFile.dirName .. " " .. fullOlderBackup .. " > nul"))
+      fullOlderBackup = string.gsub(fullOlderBackup, ".*\\", "")
+
+      dbot.debug("CLI: " .. "rename \"" .. backupFile.dirName .. "\" \"" .. fullOlderBackup .. "\" > nul")
+      assert(os.execute("rename \"" .. backupFile.dirName .. "\" \"" .. fullOlderBackup .. "\" > nul"))
     end -- if
   end -- for
 
@@ -17256,6 +17258,7 @@ function dbot.backup.create(name, endTag)
     dbot.warn("dbot.backup.create: Failed to get current directory: " .. dbot.retval.getString(retval))
     return inv.tags.stop(invTagsBackup, endTag, retval)
   end -- if
+  currentDir = string.gsub(currentDir, "\\$", "") -- Some versions of xcopy hate if there is a trailing slash
 
   local backupDir, retval = dbot.backup.getBackupDir()
   if (retval ~= DRL_RET_SUCCESS) then
@@ -17275,9 +17278,9 @@ function dbot.backup.create(name, endTag)
   -- We append the time to the end of the backup name to help track it
   local backupTime = os.time()
   local newBackupDir = backupDir .. name .. "-" .. backupTime
-  dbot.debug("dbot.backup.create: CLI = \"@y" .. "xcopy /E /I " .. currentDir .. " " .. newBackupDir ..
-             " > nul@W\"")
-  assert(os.execute("xcopy /E /I " .. currentDir .. " " .. newBackupDir .. " > nul"))
+  dbot.debug("dbot.backup.create: CLI = \"@y" .. "xcopy /E /I \"" .. currentDir .. "\" \"" .. newBackupDir ..
+             "\" > nul@W\"")
+  assert(os.execute("xcopy /E /I \"" .. currentDir .. "\" \"" .. newBackupDir .. "\" > nul"))
 
   dbot.info("Created backup @W(@c" .. os.date("%c", backupTime) .. "@W) @G" .. name)
 
@@ -17303,8 +17306,8 @@ function dbot.backup.delete(name, endTag, isQuiet)
   local numBackupsDeleted = 0
   for _, backupName in ipairs(backupNames) do
     if (backupName.baseName == name) then
-      dbot.debug("dbot.backup.delete: Executing \"rmdir /s /q " .. backupName.dirName .. "\"")
-      assert(os.execute("rmdir /s /q " .. backupName.dirName .. " > nul"))
+      dbot.debug("dbot.backup.delete: Executing \"rmdir /s /q \"" .. backupName.dirName .. "\"\"")
+      assert(os.execute("rmdir /s /q \"" .. backupName.dirName .. "\" > nul"))
       if (isQuiet == false) then
         dbot.info("Deleted backup @W(@c" .. os.date("%c", backupName.baseTime) ..
                   "@W) @G" .. backupName.baseName)
@@ -17340,6 +17343,7 @@ function dbot.backup.restore(name, endTag)
     dbot.warn("dbot.backup.restore: Failed to get current directory: " .. dbot.retval.getString(retval))
     return inv.tags.stop(invTagsBackup, endTag, retval)
   end -- if
+  currentDir = string.gsub(currentDir, "\\$", "") -- Some versions of xcopy hate if there is a trailing slash
 
   -- Check if the backup name we want to restore is one of the available backups and use it if it is
   local didRestore = false
@@ -17347,10 +17351,10 @@ function dbot.backup.restore(name, endTag)
     if (backupName.baseName == name) then
       dbot.info("Restoring backup @W(@c" .. os.date("%c", backupName.baseTime) ..
                 "@W) @G" .. backupName.baseName)
-      assert(os.execute("rmdir /s /q " .. currentDir .. " > nul"))
-      assert(os.execute("xcopy /E /I " .. backupName.dirName .. " " .. currentDir .. " > nul"))
-      dbot.debug("dbot.backup.restore: \"@y" .. "xcopy /E /I " .. backupName.dirName .. " " ..
-                 currentDir   .. "@W\"")
+      assert(os.execute("rmdir /s /q \"" .. currentDir .. "\" > nul"))
+      assert(os.execute("xcopy /E /I \"" .. backupName.dirName .. "\" \"" .. currentDir .. "\" > nul"))
+      dbot.debug("dbot.backup.restore: \"@y" .. "xcopy /E /I \"" .. backupName.dirName .. "\" \"" ..
+                 currentDir   .. "\"@W\"")
 
       -- We want to re-init everything to pick up the restored state.  We don't want to save the
       -- current state which will be overwritten.
