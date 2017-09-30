@@ -67,6 +67,7 @@ Usage
     dinv notify [none | light | standard | all]
     dinv cache [reset | size] [recent | frequent | all] <# entries>
     dinv tags <names | all> [on | off]
+    dinv reload
 
   Using equipment items
     dinv consume [add | remove | display | buy | small | big] <type> <name or quantity> <container>
@@ -75,6 +76,7 @@ Usage
 
   Plugin info
     dinv version
+    dinv update confirm
     dinv help <command>
 
 
