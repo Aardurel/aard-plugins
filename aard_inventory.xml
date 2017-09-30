@@ -594,7 +594,12 @@ pluginId        = "88c86ea252fc1918556df9fe"
 -- saved data regardless of where the plugin xml file lives.
 pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
 
---print("Plugin version: " .. GetPluginInfo(GetPluginID(), 19))
+-- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This 
+-- strips out any redundant ".\" in the path if it exists.
+pluginStatePath = string.gsub(pluginStatePath, "\\.\\", "\\")
+
+--print("Plugin state: " .. pluginStatePath)
+
 
 ----------------------------------------------------------------------------------------------------
 -- External dependencies
