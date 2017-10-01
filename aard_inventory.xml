@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.5"
+   version="1.6"
    >
 <description trim="y">
 <![CDATA[
@@ -18330,9 +18330,14 @@ function dbot.wish.getCR()
     --       the telnet 102 interface and it lets you enable or disable paging easily.  It even
     --       remembers pagesize for you.  We may want to switch to that at some point.
     local commandArray = {}
-    table.insert(commandArray, "pagesize 0")
-    table.insert(commandArray, "wish list")
-    table.insert(commandArray, "pagesize " .. pageLines)
+
+    if (pageLines == 0) then
+      table.insert(commandArray, "wish list")
+    else
+      table.insert(commandArray, "pagesize 0")
+      table.insert(commandArray, "wish list")
+      table.insert(commandArray, "pagesize " .. pageLines)
+    end -- if
 
     local resultData = dbot.callback.new()
     retval = dbot.execute.safe.commands(commandArray, dbot.wish.setupFn, nil,
@@ -18470,9 +18475,11 @@ function dbot.pagesize.init.atActive()
 
   -- Trigger on the output of "pagesize" and watch for an empty line indicating that we are done
   check (AddTriggerEx(dbot.pagesize.trigger.getName,
-                      "^$" ..
-                      "|You currently display ([0-9]+) lines per page." ..
-                      "|Use .* to disable paging.",
+                      "^("                                              ..
+                        "|You currently display [0-9]+ lines per page." ..
+                        "|You do not page long messages."               ..
+                        "|Use .* to disable paging."                    ..
+                      ")$",
                       "dbot.pagesize.trigger.fn(\"%1\")",
                       drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -18527,11 +18534,17 @@ function dbot.pagesize.show()
 end -- dbot.pagesize.show
 
 
-function dbot.pagesize.trigger.fn(size)
-  local lines = tonumber(size or "")
+function dbot.pagesize.trigger.fn(msg)
 
-  if (lines ~= nil) then
+  local _, _, lines = string.find(msg, "You currently display ([%d]+) lines per page")
+  lines = tonumber(lines or "")
+
+  if (msg == "You do not page long messages.") then
+    dbot.pagesize.lines = 0
+
+  elseif (lines ~= nil) then
     dbot.pagesize.lines = lines
+
   end -- if
 end -- dbot.pagesize.trigger.fn
 
