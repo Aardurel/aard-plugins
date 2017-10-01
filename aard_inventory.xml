@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.7"
+   version="1.8"
    >
 <description trim="y">
 <![CDATA[
@@ -199,6 +199,10 @@ Release Notes
    end tag.  In this scenario, the plugin will notify the user about the end tag via a warning notification
    instead of an echo.  Triggers cannot catch notifications though so any code relying on end tags should
    either detect when you go AFK or cleanly time out after a reasonable amount of time.
+
+8) If you add the portal wish after you have built your inventory table, you will need to either rebuild
+   the table (dinv build confirm) or forget/re-identify your portals (dinv forget type portal) and
+   (dinv refresh all).
 
 
 Feature Wishlist
@@ -11068,7 +11072,7 @@ function inv.priority.addDefault()
                      allphys      = 0.03,
                      allmagic     = 0.03,
                      avedam       = 1,
-                     offhandDam   = 0.33, 
+                     offhandDam   = 0.33,
                      regeneration = 5, 
                      sanctuary    = 50,
                      haste        = 20,
@@ -12206,11 +12210,6 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
 
-    if (objWearable == "portal") then --FIXME DEBUG
-      dbot.note("@YFIXME@W: Evaluating portal \"" .. (inv.items.getField(objId, invFieldColorName) or "nil") ..
-                "@W\": portal level=" .. objLevel .. ", target level=" .. level)
-    end -- if
-
     if ((objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull)) and
        (objLevel ~= nil) and (objLevel <= level) then
 
@@ -12222,11 +12221,6 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
         -- see everything in our inventory
         if (objWearable == "wield") then
           table.insert(weaponArray, { id = objId, score = score, offhand = offhandScore, weight = objWeight })
-        end -- if
-
-        if (objWearable == "portal") then -- FIXME DEBUG
-          dbot.note("@CFIXME@W:     \"" .. (inv.items.getField(objId, invFieldColorName) or "nil") ..
-                    "@W\": score=" .. (score or "nil"))
         end -- if
 
         for _,w in ipairs(inv.wearables[objWearable]) do
@@ -12242,11 +12236,6 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
             local nextBestName = inv.items.getStatField(nextBest.id, invStatFieldName)
             if (nextBestName ~= nil) then
               dbot.debug("Upgrading \"" .. w .. "\" to \"" .. nextBestName .. "\"")
-            end -- if
-
-            if (objWearable == "portal") then -- FIXME DEBUG
-              dbot.note("@MFIXME@W: Upgrading portal \"" .. w .. "\" to \"" .. (nextBestName or "nil") ..
-                        "\"")
             end -- if
 
             nextBest = tmp
