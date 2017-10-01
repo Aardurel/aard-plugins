@@ -12114,7 +12114,7 @@ function inv.set.createCR()
         dbot.debug("delta[" .. k .. "] = " .. statDelta[k] .. ", statValue = " .. v)
       end -- if
 
-      if (statDelta[k] ~= nil) and ((v - statDelta[k]) > 0) then
+      if (statDelta[k] ~= nil) and ((v - statDelta[k]) >= 0) then
         handicap[k] = handicap[k] - handicapDelta
         dbot.debug("Set handicap for \"" .. k .. "\" to " .. handicap[k])
         handicapExistsThisIter = true
@@ -12206,6 +12206,11 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
 
+    if (objWearable == "portal") then --FIXME DEBUG
+      dbot.note("@YFIXME@W: Evaluating portal \"" .. (inv.items.getField(objId, invFieldColorName) or "nil") ..
+                "@W\": portal level=" .. objLevel .. ", target level=" .. level)
+    end -- if
+
     if ((objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull)) and
        (objLevel ~= nil) and (objLevel <= level) then
 
@@ -12217,6 +12222,11 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
         -- see everything in our inventory
         if (objWearable == "wield") then
           table.insert(weaponArray, { id = objId, score = score, offhand = offhandScore, weight = objWeight })
+        end -- if
+
+        if (objWearable == "portal") then -- FIXME DEBUG
+          dbot.note("@CFIXME@W:     \"" .. (inv.items.getField(objId, invFieldColorName) or "nil") ..
+                    "@W\": score=" .. (score or "nil"))
         end -- if
 
         for _,w in ipairs(inv.wearables[objWearable]) do
@@ -12232,6 +12242,11 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
             local nextBestName = inv.items.getStatField(nextBest.id, invStatFieldName)
             if (nextBestName ~= nil) then
               dbot.debug("Upgrading \"" .. w .. "\" to \"" .. nextBestName .. "\"")
+            end -- if
+
+            if (objWearable == "portal") then -- FIXME DEBUG
+              dbot.note("@MFIXME@W: Upgrading portal \"" .. w .. "\" to \"" .. (nextBestName or "nil") ..
+                        "\"")
             end -- if
 
             nextBest = tmp
