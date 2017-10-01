@@ -83,7 +83,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.6"
+   version="1.7"
    >
 <description trim="y">
 <![CDATA[
