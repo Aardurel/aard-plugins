@@ -20,6 +20,7 @@ Version history:
   v0.2 - 2017-08-12 - Converted scripts into a plugin
   v0.3 - 2017-09-26 - Functional plugin published to github
   v1.0 - 2017-10-01 - It's alive!  Most pieces are verified by alpha testers.
+  v2.0 - 2017-10-03 - Bumping major because mush plugins think v1.10 == v1.1 :P  We'll use 2.0001 next.
 
 Description
 ===========
@@ -84,7 +85,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.9"
+   version="2.0001"
    >
 <description trim="y">
 <![CDATA[
@@ -12763,7 +12764,7 @@ end -- if
 
 
 -- Returns "didFindAStat", retval.  This is helpful in knowing if there was actually a difference
--- between the two given sets.  The "msgString" is a prefix appended to each display line.  The
+-- between the two given sets.  The "msgString" is a prefix prepended to each display line.  The
 -- "doPrintHeader" boolean indicates if we should print a stat header before displaying the stats.
 function inv.set.displayDiff(set1, set2, level, msgString, doPrintHeader)
   if (set1 == nil) or (set2 == nil) then
@@ -12895,12 +12896,12 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- for
   setStats.totResists = totResists
 
-  local statSizes = { { avedam = 3 }, { offhandDam = 3 }, { hit = 3 }, { dam = 3 },
+  local statSizes = { { avedam = 4 }, { offhandDam = 4 }, { hit = 3 }, { dam = 3 },
                       { int = 3 }, { wis = 3 }, { luck = 3 }, { str = 3 }, { dex = 3 }, { con = 3 },
                       { totResists = 3 }, { hp = 4 }, { mana = 4 }, { moves = 4 } } 
 
   local basicHeader = "@W" .. string.rep(" ", #msgString) ..
-                      "Ave Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects"
+                      " Ave  Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects"
 
   for i, statTable in ipairs(statSizes) do
     for statName, statDigits in pairs(statTable) do
