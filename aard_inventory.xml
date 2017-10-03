@@ -16,9 +16,10 @@ Durel's Bag-of-Tricks (dbot)
 
 Author: Durel
 Version history:
-  v0.0.1 - 2017-07-01 - Initial code
-  v0.0.2 - 2017-08-12 - Converted scripts into a plugin
-  v0.0.3 - 2017-09-26 - Fully functional plugin published to github
+  v0.1 - 2017-07-01 - Initial code
+  v0.2 - 2017-08-12 - Converted scripts into a plugin
+  v0.3 - 2017-09-26 - Functional plugin published to github
+  v1.0 - 2017-10-01 - It's alive!  Most pieces are verified by alpha testers.
 
 Description
 ===========
@@ -83,7 +84,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="1.8"
+   version="1.9"
    >
 <description trim="y">
 <![CDATA[
@@ -569,6 +570,16 @@ Feature Wishlist
   <alias
    script="inv.cli.update.fn"
    match="^[ ]*dinv[ ]+update[ ]+confirm[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.debug.fn"
+   match="^[ ]*dinv[ ]+debug(.*)$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1073,7 +1084,7 @@ function inv.fini(doSaveState)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.fini: Failed to backup plugin state: " .. dbot.retval.getString(retval))
     end -- if
-  
+
     -- Loop through all of the inv modules and call their de-init functions
     for module in inv.modules:gmatch("%S+") do
       local initVal = inv[module].fini(doSaveState)
@@ -3637,11 +3648,13 @@ function inv.cli.backup.examples()
   dbot.print(
 [[@W
 The plugin creates automatic backups for all of your plugin data.  It also gives
-you the ability to create manual backups at any time.  By default, the plugin
-keeps 4 automatic backups.
+you the ability to create manual backups at any time.
 
-By default, automatic backups are enabled.  You can enable or disable the 
-automatic backups with "@Gdinv backup on@W" or "@Gdinv backup off@W".
+By default, the plugin enables automatic backups and maintains backups for the
+three most recent days you used the plugin.  Automatic backups are taken when you
+log out, once every 4 hours you are logged in, and every time you go AFK for at
+least 5 seconds.  You can enable or disable automatic backups by running
+"@Gdinv backup on@W" or "@Gdinv backup off@W".
 
 Most automatic backup systems rotate all previous automatic backups when a new 
 backup is created.  In other words, if you have automatic backups 1, 2, 3, and 4
@@ -3655,11 +3668,8 @@ time.
 
 The compromise solution implemented in this plugin is for automatic backups to only
 overwrite backup #1 and to rotate the backups at most once per day.  This gives you
-frequent backups from "today" (backup #1) and backups from three previous days
-(#2 - #4).
-
-Automatic backups are taken when you log out, once every 4 hours you are logged in,
-and every time you go AFK for at least 5 seconds.
+frequent backups from "today" (backup #1) and backups from two previous days
+(backups #2 and #3).
 
 You have the option to list existing backups (sorted by creation date), create
 new manual backups, delete a backup (automatic or manual), or restore from an existing
@@ -3673,12 +3683,11 @@ Examples:
      all other backups were created manually.
      "@Gdinv backup list@W"
 
-@WDINV@W Detected 6 backups
+@WDINV@W Detected 5 backups
 @w  @W(@c09/18/17 18:30:57@W) @GdummyBackupToShowItWorksForTheHelpfile
 @w  @W(@c09/18/17 18:06:16@W) @Gauto
 @w  @W(@c09/17/17 22:51:49@W) @Gauto2
 @w  @W(@c09/16/17 23:12:53@W) @Gauto3
-@w  @W(@c09/15/17 23:48:40@W) @Gauto4
 @w  @W(@c09/15/17 23:42:49@W) @Gbaseline@W
 
   3) Delete the silly manual backup "dummyBackupToShowItWorksForTheHelpfile".
@@ -4477,6 +4486,17 @@ Examples:
 ]])
 
 end -- inv.cli.help.examples
+
+
+inv.cli.debug = {}
+function inv.cli.debug.fn(name, line, wildcards)
+  local command = wildcards[1] or ""
+  command = Trim(command)
+
+  dbot.note("Debug params = \"" .. command .. "\"")
+  dbot.shell(command)
+
+end -- inv.cli.debug.fn
 
 
 ----------------------------------------------------------------------------------------------------
@@ -16096,6 +16116,155 @@ end -- dbot.updateRaw
 
 
 ----------------------------------------------------------------------------------------------------
+-- dbot.shell: Run a shell command in the background without pulling up a command prompt window
+----------------------------------------------------------------------------------------------------
+
+function dbot.shell(shellCommand)
+  local retval = DRL_RET_SUCCESS
+  local mushRetval
+
+  if (shellCommand == nil) or (shellCommand == "") then
+    dbot.warn("dbot.shell: Missing shell command")
+    return DRL_RET_INVALID_PARAMETER
+  end -- if
+
+  dbot.debug("dbot.shell: Executing \"@G" .. "/C " .. shellCommand .. "@W\"")
+
+  local ok, error = utils.shellexecute("cmd", "/C " .. shellCommand, GetInfo(64), "open", 0)
+  if (not ok) then
+    dbot.warn("dbot.shell: Command \"@G" .. shellCommand .. "@W\" failed")
+    retval = DRL_INTERNAL_ERROR
+  end -- if
+
+  return retval
+end -- dbot.shell
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.fileExists: Returns true if the specified file (or directory) exists and false otherwise
+----------------------------------------------------------------------------------------------------
+
+function dbot.fileExists(fileName)
+  if (fileName == nil) or (fileName == "") then
+    return false
+  end -- if
+
+  local dirQuery = string.gsub(string.gsub(fileName, "\\", "/"), "/$", "")
+  local dirTable, error = utils.readdir(dirQuery)
+
+  if (dirTable == nil) then
+    return false
+  else
+    --tprint(dirTable)
+    return true
+  end -- if
+
+end -- dbot.fileExists
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.spinUntilExists: Spin in a sleep-loop waiting for the specified file to be created
+----------------------------------------------------------------------------------------------------
+
+function dbot.spinUntilExists(fileName, timeoutSec)
+  local totTime = 0
+
+  -- Wait until either we detect that the file exists or until we time out
+  while (not dbot.fileExists(fileName)) do
+    if (totTime > timeoutSec) then
+      dbot.warn("dbot.spinUntilExists: Timed out waiting for creation of \"@G" .. fileName .. "@W\"")
+      return DRL_RET_TIMEOUT
+    end -- if
+
+    wait.time(drlSpinnerPeriodDefault)
+    totTime = totTime + drlSpinnerPeriodDefault
+  end -- while
+
+  return DRL_RET_SUCCESS
+end -- dbot.spinUntilExists
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.spinWhileExists: Spin in a sleep-loop waiting for the specified file to be deleted
+----------------------------------------------------------------------------------------------------
+
+function dbot.spinWhileExists(fileName, timeoutSec)
+  local totTime = 0
+
+  -- Wait until either we detect that the file does not exist or until we time out
+  while (dbot.fileExists(fileName)) do
+    if (totTime > timeoutSec) then
+      dbot.warn("dbot.spinWhileExists: Timed out waiting for deletion of \"@G" .. fileName .. "@W\"")
+      return DRL_RET_TIMEOUT
+    end -- if
+
+    wait.time(drlSpinnerPeriodDefault)
+    totTime = totTime + drlSpinnerPeriodDefault
+  end -- while
+
+  return DRL_RET_SUCCESS
+end -- dbot.spinWhileExists
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.spinUntilExistsBusy: Spin in a busy-loop waiting for the specified file to be created
+--
+-- This is identical to dbot.spinUntilExists() but it uses a busy loop instead of
+-- scheduling a wait.  A busy loop is less efficient, but you have the option of 
+-- using it outside of a co-routine and that comes in handy in certain circumstances.
+----------------------------------------------------------------------------------------------------
+
+function dbot.spinUntilExistsBusy(fileName, timeoutSec)
+  local startTime = dbot.getTime()
+
+  -- Wait until either we detect that the file exists or until we time out
+  while (not dbot.fileExists(fileName)) do
+
+    -- We time out if we have been in a busy loop for over timeoutSec seconds.  This
+    -- only has a resolution of 1 second so it's possible that we may timeout up to
+    -- 1 second later than the user requested.  I'd rather take a chance of timing
+    -- out a little late than timing out a little early.
+    if (dbot.getTime() - startTime > timeoutSec) then
+      dbot.warn("dbot.spinUntilExists: Timed out waiting for creation of \"@G" .. fileName .. "@W\"")
+      return DRL_RET_TIMEOUT
+    end -- if
+
+  end -- while
+
+  return DRL_RET_SUCCESS
+end -- dbot.spinUntilExistsBusy
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.spinWhileExistsBusy: Spin in a busy-loop waiting for the specified file to be deleted
+--
+-- This is identical to dbot.spinWhileExists() but it uses a busy loop instead of
+-- scheduling a wait.  A busy loop is less efficient, but you have the option of 
+-- using it outside of a co-routine and that comes in handy in certain circumstances.
+----------------------------------------------------------------------------------------------------
+
+function dbot.spinWhileExistsBusy(fileName, timeoutSec)
+  local startTime = dbot.getTime()
+
+  -- Wait until either we detect that the file is removed or until we time out
+  while (dbot.fileExists(fileName)) do
+
+    -- We time out if we have been in a busy loop for over timeoutSec seconds.  This
+    -- only has a resolution of 1 second so it's possible that we may timeout up to
+    -- 1 second later than the user requested.  I'd rather take a chance of timing
+    -- out a little late than timing out a little early.
+    if (dbot.getTime() - startTime > timeoutSec) then
+      dbot.warn("dbot.spinWhileExists: Timed out waiting for deletion of \"@G" .. fileName .. "@W\"")
+      return DRL_RET_TIMEOUT
+    end -- if
+
+  end -- while
+
+  return DRL_RET_SUCCESS
+end -- dbot.spinWhileExistsBusy
+
+
+----------------------------------------------------------------------------------------------------
 -- dbot.tonumber: version of tonumber that strips out commas from a number
 ----------------------------------------------------------------------------------------------------
 
@@ -16848,22 +17017,34 @@ dbot.storage.init = {}
 dbot.storage.fileVersion = 1
 dbot.storage.hashChars   = (2 * 20) -- utils.hash uses a 160-bit (20 byte) hash w/ 2 hex chars per byte
 
+
 function dbot.storage.init.atActive()
+  local retval
 
   -- Create directories for our state if they do not yet exist
-  assert(os.execute("if not exist \"" .. pluginStatePath .. "\" mkdir \"" .. pluginStatePath .. "\" > nul"),
-         "dbot.storage.init.atActive: Failed to create plugin state directory \"" .. pluginStatePath .. "\"")
+  retval = dbot.shell("if not exist \"" .. pluginStatePath .. "\" mkdir \"" .. pluginStatePath .. "\" > nul")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.storage.init.atActive: Failed to create plugin state directory \"" ..
+              pluginStatePath .. "\"")
+  end -- if
+  dbot.spinUntilExists(pluginStatePath, 1)
 
   local baseDir = dbot.backup.getBaseDir()
   dbot.debug("dbot.storage.init.atActive: baseDir=\"" .. baseDir .. "\"")
-  assert(os.execute("if not exist \"" .. baseDir .. "\" mkdir \"" .. baseDir .. "\" > nul"),
-         "dbot.storage.init.atActive: Failed to create character-specific state directory \"" ..
-         baseDir .. "\"")
+  retval = dbot.shell("if not exist \"" .. baseDir .. "\" mkdir \"" .. baseDir .. "\" > nul")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.storage.init.atActive: Failed to create character-specific state directory \"" ..
+              baseDir .. "\"")
+  end -- if
+  dbot.spinUntilExists(baseDir, 1)
 
   local currentDir = dbot.backup.getCurrentDir()
   dbot.debug("dbot.storage.init.atActive: currentDir=\"" .. currentDir .. "\"")
-  assert(os.execute("if not exist \"" .. currentDir .. "\" mkdir \"" .. currentDir .. "\" > nul"),
-         "dbot.storage.init.atActive: Failed to create current state directory \"" .. currentDir .. "\"")
+  retval = dbot.shell("if not exist \"" .. currentDir .. "\" mkdir \"" .. currentDir .. "\" > nul")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.storage.init.atActive: Failed to create current state directory \"" .. currentDir .. "\"")
+  end -- if
+  dbot.spinUntilExists(currentDir, 1)
 
   return DRL_RET_SUCCESS
 
@@ -16923,16 +17104,19 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
   end -- if
 
   local shortName = string.gsub(fileName, ".*\\", "")
-  --dbot.debug("dbot.storage.saveTable: Saving \"@G" .. shortName .. "@W\"")
+  dbot.debug("dbot.storage.saveTable: Saving \"@G" .. shortName .. "@W\"")
 
   local fileData = "\n" .. serialize.save(tableName, theTable) 
   local fileHash = utils.hash((fileData or "") .. dbot.storage.fileVersion)
 
-  local f = assert(io.open(fileName, "w+"))
-
-  assert(f:write(dbot.storage.fileVersion .. "\n", fileHash, fileData))
-  assert(f:flush())
-  assert(f:close())
+  local f, errString, errNum = io.open(fileName, "w+")
+  if (f == nil) then
+    dbot.warn("dbot.storage.saveTable: Failed to save file: @R" .. (errString or "unknown error") .. "@W")
+  else
+    assert(f:write(dbot.storage.fileVersion .. "\n", fileHash, fileData))
+    assert(f:flush())
+    assert(f:close())
+  end -- if
 
   return retval
 end -- dbot.storage.saveTable
@@ -16988,7 +17172,6 @@ end -- dbot.storage.loadTable
 --       auto1-[date]
 --       auto2-[date]
 --       auto3-[date]
---       auto4-[date]
 --       [name]-[date]
 --
 -- Functions:
@@ -17029,8 +17212,13 @@ function dbot.backup.init.atActive()
 
   local backupDir = dbot.backup.getBackupDir()
   dbot.debug("dbot.backup.init.atActive: backupDir=\"" .. backupDir .. "\"")
-  assert(os.execute("if not exist \"" .. backupDir .. "\" mkdir \"" .. backupDir .. "\" > nul"),
-         "dbot.backup.init.atActive: Failed to create backup directory \"" .. backupDir .. "\"")
+
+  retval = dbot.shell("if not exist \"" .. backupDir .. "\" mkdir \"" .. backupDir .. "\" > nul")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.backup.init.atActive: Failed to create backup directory \"" .. backupDir .. "\"")
+    return retval
+  end -- if
+  dbot.spinUntilExists(backupDir, 1)
 
   -- Add a backup timer to periodically back up the plugin state.  We keep the timer running
   -- even if automatic backups are currently disabled.  The dbot.backup.current() function
@@ -17074,33 +17262,41 @@ end -- dbot.backup.getBackupDir
 -- Returns an array of backup directory names
 function dbot.backup.getBackups()
   local backupNames = {}
+
   local backupDir, retval = dbot.backup.getBackupDir()
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("dbot.backup.getBackups: Failed to get backup directory: " .. dbot.retval.getString(retval))
     return backupNames, retval
   end -- if
 
-  local tmpFile = backupDir .. "temp.txt"
-  dbot.debug("CLI: " .. "dir /s /b /o:n /a:d \"" .. backupDir .. "\" > \"" .. tmpFile .. "\"")
-  assert(os.execute("dir /s /b /o:n /a:d \"" .. backupDir .. "\" > \"" .. tmpFile .. "\""))
+  -- Read the backup directory.  We use the unix-style pathname because the utils.readdir()
+  -- function won't take the windows-style path.  Yeah, I know that seems crazy.  I'm probably
+  -- doing something silly that prevents it from working.  The unix-style paths aren't too evil
+  -- as a work-around though.
+  local dirQuery = string.gsub(backupDir, "\\", "/") .. "*"
+  local backDirTable, error = utils.readdir(dirQuery)
+  if (backDirTable == nil) then
+    return backupNames, DRL_RET_MISSING_ENTRY
+  end -- if
 
-  for dirName in io.lines(tmpFile) do
-    local fullName = string.gsub(dirName, "^.*backup.*\\", "") or ""
-    local baseName, baseTime
-    _, _, baseName, baseTime = string.find(fullName, "(.*)-(%d+)$")
-    baseName = baseName or "No name available"
+  -- Loop through every directory entry and pull out all of the directories that have the
+  -- [name]-[timestamp] format.  Those are our backup candidates.
+  for backName, backEntry in pairs(backDirTable) do
+    local _, _, baseName, baseTime = string.find(backName, "(.*)-(%d+)$")
     baseTime = tonumber(baseTime or 0)
 
-    table.insert(backupNames,
-                 { dirName = dirName, fullName = fullName, baseName = baseName, baseTime = baseTime })
+    if (baseName ~= nil) and (backEntry.directory ~= nil) and (backEntry.directory) then
+      table.insert(backupNames, { dirName = backupDir .. backName,
+                                  fullName = backName,
+                                  baseName = baseName,
+                                  baseTime = baseTime })
+    end -- if
   end -- for
 
   -- Sort the backups by date from most recent to oldest
   if (#backupNames > 0) then
     table.sort(backupNames, function (back1, back2) return back1.baseTime > back2.baseTime end)
   end -- if
-
-  assert(os.remove(tmpFile))
 
   return backupNames, retval
 end -- dbot.backup.getBackups
@@ -17125,12 +17321,13 @@ function dbot.backup.getFile(name)
 end -- dbot.backup.getFile(name)
 
 
--- The automatic backup scheme: auto --> auto2 --> auto3 --> auto4
+-- The automatic backup scheme: auto --> auto2 --> auto3
 function dbot.backup.current()
   local retval
   local backupFile
+  local backupDir
   local autoPrefix = "auto"
-  local maxNumAutoBackups = 4
+  local maxNumAutoBackups = 3
   local newestBackupName = autoPrefix
   local oldestBackupName = autoPrefix .. maxNumAutoBackups
 
@@ -17149,11 +17346,17 @@ function dbot.backup.current()
     return DRL_RET_IN_COMBAT
   end -- if
 
+  backupDir, retval = dbot.backup.getBackupDir()
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.backup.current: Failed to get backup directory: " .. dbot.retval.getString(retval))
+    return retval
+  end -- if
+
   -- Check if the newest backup was made today.  If it was, update it with the current data, leave
   -- the other backups alone, and return.  Otherwise, rotate the backups down one slot chronologically.
   backupFile, retval = dbot.backup.getFile(newestBackupName)
   if (backupFile ~= nil) then
-    if (os.date("%x", os.time()) == os.date("%x", backupFile.baseTime)) then
+    if (os.date("%x", dbot.getTime()) == os.date("%x", backupFile.baseTime)) then
       retval = dbot.backup.create(newestBackupName, nil)
       if (retval ~= DRL_RET_SUCCESS) then
         dbot.warn("dbot.backup.current: Failed to create newest automatic backup \"@G" .. newestBackupName ..
@@ -17193,7 +17396,13 @@ function dbot.backup.current()
       fullOlderBackup = string.gsub(fullOlderBackup, ".*\\", "")
 
       dbot.debug("CLI: " .. "rename \"" .. backupFile.dirName .. "\" \"" .. fullOlderBackup .. "\" > nul")
-      assert(os.execute("rename \"" .. backupFile.dirName .. "\" \"" .. fullOlderBackup .. "\" > nul"))
+      dbot.shell("rename \"" .. backupFile.dirName .. "\" \"" .. fullOlderBackup .. "\" > nul")
+
+      -- Shell commands running in the background aren't guaranteed to complete in the order
+      -- they were made.  As a result, we spin here until we know that the backup was actually
+      -- renamed before we move on to the next backup.
+      dbot.spinUntilExistsBusy(backupDir .. fullOlderBackup, 2)
+
     end -- if
   end -- for
 
@@ -17280,13 +17489,17 @@ function dbot.backup.create(name, endTag)
   end -- if
 
   -- We append the time to the end of the backup name to help track it
-  local backupTime = os.time()
+  local backupTime = dbot.getTime()
   local newBackupDir = backupDir .. name .. "-" .. backupTime
   dbot.debug("dbot.backup.create: CLI = \"@y" .. "xcopy /E /I \"" .. currentDir .. "\" \"" .. newBackupDir ..
              "\" > nul@W\"")
-  assert(os.execute("xcopy /E /I \"" .. currentDir .. "\" \"" .. newBackupDir .. "\" > nul"))
-
-  dbot.info("Created backup @W(@c" .. os.date("%c", backupTime) .. "@W) @G" .. name)
+  retval = dbot.shell("xcopy /E /I \"" .. currentDir .. "\" \"" .. newBackupDir .. "\" > nul")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("dbot.backup.create: Failed to create backup, xcopy shell failed: " ..
+              dbot.retval.getString(retval))
+  else
+    dbot.info("Created backup @W(@c" .. os.date("%c", backupTime) .. "@W) @G" .. name)
+  end -- if
 
   return inv.tags.stop(invTagsBackup, endTag, retval)
 end -- dbot.backup.create
@@ -17311,10 +17524,17 @@ function dbot.backup.delete(name, endTag, isQuiet)
   for _, backupName in ipairs(backupNames) do
     if (backupName.baseName == name) then
       dbot.debug("dbot.backup.delete: Executing \"rmdir /s /q \"" .. backupName.dirName .. "\"\"")
-      assert(os.execute("rmdir /s /q \"" .. backupName.dirName .. "\" > nul"))
-      if (isQuiet == false) then
-        dbot.info("Deleted backup @W(@c" .. os.date("%c", backupName.baseTime) ..
-                  "@W) @G" .. backupName.baseName)
+      dbot.shell("rmdir /s /q \"" .. backupName.dirName .. "\" > nul")
+      retval = dbot.spinWhileExistsBusy(backupName.dirName, 2)
+      if (retval ~= DRL_RET_SUCCESS) then
+        dbot.warn("dbot.backup.delete: Failed to delete backup \"@G" .. name .. "@W\": " ..
+                  dbot.retval.getString(retval))
+        break
+      else
+        if (isQuiet == false) then
+          dbot.info("Deleted backup @W(@c" .. os.date("%c", backupName.baseTime) ..
+                    "@W) @G" .. backupName.baseName)
+        end -- if
       end -- if
       numBackupsDeleted = numBackupsDeleted + 1
     end -- if
@@ -17328,6 +17548,7 @@ function dbot.backup.delete(name, endTag, isQuiet)
 end -- dbot.backup.delete
 
 
+dbot.backup.restorePkg = nil
 function dbot.backup.restore(name, endTag)
   local retval = DRL_RET_SUCCESS
 
@@ -17336,15 +17557,41 @@ function dbot.backup.restore(name, endTag)
     return inv.tags.stop(invTagsBackup, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
+  if (dbot.backup.restorePkg ~= nil) then
+    dbot.info("Skipping backup restore request: another restore is in progress")
+    return inv.tags.stop(invTagsBackup, endTag, DRL_RET_BUSY)
+  end -- if
+
+  dbot.backup.restorePkg        = {}
+  dbot.backup.restorePkg.name   = name
+  dbot.backup.restorePkg.endTag = endTag
+
+  wait.make(dbot.backup.restoreCR)
+
+  return retval
+end -- dbot.backup.restore
+
+
+function dbot.backup.restoreCR()
+  if (dbot.backup.restorePkg == nil) then
+    dbot.warn("dbot.backup.restoreCR: restore package is nil!?!?")
+    return inv.tags.stop(invTagsBackup, endTag, DRL_RET_INTERNAL_ERROR)
+  end -- if
+
+  local name   = dbot.backup.restorePkg.name
+  local endTag = dbot.backup.restorePkg.endTag
+
   local backupNames, retval = dbot.backup.getBackups()
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("dbot.backup.restore: Failed to get backup list: " .. dbot.retval.getString(retval))
+    dbot.backup.restorePkg = nil
     return inv.tags.stop(invTagsBackup, endTag, retval)
   end -- if
 
   local currentDir, retval = dbot.backup.getCurrentDir()
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("dbot.backup.restore: Failed to get current directory: " .. dbot.retval.getString(retval))
+    dbot.backup.restorePkg = nil
     return inv.tags.stop(invTagsBackup, endTag, retval)
   end -- if
   currentDir = string.gsub(currentDir, "\\$", "") -- Some versions of xcopy hate if there is a trailing slash
@@ -17355,10 +17602,13 @@ function dbot.backup.restore(name, endTag)
     if (backupName.baseName == name) then
       dbot.info("Restoring backup @W(@c" .. os.date("%c", backupName.baseTime) ..
                 "@W) @G" .. backupName.baseName)
-      assert(os.execute("rmdir /s /q \"" .. currentDir .. "\" > nul"))
-      assert(os.execute("xcopy /E /I \"" .. backupName.dirName .. "\" \"" .. currentDir .. "\" > nul"))
+      dbot.shell("rmdir /s /q \"" .. currentDir .. "\" > nul")
+      dbot.spinWhileExists(currentDir, 5) -- Spin for up to 5 seconds waiting for confirmation it is gone
+
       dbot.debug("dbot.backup.restore: \"@y" .. "xcopy /E /I \"" .. backupName.dirName .. "\" \"" ..
                  currentDir   .. "\"@W\"")
+      dbot.shell("xcopy /E /I \"" .. backupName.dirName .. "\" \"" .. currentDir .. "\" > nul")
+      dbot.spinUntilExists(currentDir, 5) -- Spin for up to 5 seconds waiting for confirmation it is there
 
       -- We want to re-init everything to pick up the restored state.  We don't want to save the
       -- current state which will be overwritten.
@@ -17377,8 +17627,10 @@ function dbot.backup.restore(name, endTag)
     retval = DRL_RET_MISSING_ENTRY
   end -- if
 
+  dbot.backup.restorePkg = nil
+
   return inv.tags.stop(invTagsBackup, endTag, retval)
-end -- dbot.backup.restore
+end -- dbot.backup.restoreCR
 
 
 ----------------------------------------------------------------------------------------------------
