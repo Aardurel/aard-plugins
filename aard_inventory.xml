@@ -85,7 +85,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0002"
+   version="2.0003"
    >
 <description trim="y">
 <![CDATA[
@@ -4405,7 +4405,6 @@ function inv.cli.version.fn(name, line, wildcards)
     retval = dbot.update.version(drlDbotUpdateCheck, line)
 
   else
-    dbot.info("Updating plugin: Please do not enter anything until the update completes")
     retval = dbot.update.version(drlDbotUpdateInstall, line)
 
   end -- if
@@ -16149,6 +16148,7 @@ function dbot.update.callback(retval, page, status, headers, fullStatus, request
 
     elseif (dbot.update.pkg.mode == drlDbotUpdateInstall) then
       dbot.info("Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr) 
+      dbot.info("Please do not enter anything until the update completes")
 
       local pluginFile = GetPluginInfo(GetPluginID(), 6)
       local file = io.open(pluginFile, "w")
