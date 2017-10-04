@@ -157,8 +157,7 @@ Usage
     dinv pass <pass ID> <# of seconds>
 
   Plugin info
-    dinv version
-    dinv update confirm
+    dinv version [check | update] <confirm>
     dinv help <command>
 
 
@@ -348,7 +347,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.version.fn"
-   match="^[ ]*dinv[ ]+version.*$"
+   match="^[ ]*dinv[ ]+version[ ]*(check|update[ ]+confirm)?[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -561,16 +560,6 @@ Feature Wishlist
   <alias
    script="inv.cli.reload.fn"
    match="^[ ]*dinv[ ]+reload[ ]*$"
-   enabled="y"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  </alias>
-
-  <alias
-   script="inv.cli.update.fn"
-   match="^[ ]*dinv[ ]+update[ ]+confirm[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -844,6 +833,13 @@ function setPending(msg)
 
   elseif (string.lower(msg) == "quit") then
     dbot.execute.quitIsPending = true
+
+    -- Add a trigger to clear the quitIsPending flag if the quit is cancelled
+    AddTriggerEx("drlQuitCancelConfirmationTrigger",
+                 "^These items will be lost if you quit. Use .quit quit. if you are sure.$",
+                 "dbot.execute.quitIsPending = false", 
+                 drlTriggerFlagsBaseline + trigger_flag.OneShot,
+                 custom_colour.NoChange, 0, "", "", sendto.script, 0)
 
   elseif (string.lower(msg) == "note write") then
     dbot.execute.noteIsPending = true
@@ -1221,8 +1217,8 @@ end -- inv.version.get
 
 
 function inv.version.display()
-  dbot.print("\n @y" .. pluginNameAbbr .. "  Aardwolf Plugin\n" ..
-                "-----------------------@w")
+  dbot.print("\n  @y" .. pluginNameAbbr .. "  Aardwolf Plugin\n" ..
+                "-------------------------@w")
   dbot.print("@WPlugin Version:    @G" .. 
                 inv.version.table.pluginVer.major .. "." ..
                 inv.version.table.pluginVer.minor .. "@w")
@@ -1479,9 +1475,6 @@ end -- inv.config.new
 --   inv.cli.version.fn(name, line, wildcards)
 --   inv.cli.version.usage()
 --   inv.cli.version.examples()
---   inv.cli.update.fn(name, line, wildcards)
---   inv.cli.update.usage()
---   inv.cli.update.examples()
 --   inv.cli.reload.fn(name, line, wildcards)
 --   inv.cli.reload.usage()
 --   inv.cli.reload.examples()
@@ -1535,7 +1528,6 @@ function inv.cli.fullUsage()
 
   dbot.print("\n@C  Plugin info@w")
   inv.cli.version.usage()
-  inv.cli.update.usage()
   inv.cli.help.usage()
 
 end -- inv.cli.fullUsage
@@ -4391,21 +4383,38 @@ end -- inv.cli.organize.examples
 
 inv.cli.version = {}
 function inv.cli.version.fn(name, line, wildcards)
+  local command = wildcards[1] or ""
+  local retval = DRL_RET_SUCCESS
+
+  dbot.debug("CLI: command=\"" .. command .. "\"")
+
   if (not inv.init.initializedActive) then
     dbot.info("Skipping version request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsVersion, line, DRL_RET_UNINITIALIZED)
+
   elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
     dbot.info("Skipping version request: character is not in the active state")
     return inv.tags.stop(invTagsVersion, line, DRL_RET_NOT_ACTIVE)
+
+  elseif (command == "") then
+    retval = inv.version.display()
+    return inv.tags.stop(invTagsVersion, line, retval)
+
+  elseif (command == "check") then
+    retval = dbot.update.version(drlDbotUpdateCheck, line)
+
+  else
+    dbot.info("Updating plugin: Please do not enter anything until the update completes")
+    retval = dbot.update.version(drlDbotUpdateInstall, line)
+
   end -- if
 
-  local retval = inv.version.display()
-  inv.tags.stop(invTagsVersion, line, retval)
+  return retval
 end -- inv.cli.version.fn
 
 
 function inv.cli.version.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " version@w")
+  dbot.print("@W    " .. pluginNameCmd .. " version @G[check | update] @Y<confirm>@w")
 end -- inv.cli.version.usage
 
 
@@ -4414,37 +4423,25 @@ function inv.cli.version.examples()
   inv.cli.version.usage()
   dbot.print(
 [[@W
-You seriously want to read a helpfile about how to get this plugin's version information?!?
-Come on peeps, just type "@Gdinv version@W".  It's not that hard. :P
+The version mode without arguments will tell you the version information for the
+plugin and format versions for components of the plugin.  You can also check if
+you have the latest official plugin release and update to that release if you are
+not yet running the latest and greatest version of the plugin.
+
+Examples:
+  1) Display your current version information
+     "@Gdinv version@W"
+
+  2) Compare your plugin version to the version of the latest published release
+     "@Gdinv version check@W"
+
+  3) Check if you have the latest plugin version.  If your version is not the 
+     latest and greatest, download the latest release and install it.  You do
+     not need to log out or restart mush.
+     "@Gdinv version update confirm@W"
 ]])
 
 end -- inv.cli.version.examples
-
-
-inv.cli.update = {}
-function inv.cli.update.fn(name, line, wildcards)
-  dbot.info("Updating plugin: Please do not enter anything until the update completes")
-
-  return dbot.update()
-end -- inv.cli.update.fn
-
-
-function inv.cli.update.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " update confirm")
-end -- inv.cli.update.usage
-
-
-function inv.cli.update.examples()
-  dbot.print("@W\nUsage:\n")
-  inv.cli.update.usage()
-  dbot.print(
-[[@W
-This will compare your version of the plugin with the latest stable release.
-If your plugin is out of date, the plugin will download the latest version of
-itself and load it.
-]])
-
-end -- inv.cli.update.examples
 
 
 inv.cli.help = {}
@@ -7382,7 +7379,7 @@ function inv.items.searchCR(queryString)
       -- If we are in a query and we are at the value location (it goes key then value), then save the value
       else
         value = element
-        dbot.debug("key=\"" .. key .. "\", value=\"" .. value .. "\"")
+        --dbot.debug("key=\"" .. key .. "\", value=\"" .. value .. "\"")
 
         -- If we are inverting the key field (e.g., "level" vs. "~level") then we want to temporarily
         -- strip the "~" from the key, process the remaining key, and then add the "~" back before we
@@ -16069,39 +16066,85 @@ end -- dbot.reload
 -- Note: This code is derived from a plugin written by Arcidayne.  Thanks Arcidayne!
 ----------------------------------------------------------------------------------------------------
 
-function dbot.update()
+dbot.update          = {}
+dbot.update.url      = "https://raw.githubusercontent.com/Aardurel/aard-plugins/master/aard_inventory.xml"
+dbot.update.protocol = "HTTPS"
+dbot.update.pkg      = nil
+
+drlDbotUpdateCheck   = "check"
+drlDbotUpdateInstall = "install"
+
+function dbot.update.version(mode, endTag)
   local retval = DRL_RET_SUCCESS
-  local url = "https://raw.githubusercontent.com/Aardurel/aard-plugins/master/aard_inventory.xml"
-  local asyncOk, async = pcall (require, "async")
- 
-  if asyncOk then
-    async.doAsyncRemoteRequest(url, dbot.updateRaw, "HTTPS")
+
+  if (mode == nil) or ((mode ~= drlDbotUpdateCheck) and (mode ~= drlDbotUpdateInstall)) then
+    dbot.warn("dbot.update.version: Missing or invalid mode parameter")
+    return inv.tags.stop(invTagsVersion, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (dbot.update.pkg ~= nil) then
+    dbot.info("Skipping update request: another update request is in progress")
+    return inv.tags.stop(invTagsVersion, endTag, DRL_RET_BUSY)
+  end -- if
+
+  -- Pull in the async package if it exists
+  local asyncOk, async = pcall (require, "async") 
+  if (not asyncOk) or (async == nil) then
+    dbot.warn("dbot.update.version: Failed to find \"async\" package, skipping update request")
+    return inv.tags.stop(invTagsVersion, endTag, DRL_RET_UNSUPPORTED)
+  end -- if
+
+  dbot.update.pkg        = {}
+  dbot.update.pkg.mode   = mode
+  dbot.update.pkg.endTag = endTag
+
+  -- Make a request to grab the latest plugin file.  Newer versions of mush have nice async
+  -- capabilities and we use that if possible.  Otherwise, we fall back to an old-style request.
+  -- Both methods of making the request will call dbot.update.callback upon completion.
+  if (async.doAsyncRemoveRequest ~= nil) then
+    async.doAsyncRemoteRequest(dbot.update.url, dbot.update.callback, dbot.update.protocol)
   else
-    dbot.warn("dbot.update: Failed to retrieve plugin update")
-    retval = DRL_RET_INTERNAL_ERROR
+    wait.make(dbot.updateCR) -- Fall back to a co-routine running the old-style async code
   end
 
   return retval
 end -- dbot.update
 
 
-function dbot.updateRaw(retval, page, status, headers, fullStatus, requestUrl)
-  local currentVersion = GetPluginInfo(GetPluginID(), 19) or 0
+-- Scan the file we just (hopefully) downloaded and check the file's version.  If the user
+-- requested a version check, we report the current and latest available versions.  If the
+-- user requested an installation of the latest plugin, do the upgrade if everything looks
+-- sane.
+function dbot.update.callback(retval, page, status, headers, fullStatus, requestUrl)
+  local retval = DRL_RET_SUCCESS
+
+  if (dbot.update.pkg == nil) or (dbot.update.pkg.mode == nil) then
+    dbot.warn("dbot.update.callback: Missing or invalid update package detected")
+    return inv.tags.stop(invTagsVersion, "end tag is nil", DRL_RET_INVALID_PARAM)
+  end -- if
+
+  local endTag = dbot.update.pkg.endTag
 
   if (status ~= 200) then
-    dbot.warn("dbot.updateRaw: Failed to retrieve remote plugin version")
+    dbot.warn("dbot.update.callback: Failed to retrieve remote plugin information")
+    retval = DRL_RET_INTERNAL_ERROR
 
   else
+    local currentVersion = GetPluginInfo(GetPluginID(), 19) or 0
     local remoteVersion = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) or 0
 
     if (remoteVersion == currentVersion) then
-      dbot.info("Your plugin is up-to-date at version " .. currentVersion)
+      dbot.info("You are running the most recent plugin (v" .. currentVersion .. ")")
 
     elseif (remoteVersion < currentVersion) then
-      dbot.warn("Your current plugin (v" .. currentVersion .. ") is reporting that it " ..
+      dbot.warn("Your current plugin (v" .. currentVersion .. ") " ..
                 "is newer than the latest official release (v" .. remoteVersion .. ")")
+      retval = DRL_RET_VER_MISMATCH
 
-    else
+    elseif (dbot.update.pkg.mode == drlDbotUpdateCheck) then
+      dbot.info("You are running v" .. currentVersion .. ", latest version is v" .. remoteVersion)
+
+    elseif (dbot.update.pkg.mode == drlDbotUpdateInstall) then
       dbot.info("Updating plugin from version " .. currentVersion .. " to version " .. remoteVersion) 
 
       local pluginFile = GetPluginInfo(GetPluginID(), 6)
@@ -16109,11 +16152,49 @@ function dbot.updateRaw(retval, page, status, headers, fullStatus, requestUrl)
       file:write(page)
       file:close()
       dbot.reload()
+
+    else
+      dbot.error("dbot.update.callback: Detected invalid mode \"@R" .. (dbot.update.pkg.mode or "nil") ..
+                 "@W\"")
     end -- if
 
   end -- if
 
-end -- dbot.updateRaw
+  dbot.update.pkg = nil
+  return inv.tags.stop(invTagsVersion, endTag, retval)
+
+end -- dbot.update.callback
+
+
+function dbot.updateCR()
+  local urlThread = async.request(dbot.update.url, dbot.update.protocol)
+  local updateRet, page, status, headers, fullStatus = -1, nil, -1, nil, nil, dbot.update.url
+
+  if (urlThread == nil) then
+    dbot.warn("dbot.updateCR: Failed to create thread requesting update")
+
+  else
+    local timeout = 10
+    local totTime = 0
+    while (urlThread:alive()) do
+      if (totTime > timeout) then
+        retval = DRL_RET_TIMEOUT
+        break
+      end -- if
+
+      wait.time(drlSpinnerPeriodDefault)
+      totTime = totTime + drlSpinnerPeriodDefault
+    end -- while
+
+    if (retval ~= DRL_RET_SUCCESS) then
+      retval, page, status, headers, full_status = urlThread:join()
+    end -- if
+
+  end -- if
+
+  dbot.update.callback(updateRet, page, status, headers, fullStatus)
+
+end -- dbot.updateCR
 
 
 ----------------------------------------------------------------------------------------------------
@@ -16433,6 +16514,7 @@ DRL_RET_INTERNAL_ERROR = -8
 DRL_RET_UNIDENTIFIED   = -9
 DRL_RET_NOT_ACTIVE     = -10
 DRL_RET_IN_COMBAT      = -11
+DRL_RET_VER_MISMATCH   = -12
 
 
 dbot.retval = {}
@@ -16449,6 +16531,7 @@ dbot.retval.table[DRL_RET_INTERNAL_ERROR] = "internal error"
 dbot.retval.table[DRL_RET_UNIDENTIFIED]   = "item is not yet identified"
 dbot.retval.table[DRL_RET_NOT_ACTIVE]     = "you are not in the active state"
 dbot.retval.table[DRL_RET_IN_COMBAT]      = "you are in combat!"
+dbot.retval.table[DRL_RET_VER_MISMATCH]   = "version mismatch"
 
 
 function dbot.retval.getString(retval)
