@@ -85,7 +85,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0001"
+   version="2.0002"
    >
 <description trim="y">
 <![CDATA[
@@ -1043,8 +1043,8 @@ function inv.init.atActiveCR()
 
     if (retval == DRL_RET_SUCCESS) then
       inv.init.initializedActive = true
-      dbot.info("Plugin version " .. inv.version.pluginMajor .. "." .. inv.version.pluginMinor ..
-                " is fully initialized")
+      local fullVer = string.format("%d.%04d", inv.version.pluginMajor, inv.version.pluginMinor)
+      dbot.info("Plugin version " .. fullVer .. " is fully initialized")
 
       -- Kick off an immediate full inventory refresh so that we have an accurate view of what
       -- the user has.  They may have logged in without using the plugin and moved things around
@@ -1198,8 +1198,9 @@ end -- inv.reload
 
 inv.version = {}
 
-_, _, inv.version.pluginMajor, inv.version.pluginMinor =
-   string.find(tostring(GetPluginInfo(GetPluginID(), 19)), "(%d+).(%d+)")
+inv.version.full = GetPluginInfo(GetPluginID(), 19)
+inv.version.pluginMajor = math.floor(inv.version.full)
+inv.version.pluginMinor = tonumber(string.format("%.4f", (inv.version.full - inv.version.pluginMajor) * 10000))
 
 inv.version.table = { pluginVer      = { major = inv.version.pluginMajor, minor = inv.version.pluginMinor },
                       tableFormat    = { major = 0, minor = 1 },
@@ -1220,27 +1221,27 @@ function inv.version.display()
   dbot.print("\n  @y" .. pluginNameAbbr .. "  Aardwolf Plugin\n" ..
                 "-------------------------@w")
   dbot.print("@WPlugin Version:    @G" .. 
-                inv.version.table.pluginVer.major .. "." ..
-                inv.version.table.pluginVer.minor .. "@w")
+             string.format("%01d", inv.version.table.pluginVer.major) .. "." ..
+             string.format("%04d", inv.version.table.pluginVer.minor) .. "@w")
   dbot.print("")
   dbot.print("@WInv. Table Format: @G" .. 
-                inv.version.table.tableFormat.major .. "." ..
-                inv.version.table.tableFormat.minor .. "@w")
+             inv.version.table.tableFormat.major .. "." ..
+             inv.version.table.tableFormat.minor .. "@w")
   dbot.print("@WInv. Cache Format: @G" .. 
-                inv.version.table.cacheFormat.major .. "." ..
-                inv.version.table.cacheFormat.minor .. "@w")
+             inv.version.table.cacheFormat.major .. "." ..
+             inv.version.table.cacheFormat.minor .. "@w")
   dbot.print("@WConsumable Format: @G" .. 
-                inv.version.table.consumeFormat.major .. "." ..
-                inv.version.table.consumeFormat.minor .. "@w")
+             inv.version.table.consumeFormat.major .. "." ..
+             inv.version.table.consumeFormat.minor .. "@w")
   dbot.print("@WPriorities Format: @G" .. 
-                inv.version.table.priorityFormat.major .. "." ..
-                inv.version.table.priorityFormat.minor .. "@w")
+             inv.version.table.priorityFormat.major .. "." ..
+             inv.version.table.priorityFormat.minor .. "@w")
   dbot.print("@WEquip Set Format:  @G" .. 
-                inv.version.table.setFormat.major .. "." ..
-                inv.version.table.setFormat.minor .. "@w")
+             inv.version.table.setFormat.major .. "." ..
+             inv.version.table.setFormat.minor .. "@w")
   dbot.print("@WSnapshot Format:   @G" .. 
-                inv.version.table.snapshotFormat.major .. "." ..
-                inv.version.table.snapshotFormat.minor .. "@w")
+             inv.version.table.snapshotFormat.major .. "." ..
+             inv.version.table.snapshotFormat.minor .. "@w")
   dbot.print("")
 
   return DRL_RET_SUCCESS
@@ -16131,21 +16132,23 @@ function dbot.update.callback(retval, page, status, headers, fullStatus, request
 
   else
     local currentVersion = GetPluginInfo(GetPluginID(), 19) or 0
-    local remoteVersion = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) or 0
+    local currentVerStr  = string.format("%1.4f", currentVersion)
+    local remoteVerStr   = string.match(page, '%s%s+version="([0-9%.]+)"')
+    local remoteVersion  = tonumber(remoteVerStr or "") or 0
 
     if (remoteVersion == currentVersion) then
       dbot.info("You are running the most recent plugin (v" .. currentVersion .. ")")
 
     elseif (remoteVersion < currentVersion) then
-      dbot.warn("Your current plugin (v" .. currentVersion .. ") " ..
-                "is newer than the latest official release (v" .. remoteVersion .. ")")
+      dbot.warn("Your current plugin (v" .. currentVerStr .. ") " ..
+                "is newer than the latest official release (v" .. remoteVerStr .. ")")
       retval = DRL_RET_VER_MISMATCH
 
     elseif (dbot.update.pkg.mode == drlDbotUpdateCheck) then
-      dbot.info("You are running v" .. currentVersion .. ", latest version is v" .. remoteVersion)
+      dbot.info("You are running v" .. currentVerStr .. ", latest version is v" .. remoteVerStr)
 
     elseif (dbot.update.pkg.mode == drlDbotUpdateInstall) then
-      dbot.info("Updating plugin from version " .. currentVersion .. " to version " .. remoteVersion) 
+      dbot.info("Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr) 
 
       local pluginFile = GetPluginInfo(GetPluginID(), 6)
       local file = io.open(pluginFile, "w")
