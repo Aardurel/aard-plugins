@@ -85,7 +85,7 @@ dbot.callback : Module to help manage callback functions and parameters
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0003"
+   version="2.0004"
    >
 <description trim="y">
 <![CDATA[
@@ -668,10 +668,10 @@ function OnPluginSaveState()
 
   -- We also can't save state if we aren't initialized yet
   if (not dbot.init.initializedActive) then
-    dbot.info("OnPluginSaveState: Skipping save because plugin is not yet initialized")
+    dbot.debug("OnPluginSaveState: Skipping save because plugin is not yet initialized")
     local charState = dbot.gmcp.getState() or "Uninitialized"
     if (charState ~= dbot.stateActive) then
-      dbot.info("You must be in the active state to complete initialization but your state is \"@C" ..
+      dbot.info("You must be in the active state to save your data but your state is \"@C" ..
                 dbot.gmcp.getStateString(charState) .. "@W\"")
     end -- if
     return
@@ -1614,6 +1614,7 @@ If you interrupted a build by going to sleep or going AFK, the build will
 automatically continue at the next refresh attempt (see "@Gdinv help refresh@W"
 for more details.)  You can disable automatic refreshes with the command
 "@Gdinv refresh off@W" and you can re-enable them with "@Gdinv refresh on@W".
+A new installation starts with automatic refreshes disabled by default.
 
 Once you have a completed inventory table available, you probably want to make
 a manual backup in case something goes wrong in the future.  You can restore
@@ -1685,7 +1686,8 @@ function inv.cli.refresh.examples()
 If you add a new item to your inventory or remove an item from your inventory, your inventory
 table must be informed about the change.  A refresh operation is the means through which the
 plugin updates your inventory table.  When the plugin detects changes to your inventory it will
-schedule a "refresh" to identify anything that has changed.
+check if automated refreshes are enabled and, if so, schedule an automated "refresh" to identify
+anything that has changed.
 
 A refresh operation may require the plugin to get an item from a container or remove a worn item
 in order to identify the item.  If the plugin moves (or removes) the item, it will automatically
@@ -1695,19 +1697,21 @@ perspective.
 
 There are two types of refreshes: manual and automatic.  A manual refresh simply performs a
 refresh when the user requests one.  An automatic refresh occurs when a timer expires after a
-specified period of time.  By default, an automatic refresh will trigger 5 seconds after an
-item is added to your inventory and every 5 minutes since the previous automatic refresh.  If
-nothing has changed since the last refresh, the refresh simply returns.
+specified period of time.  Automatic refreshes are disabled by default on a new installation.
+If automatic refreshes are turned on ("@Gdinv refresh on <minutes>@W") then an automatic refresh
+refresh will trigger 5 seconds after an item is added to your inventory and every N minutes since
+the previous automatic refresh (if N is not supplied, it will default to 5 minutes.)  If nothing
+has changed since the last refresh, the refresh simply returns.
 
 The plugin will skip a refresh or halt it early if you go to sleep, go AFK, enter combat, or hit
 a paging prompt.  In this case, any changes that were missed will be picked up the next time a
 refresh is in progress.
 
 You may also execute a refresh that performs a full scan of all worn items, items in your main
-inventory, and items in containers.  The plugin performs a full scan at startup to ensure that
-everything is in the expected place.  Otherwise, your inventory table would become out of sync
-if you logged in with another client and moved items around.  The full scan guarantees that the
-plugin knows where everything is.
+inventory, and items in containers.  Your first refresh after starting up will be a full scan to
+ensure that everything is in the expected place.  Otherwise, your inventory table could become
+out of sync if you logged in with another client and moved items around.  The full scan guarantees
+that the plugin knows where everything is.
 
 Examples:
   1) Perform a manual refresh
@@ -4882,6 +4886,8 @@ function inv.items.fini(doSaveState)
     end -- if
   end -- if
 
+  inv.items.fullScanCompleted = false
+
   return retval
 end -- inv.items.fini
 
@@ -5753,6 +5759,7 @@ invStatePaused  = "paused"
 invStateHalted  = "halted"
 
 inv.items.refreshPkg = nil
+inv.items.fullScanCompleted = false
 function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
 
   local retval = DRL_RET_SUCCESS
@@ -5821,6 +5828,14 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
     inv.items.refreshPkg.refreshLocations = refreshLocations
     inv.items.refreshPkg.endTag           = endTag
     inv.items.refreshPkg.tagModule        = tagModule
+
+    -- If we haven't performed a full scan yet since we initialized the plugin, make this a
+    -- full scan.  We want to run at least one full scan so that we handle orphan equipment
+    -- and detect if the user moved stuff around in another client or in this client when the
+    -- plugin was disabled.
+    if (not inv.items.fullScanCompleted) then
+      inv.items.refreshPkg.refreshLocations = invItemsRefreshLocAll
+    end -- if
 
     wait.make(inv.items.refreshCR)
     retval = DRL_RET_SUCCESS
@@ -5914,6 +5929,12 @@ function inv.items.refreshCR()
   dbot.info("Refreshing inventory: " .. resultString)
 
   inv.state = invStateIdle
+
+  -- We want at least one full scan after the plugin loads.  If we've successfully completed a full
+  -- scan, remember it so that we don't need to do it again until the plugin reloads.
+  if (retval == DRL_RET_SUCCESS) and (inv.items.refreshPkg.refreshLocations == invItemsRefreshLocAll) then
+    inv.items.fullScanCompleted = true
+  end -- if
 
   return inv.tags.stop(inv.items.refreshPkg.tagModule, inv.items.refreshPkg.endTag, retval)
 
@@ -16119,7 +16140,7 @@ function dbot.update.callback(retval, page, status, headers, fullStatus, request
   local retval = DRL_RET_SUCCESS
 
   if (dbot.update.pkg == nil) or (dbot.update.pkg.mode == nil) then
-    dbot.warn("dbot.update.callback: Missing or invalid update package detected")
+    dbot.error("dbot.update.callback: Missing or invalid update package detected")
     return inv.tags.stop(invTagsVersion, "end tag is nil", DRL_RET_INVALID_PARAM)
   end -- if
 
@@ -16136,7 +16157,7 @@ function dbot.update.callback(retval, page, status, headers, fullStatus, request
     local remoteVersion  = tonumber(remoteVerStr or "") or 0
 
     if (remoteVersion == currentVersion) then
-      dbot.info("You are running the most recent plugin (v" .. currentVersion .. ")")
+      dbot.info("You are running the most recent plugin (v" .. currentVerStr .. ")")
 
     elseif (remoteVersion < currentVersion) then
       dbot.warn("Your current plugin (v" .. currentVerStr .. ") " ..
@@ -16190,7 +16211,7 @@ function dbot.updateCR()
     end -- while
 
     if (retval ~= DRL_RET_SUCCESS) then
-      retval, page, status, headers, full_status = urlThread:join()
+      updateRet, page, status, headers, fullStatus = urlThread:join()
     end -- if
 
   end -- if
