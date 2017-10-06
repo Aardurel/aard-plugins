@@ -1,66 +1,14 @@
 
-
 dbot.changelog = {}
 
-dbot.changelog[0.1] =
+
+dbot.changelog[2.0005] =
 {
   { change = drlDbotChangeLogTypeNew,
-    desc   = "Initial code base"
-  }
-}
-
-dbot.changelog[0.2] =
-{
-  { change = drlDbotChangeLogTypeNew,
-    desc   = "Converted scripts into a plugin"
-  }
-}
-
-dbot.changelog[0.3] =
-{
-  { change = drlDbotChangeLogTypeNew,
-    desc   = "Functional plugin published to github"
-  }
-}
-
-dbot.changelog[1.0] =
-{
-  { change = drlDbotChangeLogTypeNew,
-    desc   = "Major pieces are verified by alpha testers"
-  }
-}
-
-dbot.changelog[2.0000] =
-{
-  { change = drlDbotChangeLogTypeFix,
-    desc   = "Version code now realizes v1.1 ~= v1.10 :P"
+    desc   = "Added changelog support"
   },
   { change = drlDbotChangeLogTypeNew,
-    desc   = "Added update capabilities"
-  }
-}
-
-dbot.changelog[2.0001] =
-{
-  { change = drlDbotChangeLogTypeFix,
-    desc   = "Fixed update framework for older r1825 mush builds"
-  },
-  { change = drlDbotChangeLogTypeFix,
-    desc   = "Properly handles if someone cancels a quit command"
-  }
-}
-
-dbot.changelog[2.0002] =
-{
-  { change = drlDbotChangeLogTypeFix,
-    desc   = "Fixed incorrect formatting of plugin minor version number"
-  }
-}
-
-dbot.changelog[2.0003] =
-{
-  { change = drlDbotChangeLogTypeFix,
-    desc   = "Fixed a bug that made it appear a plugin update was in progress before it actually started"
+    desc   = "Added remote file access support (dbot.remote package)"
   }
 }
 
@@ -77,4 +25,67 @@ dbot.changelog[2.0004] =
              "send an incorrect (nil) return value in some error cases."
   }
 }
+
+dbot.changelog[2.0003] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed a bug that made it appear a plugin update was in progress before it actually started"
+  }
+}
+
+dbot.changelog[2.0002] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed incorrect formatting of plugin minor version number"
+  }
+}
+
+dbot.changelog[2.0001] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed update framework for older r1825 mush builds"
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Properly handles if someone cancels a quit command"
+  }
+}
+
+dbot.changelog[2.0000] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Version code now realizes v1.1 ~= v1.10 :P"
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Added update capabilities"
+  }
+}
+
+dbot.changelog[1.0] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Major pieces are verified by alpha testers"
+  }
+}
+
+dbot.changelog[0.3] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Functional plugin published to github"
+  }
+}
+
+dbot.changelog[0.2] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Converted scripts into a plugin"
+  }
+}
+
+dbot.changelog[0.1] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Initial code base"
+  }
+}
+
 
