@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0006] =
+{
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Refactored update framework and removed duplicate code"
+  }
+}
+
 dbot.changelog[2.0005] =
 {
   { change = drlDbotChangeLogTypeNew,
@@ -16,7 +23,7 @@ dbot.changelog[2.0004] =
 {
   { change = drlDbotChangeLogTypeMisc,
     desc   = "Refresh code now forces your first refresh in a new session to use a full refresh scan.  " ..
-             "This is necessary because items have have been moved or modified in a different client and " ..
+             "This is necessary because items might have moved or changed outside of this client and " ..
              "we need to know the current location of all items.  This also allows us to detect if a no-" ..
              "save item was removed after the last session."
   },
