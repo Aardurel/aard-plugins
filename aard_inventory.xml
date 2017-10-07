@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0006"
+   version="2.0007"
    >
 <description trim="y">
 <![CDATA[
@@ -2200,7 +2200,7 @@ function inv.cli.set.fn(name, line, wildcards)
   if (command == "display") then
     inv.set.display(priority, level, line)
   elseif (command == "wear") then
-    inv.set.createAndWear(priority, level, line)
+    inv.set.createAndWear(priority, level, inv.set.createIntensity, line)
   else
     inv.cli.set.usage()
     inv.tags.stop(invTagsSet, line, DRL_RET_INVALID_PARAM)
@@ -2877,6 +2877,7 @@ function inv.cli.analyze.fn(name, line, wildcards)
       inv.cli.analyzePkg              = {}
       inv.cli.analyzePkg.priorityName = priorityName
       inv.cli.analyzePkg.wearableLocs = expandedLocs
+      inv.cli.analyzePkg.intensity    = inv.set.analyzeIntensity --TODO: let user specify this?
       inv.cli.analyzePkg.endTag       = endTag
 
       wait.make(inv.cli.analyzeCR)
@@ -2920,13 +2921,14 @@ function inv.cli.analyzeCR()
 
   local priorityName = inv.cli.analyzePkg.priorityName or "nil"
   local wearableLocs = inv.cli.analyzePkg.wearableLocs
+  local intensity    = inv.cli.analyzePkg.intensity
   local endTag       = inv.cli.analyzePkg.endTag
 
   dbot.info("Performing equipment analysis for priority \"@C" .. priorityName .. "@W\"...")
   dbot.info("This analysis could take up to a minute on a slow system.  Be patient!\n")
 
   local resultData = dbot.callback.new()
-  retval = inv.analyze.sets(priorityName, 1 + tierLevel, resultData)
+  retval = inv.analyze.sets(priorityName, 1 + tierLevel, resultData, intensity)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cli.analyzeCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
   else
@@ -11893,7 +11895,7 @@ end -- inv.score.set
 -- inv.set.load()
 -- inv.set.reset()
 --
--- inv.set.create(priorityName, level, synchronous)
+-- inv.set.create(priorityName, level, synchronous, intensity)
 -- inv.set.createCR()
 -- inv.set.createWithHandicap(priorityName, level, handicap)
 --
@@ -11901,7 +11903,7 @@ end -- inv.score.set
 -- inv.set.displayCR()
 -- inv.set.displaySet(setName, level, equipSet)
 --
--- inv.set.createAndWear(priorityName, level, endTag)
+-- inv.set.createAndWear(priorityName, level, intensity, endTag)
 -- inv.set.createAndWearCR()
 -- inv.set.wear(equipSet)
 --
@@ -11946,6 +11948,12 @@ inv.set.stateName        = "inv-set.state"
 inv.set.createPkg        = nil
 inv.set.displayPkg       = nil
 inv.set.createAndWearPkg = nil
+
+-- We spend more time trying to find optimal sets if we are only looking at one set instead of
+-- a full analysis of 200 sets.  The equipment search will be more rigorous at higher intensities.
+inv.set.analyzeIntensity = 8
+inv.set.createIntensity  = 20
+
 
 function inv.set.init.atActive()
   local retval = DRL_RET_SUCCESS
@@ -12009,7 +12017,7 @@ end -- inv.set.reset
 -- table with the given name for the set.
 --
 -- If level is not provided to us, use the character's current level
-function inv.set.create(priorityName, level, synchronous)
+function inv.set.create(priorityName, level, synchronous, intensity)
   local retval
   local priorityTable
 
@@ -12064,6 +12072,7 @@ function inv.set.create(priorityName, level, synchronous)
   inv.set.createPkg.level = level
   inv.set.createPkg.name = priorityName
   inv.set.createPkg.bonusType = invStatBonusTypeAve -- default to using a weighted average for stats
+  inv.set.createPkg.intensity = intensity
 
   -- We want to call inv.set.createCR() but we may or may not want it in a co-routine.  If the
   -- caller asked us to complete the set creation synchronously, we do not use a co-routine.  Also,
@@ -12096,6 +12105,7 @@ function inv.set.createCR()
   -- Pull params from our co-routine package
   local priorityName = inv.set.createPkg.name
   local level        = inv.set.createPkg.level
+  local intensity    = inv.set.createPkg.intensity or inv.set.createIntensity
 
   -- If we want to use the exact bonuses that the char has right now instead of using the weighted
   -- average for the level, we need to wait for the statBonus timer to complete.  In practice, we
@@ -12129,9 +12139,10 @@ function inv.set.createCR()
   local statDelta = inv.statBonus.get(level, inv.set.createPkg.bonusType)
 
   -- Start with no stat handicaps.  We handicap stats when a set goes "overstat" so that we gradually
-  -- bump up the priority of "lesser" stats in an attempt to increase the set's overall score.
+  -- bump up the priority of "lesser" stats in an attempt to increase the set's overall score.  We
+  -- adjust an overstat stat by x% each iteration.  That allows us to do up to "intensity" iterations.
   local handicap = { int = 0, wis = 0, luck = 0, str = 0, dex = 0, con = 0 }
-  local handicapDelta = 0.1 -- Amount that we increase a stat's handicap each iteration
+  local handicapDelta = (1 / intensity) -- Amount that we increase a stat's handicap each iteration
 
   -- Keep building new sets with greater stat handicaps until we fully compensate for any
   -- overmax stats
@@ -12141,6 +12152,7 @@ function inv.set.createCR()
   local newSet
   local stats
   local score
+
   repeat
 
     newSet, stats, score = inv.set.createWithHandicap(priorityName, level, handicap)
@@ -12182,12 +12194,12 @@ function inv.set.createCR()
 
     numIters = numIters + 1
 
-    -- Each iteration drops the weighting of a handicapped stat by 10%
-    if (numIters >= 8) then
+    -- Each iteration drops the weighting of a handicapped stat
+    if (numIters >= intensity) then
       dbot.debug("Breaking out of inv.set.createCR, looped over handicap " .. numIters .. " times")
       break
     end -- if
-  until (score < (bestScore * 0.7)) -- Let things anneal a bit, but cut it off if we are < x% of previous best
+  until (score < (bestScore * 0.8)) -- Let things anneal a bit, but cut it off if we are < x% of previous best
 
   -- Some items can be worn in multiple locations (e.g., a ring could be on "lfinger" or "rfinger" or
   -- a medal could be on "medal1" through "medal4").  We want to always be consistent on where items
@@ -12416,10 +12428,11 @@ function inv.set.display(priorityName, level, endTag)
     return inv.tags.stop(invTagsSet, endTag, DRL_RET_BUSY)
   end -- if
 
-  inv.set.displayPkg        = {}
-  inv.set.displayPkg.name   = priorityName
-  inv.set.displayPkg.level  = level
-  inv.set.displayPkg.endTag = endTag
+  inv.set.displayPkg           = {}
+  inv.set.displayPkg.name      = priorityName
+  inv.set.displayPkg.level     = level
+  inv.set.displayPkg.intensity = inv.set.createIntensity
+  inv.set.displayPkg.endTag    = endTag
 
   -- Kick off the display co-routine to display the set
   wait.make(inv.set.displayCR)
@@ -12433,10 +12446,11 @@ function inv.set.displayCR()
 
   local priorityName = inv.set.displayPkg.name or "Unknown"
   local level        = inv.set.displayPkg.level or 0
+  local intensity    = inv.set.displayPkg.intensity or inv.set.createIntensity
   local endTag       = inv.set.displayPkg.endTag
 
   -- Create the set that we want to display
-  retval = inv.set.create(priorityName, level)
+  retval = inv.set.create(priorityName, level, drlAsynchronous, intensity)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.set.displayCR: failed to create set " .. priorityName .. "[" .. level .. "]: " ..
             dbot.retval.getString(retval))
@@ -12512,7 +12526,7 @@ function inv.set.displaySet(setName, level, equipSet)
 end -- inv.set.displaySet
 
 
-function inv.set.createAndWear(priorityName, level, endTag)
+function inv.set.createAndWear(priorityName, level, intensity, endTag)
   local retval = DRL_RET_SUCCESS
   local priorityTable
 
@@ -12542,6 +12556,7 @@ function inv.set.createAndWear(priorityName, level, endTag)
   inv.set.createAndWearPkg              = {}
   inv.set.createAndWearPkg.priorityName = priorityName
   inv.set.createAndWearPkg.level        = level
+  inv.set.createAndWearPkg.intensity    = intensity
   inv.set.createAndWearPkg.endTag       = endTag
 
   wait.make(inv.set.createAndWearCR)
@@ -12560,10 +12575,11 @@ function inv.set.createAndWearCR()
 
   local priorityName = inv.set.createAndWearPkg.priorityName or "Unknown"
   local level        = inv.set.createAndWearPkg.level or 0
+  local intensity    = inv.set.createAndWearPkg.intensity or inv.set.createIntensity
   local endTag       = inv.set.createAndWearPkg.endTag
 
   -- Create the set that we want to wear
-  retval = inv.set.create(priorityName, level)
+  retval = inv.set.create(priorityName, level, drlAsynchronous, intensity)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.set.createAndWearCR: failed to create set " .. priorityName .. "[" .. level .. "]: " ..
               dbot.retval.getString(retval))
@@ -13022,6 +13038,15 @@ function inv.set.compareCR()
   elseif (#idArray == 1) then
     objId = tonumber(idArray[1] or "")
 
+    -- If there are residual sets left over from previous analyses that are too low a level to use, we
+    -- whack those sets so that they don't confuse the analysis
+    for level = 1, (startLevel - 1) do
+      local priorityTable = inv.set.table[inv.set.comparePkg.priorityName]
+      if (priorityTable ~= nil) and (priorityTable[level] ~= nil) then
+        priorityTable[level] = nil
+      end -- if
+    end -- for
+
     -- Save the previous set analysis that includes the target item so that we have something to compare 
     local tmpAnalysis = inv.set.table[inv.set.comparePkg.priorityName]
     if (tmpAnalysis == nil) then
@@ -13064,7 +13089,8 @@ function inv.set.compareCR()
       -- Analyze the priority with the item removed so that we can compare the results with what
       -- we had when the item was included
       local resultData = dbot.callback.new()
-      retval = inv.analyze.sets(inv.set.comparePkg.priorityName, itemLevel, resultData)
+      retval = inv.analyze.sets(inv.set.comparePkg.priorityName, itemLevel,
+                                resultData, inv.set.analyzeIntensity)
       if (retval ~= DRL_RET_SUCCESS) then
         dbot.warn("inv.set.compareCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
       else
@@ -13180,6 +13206,15 @@ function inv.set.covetCR()
   -- with an actual item.  Probably.
   local objId = inv.set.covetPkg.auctionNum
 
+  -- If there are residual sets left over from previous analyses that are too low a level to use, we
+  -- whack those sets so that they don't confuse the analysis
+  for level = 1, (startLevel - 1) do
+    local priorityTable = inv.set.table[inv.set.covetPkg.priorityName]
+    if (priorityTable ~= nil) and (priorityTable[level] ~= nil) then
+      priorityTable[level] = nil
+    end -- if
+  end -- for
+
   -- Save the previous set analysis that includes the target item so that we have something to compare 
   local tmpAnalysis = inv.set.table[inv.set.covetPkg.priorityName]
   if (tmpAnalysis == nil) then
@@ -13264,7 +13299,7 @@ function inv.set.covetCR()
     -- Analyze the priority with the item added so that we can compare the results with what
     -- we had when the item was not included
     local resultData = dbot.callback.new()
-    retval = inv.analyze.sets(inv.set.covetPkg.priorityName, itemLevel, resultData)
+    retval = inv.analyze.sets(inv.set.covetPkg.priorityName, itemLevel, resultData, inv.set.analyzeIntensity)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.set.covetCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
     else
@@ -14278,7 +14313,7 @@ end -- inv.statBonus.trigger.get
 --
 -- dinv analyze [list | create | delete | display] <priorityName> <wearable location>
 --
--- inv.analyze.sets(priorityName, minLevel, doDisplay, wearableLoc, resultData)
+-- inv.analyze.sets(priorityName, minLevel, resultData, intensity)
 -- inv.analyze.setsCR()
 -- inv.analyze.delete(priorityName)
 -- inv.analyze.list()
@@ -14291,7 +14326,7 @@ inv.analyze.setsPkg          = nil
 inv.analyze.timeoutThreshold = 60
 
 
-function inv.analyze.sets(priorityName, minLevel, resultData)
+function inv.analyze.sets(priorityName, minLevel, resultData, intensity)
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.analyze.sets: missing priorityName parameter")
     return DRL_RET_INVALID_PARAM
@@ -14312,6 +14347,7 @@ function inv.analyze.sets(priorityName, minLevel, resultData)
   inv.analyze.setsPkg               = {}
   inv.analyze.setsPkg.priorityName  = priorityName
   inv.analyze.setsPkg.minLevel      = minLevel
+  inv.analyze.setsPkg.intensity     = intensity
   inv.analyze.setsPkg.resultData    = resultData
 
   wait.make(inv.analyze.setsCR)
@@ -14371,7 +14407,8 @@ function inv.analyze.setsCR()
     dbot.debug("Creating analysis set for " .. inv.analyze.setsPkg.priorityName .. ", level=" .. currentLevel)
 
     inv.set.table[inv.analyze.setsPkg.priorityName][currentLevel] = nil
-    retval = inv.set.create(inv.analyze.setsPkg.priorityName, currentLevel, drlSynchronous)
+    retval = inv.set.create(inv.analyze.setsPkg.priorityName, currentLevel,
+                            drlSynchronous, inv.analyze.setsPkg.intensity)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.analyze.setsCR: Failed to create \"" .. (inv.analyze.setsPkg.priorityName or "nil") ..
                 "\" set at level " .. currentLevel .. ": " .. dbot.retval.getString(retval))
