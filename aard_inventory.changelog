@@ -5,15 +5,13 @@ dbot.changelog[2.0007] =
 {
   { change = drlDbotChangeLogTypeMisc,
     desc   =
-[[Adjusted set creation and analysis framework.  It now supports using
-           separate equipment search "intensities" for a single set and for a
-	   full analysis of 200 sets.  This should give you the best possible
-           results for a single set while keeping the time to do a full analysis
-           more manageable.  Also, the resolution of a full analysis is fairly
-           rough to begin with because it is dependent on stat bonus estimates.
-           It doesn't make sense to try to squeeze every possible fraction of
-           a fraction of a percent out of the analysis when the original stat
-           assumptions could be off by 10% or more.]]
+[[Adjusted set creation and analysis framework.  It now supports using separate equipment search
+	   "intensities" for a single set and for a full analysis of 200 sets.  This should give
+	   you the best possible results for a single set while keeping the time to do a full
+	   analysis more manageable.  Also, the resolution of a full analysis is fairly rough to
+	   begin with because it is dependent on stat bonus estimates.  It doesn't make sense to
+	   try to squeeze every possible fraction of a fraction of a percent out of the analysis
+	   when the original stat assumptions could be off by 10% or more.]]
   }
 }
 
