@@ -8032,7 +8032,7 @@ end -- inv.items.isInvis
 -- dinv organize [display]
 -- dinv organize <query>
 --
--- inv.items.organize.add(containerName, queryString, endTag) -- appends "| query" to existing container queries
+-- inv.items.organize.add(containerName, queryString, endTag)
 -- inv.items.organize.addCR() 
 -- inv.items.organize.clear(containerName, endTag)
 -- inv.items.organize.clearCR()
@@ -8121,7 +8121,7 @@ function inv.items.organize.addCR()
   dbot.note("Added organization query \"@C" .. inv.items.organize.addPkg.query .. "@W\" to container \"" ..
             (inv.items.getField(objId, invFieldColorName) or "Unidentified"))
 
-  -- Clean up, print an end tag (if necessary) and return
+  -- Clean up, print an end tag (if necessary), and return
   inv.items.organize.addPkg = nil
   return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_SUCCESS)
 end -- inv.items.organize.addCR
@@ -17087,6 +17087,7 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
 
   local shortName = string.gsub(fileName, ".*\\", "")
   dbot.debug("dbot.storage.saveTable: Saving \"@G" .. shortName .. "@W\"")
+  --dbot.note("FIXME: Saving \"@G" .. fileName .. "@W\"")
 
   local fileData = "\n" .. serialize.save(tableName, theTable) 
   local fileHash = utils.hash((fileData or "") .. dbot.storage.fileVersion)
