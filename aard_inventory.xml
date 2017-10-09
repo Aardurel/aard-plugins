@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0007"
+   version="2.0008"
    >
 <description trim="y">
 <![CDATA[
@@ -2469,169 +2469,37 @@ Examples:
      why this plugin gives you the ability to tweak things to your heart's content :)
      "@Gdinv priority display psi-melee@W"
 
-@WPriority "@Cpsi-melee@W": Levels @G1@W - @G50
-@w  @y        mana @W= @R0.010
-@w  @y          hp @W= @R0.020
-@w  @y    allmagic @W= @R0.030
-@w  @y     allphys @W= @R0.030
-@w  @y         con @W= @R0.200
-@w  @y  offhandDam @W= @R0.330
-@w  @y         wis @W= 0.700
-@w  @y         dex @W= 0.800
-@w  @y         int @W= 0.800
-@w  @y         hit @W= 0.850
-@w  @y         dam @W= 0.900
-@w  @y        luck @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @y         str @W= 1.000
-@w  @y    irongrip @W= @G2.000
-@w  @y  detectevil @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @ydetecthidden @W= @G3.000
-@w  @y detectinvis @W= @G4.000
-@w  @y      flying @W= @G5.000
-@w  @yregeneration @W= @G5.000
-@w  @y      shield @W= @G5.000
-@w  @y       invis @W= @G10.000
-@w  @y       haste @W= @G20.000
-@w  @y   dualwield @W= @G20.000
-@w  @y   sanctuary @W= @G50.000
-@WPriority "@Cpsi-melee@W": Levels @G51@W - @G70
-@w  @y          hp @W= @R0.010
-@w  @y        mana @W= @R0.010
-@w  @y    allmagic @W= @R0.030
-@w  @y     allphys @W= @R0.050
-@w  @y         con @W= @R0.200
-@w  @y  offhandDam @W= @R0.400
-@w  @y         dex @W= @R0.500
-@w  @y         wis @W= 0.800
-@w  @y         hit @W= 0.800
-@w  @y         dam @W= 0.900
-@w  @y         int @W= 1.000
-@w  @y        luck @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @y         str @W= 1.000
-@w  @y  detectevil @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @ydetecthidden @W= @G3.000
-@w  @y    irongrip @W= @G3.000
-@w  @y      flying @W= @G4.000
-@w  @y detectinvis @W= @G4.000
-@w  @y      shield @W= @G5.000
-@w  @y       invis @W= @G5.000
-@w  @y       haste @W= @G5.000
-@w  @yregeneration @W= @G5.000
-@w  @y   sanctuary @W= @G10.000
-@WPriority "@Cpsi-melee@W": Levels @G71@W - @G130
-@w  @y          hp @W= @R0.010
-@w  @y        mana @W= @R0.010
-@w  @y    allmagic @W= @R0.050
-@w  @y     allphys @W= @R0.100
-@w  @y         con @W= @R0.400
-@w  @y  offhandDam @W= @R0.500
-@w  @y         dex @W= @R0.600
-@w  @y         hit @W= 0.750
-@w  @y         str @W= 0.800
-@w  @y         dam @W= 0.850
-@w  @y         wis @W= 0.900
-@w  @y         int @W= 1.000
-@w  @y        luck @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @y       haste @W= @G2.000
-@w  @y detectinvis @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @ydetecthidden @W= @G2.000
-@w  @y      flying @W= @G2.000
-@w  @y  detectevil @W= @G2.000
-@w  @y       invis @W= @G3.000
-@w  @yregeneration @W= @G5.000
-@w  @y      shield @W= @G10.000
-@w  @y   sanctuary @W= @G10.000
-@w  @y    irongrip @W= @G20.000
-@WPriority "@Cpsi-melee@W": Levels @G131@W - @G170
-@w  @y          hp @W= @R0.010
-@w  @y        mana @W= @R0.010
-@w  @y    allmagic @W= @R0.050
-@w  @y     allphys @W= @R0.100
-@w  @y         con @W= @R0.400
-@w  @y         dex @W= @R0.500
-@w  @y  offhandDam @W= @R0.600
-@w  @y         str @W= 0.700
-@w  @y         dam @W= 0.850
-@w  @y         hit @W= 0.850
-@w  @y      flying @W= 1.000
-@w  @y         int @W= 1.000
-@w  @y        luck @W= 1.000
-@w  @y       invis @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @y         wis @W= 1.000
-@w  @y detectinvis @W= @G2.000
-@w  @y  detectevil @W= @G2.000
-@w  @ydetecthidden @W= @G2.000
-@w  @y       haste @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @yregeneration @W= @G5.000
-@w  @y   sanctuary @W= @G10.000
-@w  @y    irongrip @W= @G20.000
-@w  @y      shield @W= @G20.000
-@WPriority "@Cpsi-melee@W": Levels @G171@W - @G200
-@w  @y          hp @W= @R0.010
-@w  @y        mana @W= @R0.010
-@w  @y    allmagic @W= @R0.050
-@w  @y     allphys @W= @R0.100
-@w  @y         dex @W= @R0.400
-@w  @y         con @W= @R0.400
-@w  @y  offhandDam @W= 0.700
-@w  @y         str @W= 0.700
-@w  @y         dam @W= 0.850
-@w  @y         hit @W= 0.850
-@w  @y      flying @W= 1.000
-@w  @y         wis @W= 1.000
-@w  @y        luck @W= 1.000
-@w  @y         int @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @y       invis @W= 1.000
-@w  @ydetecthidden @W= @G2.000
-@w  @y       haste @W= @G2.000
-@w  @y  detectevil @W= @G2.000
-@w  @y detectinvis @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @y      maxwis @W= @G5.000
-@w  @yregeneration @W= @G5.000
-@w  @y     maxluck @W= @G5.000
-@w  @y      maxint @W= @G5.000
-@w  @y   sanctuary @W= @G20.000
-@w  @y    irongrip @W= @G25.000
-@w  @y      shield @W= @G25.000
-@WPriority "@Cpsi-melee@W": Levels @G201@W - @G291
-@w  @y          hp @W= @R0.010
-@w  @y        mana @W= @R0.010
-@w  @y    allmagic @W= @R0.050
-@w  @y     allphys @W= @R0.100
-@w  @y         con @W= @R0.250
-@w  @y         dex @W= @R0.400
-@w  @y         str @W= @R0.500
-@w  @y         dam @W= 0.800
-@w  @y         hit @W= 0.800
-@w  @y  offhandDam @W= 0.850
-@w  @y      flying @W= 1.000
-@w  @y        luck @W= 1.000
-@w  @y       invis @W= 1.000
-@w  @y         int @W= 1.000
-@w  @y         wis @W= 1.000
-@w  @y      avedam @W= 1.000
-@w  @ydetecthidden @W= @G2.000
-@w  @y detectinvis @W= @G2.000
-@w  @y  detectevil @W= @G2.000
-@w  @y       haste @W= @G2.000
-@w  @y  detectgood @W= @G2.000
-@w  @yregeneration @W= @G2.000
-@w  @y   sanctuary @W= @G5.000
-@w  @y      maxint @W= @G20.000
-@w  @y      maxwis @W= @G20.000
-@w  @y     maxluck @W= @G20.000
-@w  @y    irongrip @W= @G30.000
-@w  @y      shield @W= @G40.000@@
+@WPriority: "@Cpsi-melee@W"
+
+@W       Field  L001-  L051-  L071-  L131-  L171-  L201-
+        Name  L050   L070   L130   L170   L200   L291 
+@C
+@C         str@w   1.00   1.00   0.80@y   0.70   0.70   0.50@W  : @cValue of 1 point of the strength stat
+@C         int@w   0.80   1.00   1.00   1.00   1.00   1.00@W  : @cValue of 1 point of the intelligence stat
+@C         wis@y   0.70@w   0.80   0.90   1.00   1.00   1.00@W  : @cValue of 1 point of the wisdom stat
+@C         dex@w   0.80@y   0.50   0.60   0.50@r   0.40   0.40@W  : @cValue of 1 point of the dexterity stat
+@C         con@r   0.20   0.20   0.40   0.40   0.40   0.25@W  : @cValue of 1 point of the constitution stat
+@C        luck@w   1.00   1.00   1.00   1.00   1.00   1.00@W  : @cValue of 1 point of the luck stat
+@C         dam@w   0.90   0.90   0.85   0.85   0.85   0.80@W  : @cValue of 1 point of damroll
+@C         hit@w   0.85   0.80@y   0.75@w   0.85   0.85   0.80@W  : @cValue of 1 point of hitroll
+@C      avedam@w   1.00   1.00   1.00   1.00   1.00   1.00@W  : @cValue of 1 point of primary weapon ave damage
+@C  offhandDam@r   0.33   0.40@y   0.50   0.60   0.70@w   0.85@W  : @cValue of 1 point of offhand weapon ave damage
+@C          hp@r   0.02   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 hit point
+@C        mana@r   0.01   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 mana point
+@C   sanctuary@G  50.00  10.00  10.00  10.00  20.00   5.00@W  : @cValue placed on the sanctuary effect 
+@C       haste@G  20.00   5.00@g   2.00   2.00   2.00   2.00@W  : @cValue placed on the haste effect 
+@C      flying@G   5.00@g   4.00   2.00@w   1.00   1.00   1.00@W  : @cValue placed on the flying effect 
+@C       invis@G  10.00   5.00@g   3.00@w   1.00   1.00   1.00@W  : @cValue placed on the invisible effect 
+@Cregeneration@G   5.00   5.00   5.00   5.00   5.00@g   2.00@W  : @cValue placed on the regeneration effect
+@C detectinvis@g   4.00   4.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect invis effect 
+@Cdetecthidden@g   3.00   3.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect hidden effect 
+@C  detectevil@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect evil effect 
+@C  detectgood@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect good effect 
+@C   dualwield@G  20.00@R   0.00   0.00   0.00   0.00   0.00@W  : @cValue of an item's dual wield effect
+@C    irongrip@g   2.00   3.00@G  20.00  20.00  25.00  30.00@W  : @cValue of an item's irongrip effect
+@C      shield@G   5.00   5.00  10.00  20.00  25.00  40.00@W  : @cValue of a shield's damage reduction effect
+@C    allmagic@r   0.03   0.03   0.05   0.05   0.05   0.05@W  : @cValue of 1 point in each magical resist type
+@C     allphys@r   0.03   0.05   0.10   0.10   0.10   0.10@W  : @cValue of 1 point in each physical resist type
 @W
 At the present time, the plugin does not have a GUI component so priority customization must be
 done by manually editing the plugin file directly.  Adding a GUI is very high on the priority list
@@ -10344,21 +10212,33 @@ end -- inv.cache.clearOld
 -- inv.priority.load()
 -- inv.priority.reset()
 --
+-- inv.priority.create(priorityName, endTag)
+-- inv.priority.clone(clonedPriorityName, origPriorityName, endTag)
+-- inv.priority.delete(priorityName, endTag) 
+--
+-- inv.priority.list(endTag)
+-- inv.priority.display(priorityName, endTag)
+--
+-- inv.priority.edit(priorityName, level, endTag)
+-- inv.priority.split(priorityName, level, endTag)
+-- inv.priority.join(priorityName, level, endTag)
+--
+-- inv.priority.compare(priorityName1, priorityName2, endTag)
+--
+-- inv.priority.new(priorityName)
 -- inv.priority.add(priorityName, priorityTable)
 -- inv.priority.remove(priorityName)
 -- inv.priority.get(priorityName, level)
 --
--- inv.priority.display(priorityName, endTag)
--- inv.priority.displayBlock(priorityBlock, priorityName)
--- inv.priority.list(endTag)
---
--- inv.priority.compare(priorityName1, priorityName2, endTag)
+-- inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayColors, doDisplayDesc)
+-- inv.priority.stringToTable(priorityString)
 --
 -- inv.priority.addDefault() -- add some default priorities
 --
 -- Data:
---   inv.priority = {}
---   inv.priority.table = {}
+--   inv.priority            = {}
+--   inv.priority.table      = {}
+--   inv.priority.fieldTable = {}
 --
 ----------------------------------------------------------------------------------------------------
 
@@ -10454,6 +10334,261 @@ function inv.priority.reset()
 end -- inv.priority.reset
 
 
+function inv.priority.create(priorityName, endTag)
+  local retval = DRL_RET_SUCCESS
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.create: priority name is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (inv.priority.table[priorityName] ~= nil) then
+    dbot.warn("inv.priority.create: Priority \"@C" .. priorityName .. "@W\" already exists")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_BUSY)
+  end -- if
+
+  retval = inv.priority.new(priorityName)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.create: Failed to add new priority \"@C" .. priorityName .. "@W\": " ..
+              dbot.retval.getString(retval))
+  else
+    retval = inv.priority.edit(priorityName)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.priority.create: Failed to edit priority \"@C" .. priorityName .. "@W\": " ..
+                dbot.retval.getString(retval))
+    end -- if
+  end -- if
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
+
+end -- inv.priority.create
+
+
+function inv.priority.clone(clonedPriorityName, origPriorityName, endTag)
+  local retval
+
+  if (clonedPriorityName == nil) or (clonedPriorityName == "") then
+    dbot.warn("inv.priority.clone: cloned priority name is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (origPriorityName == nil) or (origPriorityName == "") then
+    dbot.warn("inv.priority.clone: original priority name is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (inv.priority.table[origPriorityName] == nil) then
+    dbot.warn("inv.priority.clone: original priority \"@C" .. origPriorityName .. "@W\" does not exist")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  if (inv.priority.table[clonedPriorityName] ~= nil) then
+    dbot.warn("inv.priority.clone: cloned priority \"@C" .. clonedPriorityName .. "@W\" already exists") 
+  end -- if
+
+  -- Copy the priority into a new table entry
+  inv.priority.table[clonedPriorityName] = dbot.table.getCopy(inv.priority.table[origPriorityName])
+
+  -- Save the table with the new priority.  We're done!  :)
+  retval = inv.priority.save()
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
+
+end -- inv.priority.clone
+
+
+function inv.priority.delete(priorityName, endTag)
+  local retval
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.delete: priority name is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (inv.priority.table[priorityName] == nil) then
+    dbot.info("Skipping priority deletion: Priority \"@C" .. priorityName .. "@W\" does not exist")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  retval = inv.priority.remove(priorityName)
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
+end -- inv.priority.delete
+
+
+function inv.priority.list(endTag)
+  if (inv.priority == nil) or (inv.priority.table == nil) then
+    dbot.error("inv.priority.list: Priority table is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INTERNAL_ERROR)
+  end -- if
+
+  -- Alphabetize the priorities before we list them
+  local sortedPriorities = {}
+  local numPriorities = 0
+  for k,_ in pairs(inv.priority.table) do
+    table.insert(sortedPriorities, k)
+    numPriorities = numPriorities + 1
+  end -- for
+  table.sort(sortedPriorities, function (v1, v2) return v1 < v2 end)
+
+  if (numPriorities == 0) then
+    dbot.info("Priority table is empty")
+  else
+    dbot.print("@WPriorities:")
+    for _, priority in ipairs(sortedPriorities) do
+      dbot.print("@W  \"@C" .. priority .. "@W\"@w")
+    end -- for
+  end -- if
+
+  return inv.tags.stop(invTagsPriority, endTag, DRL_RET_SUCCESS)
+end -- inv.priority.list
+
+
+function inv.priority.display(priorityName, endTag)
+  local retval = DRL_RET_SUCCESS
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.display: Missing priorityName parameter") 
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  local priority = inv.priority.table[priorityName]
+
+  if (priority == nil) then
+    dbot.info("Priority \"" .. priorityName .. "\" is not in the priority table")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  local priString = inv.priority.tableToString(priority, false, true, true)
+
+  dbot.print("@WPriority: \"@C" .. priorityName .. "@W\"\n")
+  dbot.print(priString)
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
+end -- inv.priority.display
+
+
+function inv.priority.edit(priorityName, level, endTag)
+  local retval = DRL_RET_SUCCESS
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.edit: priority name is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (inv.priority.table[priorityName] == nil) then
+    dbot.warn("inv.priority.edit: Priority \"@C" .. priorityName .. "@W\" does not exist")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  --FIXME: add the utils call here
+
+  return retval
+end -- inv.priority.edit
+
+
+function inv.priority.split(priorityName, level, endTag)
+--FIXME: add this!
+
+end -- inv.priority.split
+
+
+function inv.priority.join(priorityName, level, endTag)
+--FIXME: add this!
+
+end -- inv.priority.join
+
+
+function inv.priority.compare(priorityName1, priorityName2, endTag)
+  local retval = DRL_RET_SUCCESS
+
+  if (priorityName1 == nil) or (priorityName1 == "") or (priorityName2 == nil) or (priorityName2 == "") then
+    dbot.warn("inv.priority.compare: missing priority name")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (inv.priority == nil) or (inv.priority.table == nil) then
+    dbot.error("inv.priority.list: Priority table is missing!")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INTERNAL_ERROR)
+  end -- if
+
+  if (inv.priority.table[priorityName1] == nil) then
+    dbot.warn("inv.priority.compare: Priority \"" .. priorityName1 .. "\" is not present")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  if (inv.priority.table[priorityName2] == nil) then
+    dbot.warn("inv.priority.compare: Priority \"" .. priorityName2 .. "\" is not present")
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  local startLevel = 1 + 10 * dbot.gmcp.getTier()
+  local endLevel = startLevel + 200
+  local doPrintHeader = true
+
+  dbot.print("@WDifference between optimal sets for \"@G" .. priorityName1 .. 
+                "@W\" and \"@G" .. priorityName2 .. "@W\"\n@w")
+
+  for level = startLevel, endLevel do
+    local set1 = inv.set.get(priorityName1, level)
+    local set2 = inv.set.get(priorityName2, level)
+    local didPrintHeader
+
+    if (set1 == nil) then
+      dbot.info("Priority \"@C" .. priorityName1 .. "@W\" is missing a set analysis at level " .. level .. ".")
+      dbot.info("Please run \"@Gdinv analyze create " .. priorityName1 .. "@W\" before comparing the priority.")
+      retval = DRL_RET_MISSING_ENTRY
+      break
+    elseif (set2 == nil) then
+      dbot.info("Priority \"@C" .. priorityName2 .. "@W\" is missing a set analysis at level " .. level .. ".")
+      dbot.info("Please run \"@Gdinv analyze create " .. priorityName2 .. "@W\" before comparing the priority.")
+      retval = DRL_RET_MISSING_ENTRY
+      break
+    end -- if
+
+    didPrintHeader, retval = inv.set.displayDiff(set1, set2, level, string.format("Level %3d: ", level),
+                                                 doPrintHeader)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.priority.compare: Failed to display priority differences at level " .. level ..
+              ": " .. dbot.retval.getString(retval))
+      break
+    end -- if
+
+    doPrintHeader = not didPrintHeader -- If we already printed a header, don't print one again
+  end -- for
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
+end -- inv.priority.compare
+
+
+function inv.priority.new(priorityName)
+  local retval = DRL_RET_SUCCESS
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.new: priority name is missing!")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (inv.priority.table[priorityName] ~= nil) then
+    dbot.warn("Skipping request for new priority \"@C" .. priorityName .. "@W\": priority already exists")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  local priorities = {}
+  for _, entry in ipairs(inv.priority.fieldTable) do
+    priorities[entry[2]] = 0
+  end -- if
+
+  retval = inv.priority.add(priorityName, { { minLevel = 1, maxLevel = 291, priorities = priorities } })
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.new: Failed to add priority \"@C" .. priorityName .. "@W\": " ..
+              dbot.retval.getString(retval))
+  end -- if
+
+  return retval
+end -- inv.priority.new
+
+
 function inv.priority.add(priorityName, priorityTable)
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.priority.add: Missing priorityName parameter")
@@ -10543,164 +10678,110 @@ function inv.priority.get(priorityName, level)
 end -- inv.priority.get
 
 
-function inv.priority.display(priorityName, endTag)
+-- Returns string, retval
+--[[ String format looks something like this:
+
+     Field  L001-  L050-  L100-  L201-
+      Name  L049   L099   L200   L299
+
+       int  0.800  0.900  1.000  1.000
+       str  1.000  1.000  0.800  0.700
+       ...
+--]]
+function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayColors, doDisplayDesc)
   local retval = DRL_RET_SUCCESS
+  local generalPrefix, generalSuffix = "", ""
+  local fieldPrefix,   fieldSuffix   = "", ""
+  local levelPrefix,   levelSuffix   = "", ""
+  local descPrefix,    descSuffix    = "", ""
 
-  if (priorityName == nil) or (priorityName == "") then
-    dbot.warn("inv.priority.display: Missing priorityName parameter")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
+  if doDisplayColors then
+    generalPrefix, generalSuffix = "@W", "@w"
+    fieldPrefix,   fieldSuffix   = "@C", "@w"
+    levelPrefix,   levelSuffix   = "@W", "@W"
+    descPrefix,    descSuffix    = "@c", "@w"
   end -- if
 
-  local priority = inv.priority.table[priorityName]
-
-  if (priority == nil) then
-    dbot.info("Priority \"" .. priorityName .. "\" is not in the priority table")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
-  end -- if
-
-  for i, priorityBlock in ipairs(priority) do
-    retval = inv.priority.displayBlock(priorityBlock, priorityName)
-    if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.priority.display: Failed to display priority block " .. i .. " for priority " ..
-                priorityName .. ": " .. dbot.retval.getString(retval))
-      break
-    end -- if
+  -- Create the first line of the header
+  local priString = generalPrefix .. string.format("%12s", "Field")
+  for _, blockEntry in ipairs(priorityTable) do
+    priString = priString .. string.format("  %sL%03d-%s", levelPrefix, blockEntry.minLevel, levelSuffix)
   end -- for
 
-  return inv.tags.stop(invTagsPriority, endTag, retval)
-end -- inv.priority.display
+  -- Create the second line of the header
+  priString = priString .. string.format("\n%12s", "Name")
+  for _, blockEntry in ipairs(priorityTable) do
+    priString = priString .. string.format("  %sL%03d%s ", levelPrefix, blockEntry.maxLevel, levelSuffix)
+  end -- for
+  priString = priString .. "\n" .. generalSuffix
+
+  for _, fieldEntry in ipairs(inv.priority.fieldTable) do
+    local fieldName = fieldEntry[1]
+    local fieldDesc = fieldEntry[2]
+    local useField = true
+
+    -- Check if we should display this field or not.  We only use the field if at least one entry
+    -- block has a non-zero entry for the field or if the doDisplayUnused param is true.
+    if (not doDisplayUnused) then
+      useField = false
+
+      for _, blockEntry in ipairs(priorityTable) do
+        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "") or 0
+
+        if (fieldValue ~= 0) then
+          useField = true
+          break
+        end -- if
+      end -- if
+    end -- if
+
+    if (useField) then
+      priString = priString .. fieldPrefix .. string.format("\n%12s", fieldName) .. fieldSuffix
+
+      for _, blockEntry in ipairs(priorityTable) do
+        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "") or 0
+        local valuePrefix, valueSuffix = "", ""
+
+        if doDisplayColors then
+          if (fieldValue <= 0) then
+            valuePrefix = "@R"
+          elseif (fieldValue < 0.5) then
+            valuePrefix = "@r"
+          elseif (fieldValue < 0.8) then
+            valuePrefix = "@y"
+          elseif (fieldValue < 1.4) then
+            valuePrefix = "@w"
+          elseif (fieldValue < 5) then
+            valuePrefix = "@g"
+          else
+            valuePrefix = "@G"
+          end -- if
+
+          valueSuffix = "@W"
+        end -- if
+
+        priString = priString .. valuePrefix .. string.format("  %5.2f", fieldValue) .. valueSuffix
+      end -- for
+
+      if doDisplayDesc then
+        priString = priString .. "  : " .. descPrefix .. fieldDesc .. descSuffix
+      end -- if
+    end -- if
+  end -- for  
+
+  return priString, retval
+end -- inv.priority.tableToString
 
 
-function inv.priority.displayBlock(priorityBlock, priorityName)
+-- Returns priority table entry, retval
+function inv.priority.stringToTable(priorityString)
   local retval = DRL_RET_SUCCESS
+  local priEntry = {}
 
-  if (priorityBlock == nil) then
-    dbot.warn("inv.priority.displayBlock: Missing priority block parameter")
-    return DRL_RET_INVALID_PARAM
-  end -- if
+--FIXME: add this!
 
-  if (priorityBlock.minLevel == nil) or (priorityBlock.maxLevel == nil) or
-     (priorityBlock.priorities == nil) then
-    dbot.warn("inv.priority.displayBlock: Missing priority block components")
-    return DRL_RET_MISSING_ENTRY
-  end -- if
-
-  dbot.print("@WPriority \"@C" .. priorityName .. "@W\": Levels @G" .. priorityBlock.minLevel ..
-             "@W - @G" .. priorityBlock.maxLevel)
-
-  -- We can't sort a table so create a temporary array and then sort the temporary array
-  local priorityArray = {}
-  for k, v in pairs(priorityBlock.priorities) do
-    table.insert(priorityArray, { name = k, value = v })
-  end -- for
-  table.sort(priorityArray, function (v1, v2) return v1.value < v2.value end)
-
-  -- Print the priorities in sorted order
-  for _, priorityEntry in ipairs(priorityArray) do
-    local valueColor = "@W"
-    if (priorityEntry.value < 0.7) then
-      valueColor = "@R"
-    elseif (priorityEntry.value > 1.4) then
-      valueColor = "@G"
-    end -- if
-
-    if (priorityEntry.value ~= 0) then
-      dbot.print(string.format("  @y%12s @W= %s%.3f", priorityEntry.name, valueColor, priorityEntry.value))
-    end -- if
-  end -- for
-
-  return retval
-end -- inv.priority.displayBlock
-
-
-function inv.priority.list(endTag)
-  if (inv.priority == nil) or (inv.priority.table == nil) then
-    dbot.error("inv.priority.list: Priority table is missing!")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INTERNAL_ERROR)
-  end -- if
-
-  -- Alphabetize the priorities before we list them
-  local sortedPriorities = {}
-  local numPriorities = 0
-  for k,_ in pairs(inv.priority.table) do
-    table.insert(sortedPriorities, k)
-    numPriorities = numPriorities + 1
-  end -- for
-  table.sort(sortedPriorities, function (v1, v2) return v1 < v2 end)
-
-  if (numPriorities == 0) then
-    dbot.info("Priority table is empty")
-  else
-    dbot.print("@WPriorities:")
-    for _, priority in ipairs(sortedPriorities) do
-      dbot.print("@W  \"@C" .. priority .. "@W\"@w")
-    end -- for
-  end -- if
-
-  return inv.tags.stop(invTagsPriority, endTag, DRL_RET_SUCCESS)
-end -- inv.priority.list
-
-
-function inv.priority.compare(priorityName1, priorityName2, endTag)
-  local retval = DRL_RET_SUCCESS
-
-  if (priorityName1 == nil) or (priorityName1 == "") or (priorityName2 == nil) or (priorityName2 == "") then
-    dbot.warn("inv.priority.compare: missing priority name")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
-  end -- if
-
-  if (inv.priority == nil) or (inv.priority.table == nil) then
-    dbot.error("inv.priority.list: Priority table is missing!")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INTERNAL_ERROR)
-  end -- if
-
-  if (inv.priority.table[priorityName1] == nil) then
-    dbot.warn("inv.priority.compare: Priority \"" .. priorityName1 .. "\" is not present")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
-  end -- if
-
-  if (inv.priority.table[priorityName2] == nil) then
-    dbot.warn("inv.priority.compare: Priority \"" .. priorityName2 .. "\" is not present")
-    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
-  end -- if
-
-  local startLevel = 1 + 10 * dbot.gmcp.getTier()
-  local endLevel = startLevel + 200
-  local doPrintHeader = true
-
-  dbot.print("@WDifference between optimal sets for \"@G" .. priorityName1 .. 
-                "@W\" and \"@G" .. priorityName2 .. "@W\"\n@w")
-
-  for level = startLevel, endLevel do
-    local set1 = inv.set.get(priorityName1, level)
-    local set2 = inv.set.get(priorityName2, level)
-    local didPrintHeader
-
-    if (set1 == nil) then
-      dbot.info("Priority \"@C" .. priorityName1 .. "@W\" is missing a set analysis at level " .. level .. ".")
-      dbot.info("Please run \"@Gdinv analyze create " .. priorityName1 .. "@W\" before comparing the priority.")
-      retval = DRL_RET_MISSING_ENTRY
-      break
-    elseif (set2 == nil) then
-      dbot.info("Priority \"@C" .. priorityName2 .. "@W\" is missing a set analysis at level " .. level .. ".")
-      dbot.info("Please run \"@Gdinv analyze create " .. priorityName2 .. "@W\" before comparing the priority.")
-      retval = DRL_RET_MISSING_ENTRY
-      break
-    end -- if
-
-    didPrintHeader, retval = inv.set.displayDiff(set1, set2, level, string.format("Level %3d: ", level),
-                                                 doPrintHeader)
-    if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.priority.compare: Failed to display priority differences at level " .. level ..
-              ": " .. dbot.retval.getString(retval))
-      break
-    end -- if
-
-    doPrintHeader = not didPrintHeader -- If we already printed a header, don't print one again
-  end -- for
-
-  return inv.tags.stop(invTagsPriority, endTag, retval)
-end -- inv.priority.compare
+  return priEntry, retval
+end -- inv.priority.stringToTable
 
 
 function inv.priority.addDefault()
@@ -11652,6 +11733,69 @@ function inv.priority.addDefault()
 
   return retval
 end -- inv.priority.addDefault
+
+
+-- ordinal number, name, and description of each possible priority field
+inv.priority.fieldTable = {
+
+  { "str"         , "Value of 1 point of the strength stat" },
+  { "int"         , "Value of 1 point of the intelligence stat" },
+  { "wis"         , "Value of 1 point of the wisdom stat" },
+  { "dex"         , "Value of 1 point of the dexterity stat" },
+  { "con"         , "Value of 1 point of the constitution stat" },
+  { "luck"        , "Value of 1 point of the luck stat" },
+
+  { "dam"         , "Value of 1 point of damroll" },
+  { "hit"         , "Value of 1 point of hitroll" },
+
+  { "avedam"      , "Value of 1 point of primary weapon ave damage" },
+  { "offhandDam"  , "Value of 1 point of offhand weapon ave damage" },
+
+  { "hp"          , "Value of 1 hit point" },
+  { "mana"        , "Value of 1 mana point" },
+  { "moves"       , "Value of 1 movement point" },
+
+  { "sanctuary"   , "Value placed on the sanctuary effect " },
+
+  { "haste"       , "Value placed on the haste effect " },
+  { "flying"      , "Value placed on the flying effect " },
+  { "invis"       , "Value placed on the invisible effect " },
+  { "regeneration", "Value placed on the regeneration effect" },
+  { "detectinvis" , "Value placed on the detect invis effect " },
+  { "detecthidden", "Value placed on the detect hidden effect " },
+  { "detectevil"  , "Value placed on the detect evil effect " },
+  { "detectgood"  , "Value placed on the detect good effect " },
+  { "detectmagic" , "Value placed on the detect magic effect " },
+
+  { "dualwield"   , "Value of an item's dual wield effect" },
+  { "irongrip"    , "Value of an item's irongrip effect" },
+  { "shield"      , "Value of a shield's damage reduction effect" },
+
+  { "allmagic"    , "Value of 1 point in each magical resist type" },
+  { "allphys"     , "Value of 1 point in each physical resist type" },
+
+  { "bash"        , "Value of 1 point of bash physical resistance" },
+  { "pierce"      , "Value of 1 point of pierce physical resistance" },
+  { "slash"       , "Value of 1 point of slash physical resistance" },
+
+  { "acid"        , "Value of 1 point of acid magical resistance" },
+  { "air"         , "Value of 1 point of air magical resistance" },
+  { "cold"        , "Value of 1 point of cold magical resistance" },
+  { "disease"     , "Value of 1 point of disease magical resistance" },
+  { "earth"       , "Value of 1 point of earth magical resistance" },
+  { "electric"    , "Value of 1 point of electric magical resistance" },
+  { "energy"      , "Value of 1 point of energy magical resistance" },
+  { "fire"        , "Value of 1 point of fire magical resistance" },
+  { "holy"        , "Value of 1 point of holy magical resistance" },
+  { "light"       , "Value of 1 point of light magical resistance" },
+  { "magic"       , "Value of 1 point of magic magical resistance" },
+  { "mental"      , "Value of 1 point of mental magical resistance" },
+  { "negative"    , "Value of 1 point of negative magical resistance" },
+  { "poison"      , "Value of 1 point of poison magical resistance" },
+  { "shadow"      , "Value of 1 point of shadow magical resistance" },
+  { "sonic"       , "Value of 1 point of sonic magical resistance" },
+  { "water"       , "Value of 1 point of water magical resistance" }
+}
 
 
 ----------------------------------------------------------------------------------------------------

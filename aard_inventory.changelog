@@ -1,6 +1,16 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0008] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Updated "dinv priority display ..." to show all level blocks at once"
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Refactored priority framework in preparation for a priority GUI"
+  }
+}
+
 dbot.changelog[2.0007] =
 {
   { change = drlDbotChangeLogTypeMisc,
@@ -65,7 +75,7 @@ dbot.changelog[2.0002] =
 dbot.changelog[2.0001] =
 {
   { change = drlDbotChangeLogTypeFix,
-    desc   = "Fixed update framework for older r1825 mush builds"
+    desc   = "Fixed update framework to support older r1825 mush builds"
   },
   { change = drlDbotChangeLogTypeFix,
     desc   = "Properly handles if someone cancels a quit command"
