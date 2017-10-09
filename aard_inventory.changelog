@@ -4,7 +4,7 @@ dbot.changelog = {}
 dbot.changelog[2.0008] =
 {
   { change = drlDbotChangeLogTypeNew,
-    desc   = "Updated "dinv priority display ..." to show all level blocks at once"
+    desc   = "Updated \"dinv priority display ...\" to show all level blocks at once"
   },
   { change = drlDbotChangeLogTypeMisc,
     desc   = "Refactored priority framework in preparation for a priority GUI"
