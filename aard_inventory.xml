@@ -2567,9 +2567,7 @@ Examples:
      range (1 - 291) and values of 0 for each possible priority field.  You can break the level
      range into multiple ranges by adding additional columns and ensuring that each column's min
      and max level fields do not overlap with another column.  Once you enter values for each
-     field, hit the "Done!" button to save your work.  The plugin does not currently save your
-     priority if it is malformed (that would be a nice feature!) so you may want to copy your work
-     into another file before you hit "Done!".
+     field, hit the "Done!" button to save your work.
      "@Gdinv priority create sillyTankMage@W"
 
   5) Yeah, that tank mage thing was probably too silly.  Let's delete it.
