@@ -136,7 +136,7 @@ Usage
   Equipment sets
     dinv set [display | wear] <priority name> <level>
     dinv snapshot [create | delete | list | display | wear] <snapshot name>
-    dinv priority [list | display | compare] <priority name 1> <priority name 2>
+    dinv priority [list | display | create | clone | delete | edit | compare] <name 1> <name 2>
 
   Equipment analysis
     dinv analyze [list | create | delete | display] <priority name> <positions>
