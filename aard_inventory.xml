@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0008"
+   version="2.0009"
    >
 <description trim="y">
 <![CDATA[
@@ -166,16 +166,12 @@ Usage
 Release Notes
 =============
 
-1) There currently is no mechanism to change stat prioritization other than manually modifying the
-   plugin.  This is high on the list of new features and a GUI supporting this will hopefully be
-   coming in the future.
-
-2) If you give an item to an enchanter to boost the item's stats, you may pull the old stats from a
+1) If you give an item to an enchanter to boost the item's stats, you may pull the old stats from a
    cache instead of using the new enchantments when you get the item back.  In this case, you may use
    the "dinv forget <query>" option to remove that item from your inventory table and its related caches.
    The next inventory refresh will pick up the new stats for the item.
 
-3) Most aard operations that modify an item's stats are detected and automatically trigger a 
+2) Most aard operations that modify an item's stats are detected and automatically trigger a 
    re-identification.  For example, enchantment spells, sharpening, reinforcing, tpenchanting, and wset
    all are handled transparently.  The one known exception is the setweight command which is not
    currently handled by aard's invitem system.  Until this is changed (or until we include a trigger
@@ -183,27 +179,27 @@ Release Notes
    weight in order to "forget" the old stats and then pick up the correct weight (and other stats) on
    the next inventory refresh.
 
-4) Wands and staves are not re-identified as they are used.  As a result, the number of charges
+3) Wands and staves are not re-identified as they are used.  As a result, the number of charges
    shown in the item's display may not match reality as the item is used.  If this mode is not added
    to the aard invitem system, we may need to add a trigger to watch for this and update charges
    accordingly.
 
-5) The plugin does not automatically open containers that are closed.  As a result, you won't be able
+4) The plugin does not automatically open containers that are closed.  As a result, you won't be able
    to get/put items in a closed container.  Keep your containers open! :)
 
-6) If you add a keyword to an item, drop it, and then pick it back up, the new keyword will still
+5) If you add a keyword to an item, drop it, and then pick it back up, the new keyword will still
    be available on the item if it is still in your cache.  However, this is not the case for common
    consumable items.  For example, we treat all duff beer potions as being identical so that you don't
    need to individually identify each potion.  As a result, the cached versions of those common items
    won't maintain custom keywords.
 
-7) If the plugin tags are enabled, they will echo an end tag at the conclusion of an operation.  However,
+6) If the plugin tags are enabled, they will echo an end tag at the conclusion of an operation.  However,
    if the user goes into a state that doesn't allow echoing (e.g., AFK) then the plugin cannot report the
    end tag.  In this scenario, the plugin will notify the user about the end tag via a warning notification
    instead of an echo.  Triggers cannot catch notifications though so any code relying on end tags should
    either detect when you go AFK or cleanly time out after a reasonable amount of time.
 
-8) If you add the portal wish after you have built your inventory table, you will need to either rebuild
+7) If you add the portal wish after you have built your inventory table, you will need to either rebuild
    the table (dinv build confirm) or forget/re-identify your portals (dinv forget type portal) and
    (dinv refresh all).
 
@@ -211,16 +207,15 @@ Release Notes
 Feature Wishlist
 ================
 
-1) Add a way to create and update stat prioritizations.  A GUI would be a very convenient way
-   to handle this.
+1) Support masking out specific wearable locations for a set (e.g., dinv set wear psi ~hold)
 
-2) Implement a mechanism to (more) fully identify items if the identify wish is not available.
+2) Implement a configuration option so that you can explicitly allow dinv operations to take
+   place even during combat.  By default, most operations are blocked during combat.
+
+3) Implement a mechanism to (more) fully identify items if the identify wish is not available.
    For example, we could use lore, the identify or object read spells, or Hester's identify
    service found at "runto identify".  This would be a manual process to "clean up" partially
    identified items.
-
-3) Add a display option to de-duplicate potions and pills in search results
-
 
 ]]>
 </description>
@@ -541,7 +536,17 @@ Feature Wishlist
 
   <alias
    script="inv.cli.priority.fn"
-   match="^[ ]*dinv[ ]+priority[ ]+(list|display|compare)[ ]*([^ ]*)?[ ]*([^ ]*)?$"
+   match="^[ ]*dinv[ ]+priority[ ]+(list|display|create|delete|clone|compare)([ ]+[^ ]+)?([ ]+[^ ]+)?[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.priority.fn2"
+   match="^[ ]*dinv[ ]+priority[ ]+(edit|split|join)([ ]+[^ ]+)?([ ]+[^ ]+)?[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1424,6 +1429,7 @@ end -- inv.config.new
 --   inv.cli.set.usage()
 --   inv.cli.set.examples()
 --   inv.cli.priority.fn(name, line, wildcards)
+--   inv.cli.priority.fn2(name, line, wildcards)
 --   inv.cli.priority.usage()
 --   inv.cli.priority.examples()
 --   inv.cli.snapshot.fn(name, line, wildcards)
@@ -2369,11 +2375,11 @@ end -- inv.cli.set.examples
 
 inv.cli.priority = {}
 function inv.cli.priority.fn(name, line, wildcards)
-  local command       = wildcards[1] or ""
-  local priorityName1 = wildcards[2] or ""
-  local priorityName2 = wildcards[3] or ""
+  local command       = Trim(wildcards[1] or "")
+  local priorityName1 = Trim(wildcards[2] or "")
+  local priorityName2 = Trim(wildcards[3] or "")
 
-  dbot.debug("inv.cli.priority: command=\"" .. command .. "\", name1=\"" .. priorityName1 ..
+  dbot.debug("inv.cli.priority.fn: command=\"" .. command .. "\", name1=\"" .. priorityName1 ..
              "\", name2=\"" .. priorityName2 .. "\"")
 
   if (not inv.init.initializedActive) then
@@ -2390,6 +2396,15 @@ function inv.cli.priority.fn(name, line, wildcards)
   elseif (command == "compare") then
     inv.priority.compare(priorityName1, priorityName2, line)
 
+  elseif (command == "create") then
+    inv.priority.create(priorityName1, line)
+
+  elseif (command == "delete") then
+    inv.priority.delete(priorityName1, line)
+
+  elseif (command == "clone") then
+    inv.priority.clone(priorityName1, priorityName2, line)
+
   else
     inv.cli.priority.usage()
     return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
@@ -2398,9 +2413,52 @@ function inv.cli.priority.fn(name, line, wildcards)
 end -- inv.cli.priority.fn
 
 
+function inv.cli.priority.fn2(name, line, wildcards)
+  local command      = Trim(wildcards[1] or "")
+  local priorityName = Trim(wildcards[2] or "")
+  local editFields   = Trim(wildcards[3] or "")
+  local level        = tonumber(wildcards[3] or "")
+
+  dbot.debug("inv.cli.priority.fn2: command=\"" .. command .. "\", priority=\"" .. priorityName ..
+             "\", level=\"" .. (level or "nil") .. "\"")
+
+  if (not inv.init.initializedActive) then
+    dbot.info("Skipping priority request: plugin is not yet initialized (are you AFK or sleeping?)")
+    return inv.tags.stop(invTagsPriority, line, DRL_RET_UNINITIALIZED)
+  end -- if
+
+  if (command == "edit") then
+    local useAllFields
+
+    if (editFields == "full") then
+      useAllFields = true
+    elseif (editFields == "") then
+      useAllFields = false
+    else
+      inv.cli.priority.usage()
+      return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
+    end -- if
+
+    inv.priority.edit(priorityName, useAllFields, false, line)
+
+  elseif (command == "split") then
+    inv.priority.split(priorityName, level, line)
+
+  elseif (command == "join") then
+    inv.priority.join(priorityName, level, line)
+
+  else
+    inv.cli.priority.usage()
+    return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
+  end -- if
+
+end -- inv.cli.priority.fn2
+
+
 function inv.cli.priority.usage()
   dbot.print("@W    " .. pluginNameCmd .. 
-             " priority @G[list | display | compare] @Y<priority name 1> <priority name 2>@w")
+             " priority @G[list | display | create | clone | delete | edit | compare] " ..
+             "@Y<name 1> <name 2>@w")
 end -- inv.cli.priority.usage
 
 
@@ -2459,14 +2517,14 @@ Examples:
   1) List all existing priorities defined for the plugin
      "@Gdinv priority list@W"
 
-  2) Compare the stat differences for all levels for the equipment sets generated by two 
-     different priorities.  This will generate a big report that I didn't include here because
-     this helpfile is already enormous :)
-     "@Gdinv priority compare myPriority1 myPriority2@W"
+  2) Clone an existing priority.  In this example we make a copy of the default "warrior" priority
+     and name it "myAwesomeWarrior".
+     "@Gdinv priority clone warrior myAwesomeWarrior@W"
 
   3) Display the "psi-melee" priority bundled with the plugin.  This is intended for a primary
      psi with at least one melee class.  You may or may not agree with these priorities.  That's
-     why this plugin gives you the ability to tweak things to your heart's content :)
+     why this plugin gives you the ability to tweak things to your heart's content :)  This
+     priority defines 6 different level ranges with different priorities at each range.
      "@Gdinv priority display psi-melee@W"
 
 @WPriority: "@Cpsi-melee@W"
@@ -2501,77 +2559,51 @@ Examples:
 @C    allmagic@r   0.03   0.03   0.05   0.05   0.05   0.05@W  : @cValue of 1 point in each magical resist type
 @C     allphys@r   0.03   0.05   0.10   0.10   0.10   0.10@W  : @cValue of 1 point in each physical resist type
 @W
-At the present time, the plugin does not have a GUI component so priority customization must be
-done by manually editing the plugin file directly.  Adding a GUI is very high on the priority list
-(pun intended) for a future release of the plugin.  In the meantime, you can open the plugin in an
-editor, search for the inv.priority.addDefault function, and add or modify one of the example
-default priorities.  Once you have made your modifications, run "@Gdinv reset confirm priority@W"
-to reset your priorities to the new default values.  
+  4) Create a new priority from scratch.  This will pop up a window populated with a single level
+     range (1 - 291) and values of 0 for each possible priority field.  You can break the level
+     range into multiple ranges by adding additional columns and ensuring that each column's min
+     and max level fields do not overlap with another column.  Once you enter values for each
+     field, hit the "Done!" button to save your work.  The plugin does not currently save your
+     priority if it is malformed (that would be a nice feature!) so you may want to copy your work
+     into another file before you hit "Done!".
+     "@Gdinv priority create sillyTankMage@W"
 
-This is an example where int, luck, and wis are equally weighted and no other stats are scored.
-It gives the highest possible stats for an enchanter wanting to enchant something.  The group of
-priorities is the same from level 1 - 291.
-@G
-  retval = inv.priority.add(
-    "enchanter", -- Equipment priorities for an enchanter (only care about int, luck, wis)
-    { 
-      { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { int        = 1,
-                       luck       = 1,
-                       wis        = 1
-                     }
-      }
-    })
-@W
-Here is a snippet showing how things are prioritized from levels 1 - 50 for a psi with at
-least one melee class (you may want different priorities -- that's just fine!)
-@G
-  retval = inv.priority.add(
-  "psi-melee", -- Equipment priorities for a psi with at least one melee class
-  { 
-    { -- Priorities for levels 1 - 50
-      minLevel = 1, 
-      maxLevel = 50,
-      priorities = { int          = 0.8,
-                     luck         = 1, 
-                     wis          = 0.7,
-                     str          = 1,  
-                     dex          = 0.8, 
-                     con          = 0.2,  
-                     dam          = 0.9,
-                     hit          = 0.85,
-                     hp           = 0.02,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.03,
-                     allmagic     = 0.03,
-                     avedam       = 1,
-                     offhandDam   = 0.33, 
-                     regeneration = 5, 
-                     sanctuary    = 50,
-                     haste        = 20,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 3,
-                     detectinvis  = 4,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 5,
-                     dualwield    = 20,
-                     irongrip     = 2,
-                     invis        = 10,
-                     flying       = 5,
-                     maxint       = 0,
-                     maxluck      = 0,
-                     maxwis       = 0,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
-                   }
-    },
-@W
-    ... This is just a snippet.  You can look at the plugin file for more details
+  5) Yeah, that tank mage thing was probably too silly.  Let's delete it.
+     "@Gdinv priority delete sillyTankMage@W"
+
+  6) Edit an existing priority.  This could be something that you cloned, something you made from
+     scratch, or even a modified default priority.  This example does not use the "full" mode and
+     only lists fields that have a non-zero value.  It also does not include descriptions for each
+     priority field.  That makes things more compact and easier to see.
+     "@Gdinv priority edit psi-no-melee@W"
+
+  7) Edit a priority with the "full" mode.  This shows everything -- including fields that only
+     have a priority of zero.  It also shows a description for each field.  If you use the "full"
+     mode on a large priority, you may need to resize your edit window to see everything.
+     "@Gdinv priority edit mage full@W"
+
+  8) Compare the stat differences at all levels for the equipment sets generated by two different
+     priorities.  This will generate a big report that I didn't include here because this helpfile
+     is already enormous :)  If you have not already performed a full analysis of both priorities
+     you will be prompted to do so before the comparison can execute.  The output shown below is
+     just a snippet.  For my equipment at level 11, switching from the "psi" to the "psi-melee"
+     priority loses my shield and a little hitroll, con, and resists.  However, it gives me a lot
+     more weapon damage and damroll, a little more int, and the regeneration effect (it must use a
+     ring of regen while the "psi" priority doesn't.)
+     "@Gdinv priority compare psi psi-melee@W"
+
+@WSwitching from priority "@Gpsi@W" to priority "@Gpsi-melee@W" would result in these changes:
+
+@W            Ave  Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects
+@WLevel  11: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  12: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  13: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  14: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  15: @G  23@W @G   4@W @R -3@W @G 22@W   0   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  16: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  17: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  18: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  19: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -3@W   0    0    0    0 @Gregeneration@W @Rshield@W 
 ]])
 
 end -- inv.cli.priority.examples
@@ -10213,13 +10245,13 @@ end -- inv.cache.clearOld
 -- inv.priority.reset()
 --
 -- inv.priority.create(priorityName, endTag)
--- inv.priority.clone(clonedPriorityName, origPriorityName, endTag)
+-- inv.priority.clone(origPriorityName, clonedPriorityName, endTag)
 -- inv.priority.delete(priorityName, endTag) 
 --
 -- inv.priority.list(endTag)
 -- inv.priority.display(priorityName, endTag)
 --
--- inv.priority.edit(priorityName, level, endTag)
+-- inv.priority.edit(priorityName, useAllFields, isQuiet, endTag)
 -- inv.priority.split(priorityName, level, endTag)
 -- inv.priority.join(priorityName, level, endTag)
 --
@@ -10352,10 +10384,12 @@ function inv.priority.create(priorityName, endTag)
     dbot.warn("inv.priority.create: Failed to add new priority \"@C" .. priorityName .. "@W\": " ..
               dbot.retval.getString(retval))
   else
-    retval = inv.priority.edit(priorityName)
+    retval = inv.priority.edit(priorityName, true, true, endTag)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.priority.create: Failed to edit priority \"@C" .. priorityName .. "@W\": " ..
                 dbot.retval.getString(retval))
+    else
+      dbot.info("Created priority \"@C" .. priorityName .. "@W\"")
     end -- if
   end -- if
 
@@ -10364,7 +10398,7 @@ function inv.priority.create(priorityName, endTag)
 end -- inv.priority.create
 
 
-function inv.priority.clone(clonedPriorityName, origPriorityName, endTag)
+function inv.priority.clone(origPriorityName, clonedPriorityName, endTag)
   local retval
 
   if (clonedPriorityName == nil) or (clonedPriorityName == "") then
@@ -10384,10 +10418,14 @@ function inv.priority.clone(clonedPriorityName, origPriorityName, endTag)
 
   if (inv.priority.table[clonedPriorityName] ~= nil) then
     dbot.warn("inv.priority.clone: cloned priority \"@C" .. clonedPriorityName .. "@W\" already exists") 
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_BUSY)
   end -- if
 
   -- Copy the priority into a new table entry
   inv.priority.table[clonedPriorityName] = dbot.table.getCopy(inv.priority.table[origPriorityName])
+
+  dbot.info("Cloned priority \"@C" .. clonedPriorityName .. "@W\" from priority \"@C" ..
+            origPriorityName .."@W\"")
 
   -- Save the table with the new priority.  We're done!  :)
   retval = inv.priority.save()
@@ -10411,6 +10449,12 @@ function inv.priority.delete(priorityName, endTag)
   end -- if
 
   retval = inv.priority.remove(priorityName)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.delete: Failed to remove priority \"@C" .. priorityName .. "@W\": " ..
+              dbot.retval.getString(retval))
+  else
+    dbot.info("Deleted priority \"@C" .. priorityName .. "@W\"")
+  end -- if
 
   return inv.tags.stop(invTagsPriority, endTag, retval)
 end -- inv.priority.delete
@@ -10468,8 +10512,9 @@ function inv.priority.display(priorityName, endTag)
 end -- inv.priority.display
 
 
-function inv.priority.edit(priorityName, level, endTag)
+function inv.priority.edit(priorityName, useAllFields, isQuiet, endTag)
   local retval = DRL_RET_SUCCESS
+  local priorityEntry, priorityString = nil, ""
 
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.priority.edit: priority name is missing!")
@@ -10481,21 +10526,78 @@ function inv.priority.edit(priorityName, level, endTag)
     return inv.tags.stop(invTagsPriority, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
-  --FIXME: add the utils call here
+  -- Get a string representation of the priority we want to edit
+  priorityString, retval = inv.priority.tableToString(inv.priority.table[priorityName],
+                                                      useAllFields, false, useAllFields)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.edit: Failed to get string representation of priority \"@C" ..
+              priorityName .. "@W\": " .. dbot.retval.getString(retval))
+    return inv.tags.stop(invTagsPriority, endTag, retval)
+  end -- if
 
-  return retval
+  local instructions = 
+[[Edit your priority!
+
+The first column lists the names of each available priority field.  Subsequent columns specify the numeric values of that field for a level range.  You may have as many level ranges as you wish, but ranges should not overlap.
+]]
+
+  local fontName = GetAlphaOption("output_font_name")
+  if (fontName == nil) then
+    fontName = "Consolas"
+  end -- if
+
+  -- Use a slightly smaller font if there is lots of info to display
+  local fontSize = 12
+  if useAllFields then
+    fontSize = 10
+  end -- if
+
+  repeat
+    priorityString = utils.editbox(instructions,
+                                   "DINV: Editing priority \"" .. priorityName .. "\"",
+                                   priorityString,            -- default text
+                                   fontName,                  -- font
+                                   fontSize,                  -- font size
+                                   { ok_button = "Done!" })   -- extras
+
+    if (priorityString == nil) then
+      dbot.info("Cancelled request to edit priority \"@C" .. priorityName .. "@W\"")
+      break
+
+    else
+      priorityEntry, retval = inv.priority.stringToTable(priorityString)
+      if (retval ~= DRL_RET_SUCCESS) then
+        dbot.warn("inv.priority.edit: Failed to convert priority string into priority: " ..
+                  dbot.retval.getString(retval))
+      else
+        inv.priority.table[priorityName] = priorityEntry
+        if (not isQuiet) then
+          dbot.info("Updated priority \"@C" .. priorityName .. "@W\"")
+        end -- if
+        inv.priority.save()
+      end -- if
+    end -- if
+  until (retval == DRL_RET_SUCCESS)
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
 end -- inv.priority.edit
 
 
 function inv.priority.split(priorityName, level, endTag)
---FIXME: add this!
+  local retval = DRL_RET_SUCCESS
 
+  dbot.note("FIXME: split -- do we want/need this?")
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
 end -- inv.priority.split
 
 
 function inv.priority.join(priorityName, level, endTag)
---FIXME: add this!
+  local retval = DRL_RET_SUCCESS
 
+  dbot.note("FIXME: join -- do we want/need this?")
+
+  return inv.tags.stop(invTagsPriority, endTag, retval)
 end -- inv.priority.join
 
 
@@ -10526,8 +10628,8 @@ function inv.priority.compare(priorityName1, priorityName2, endTag)
   local endLevel = startLevel + 200
   local doPrintHeader = true
 
-  dbot.print("@WDifference between optimal sets for \"@G" .. priorityName1 .. 
-                "@W\" and \"@G" .. priorityName2 .. "@W\"\n@w")
+  dbot.print("@WSwitching from priority \"@G" .. priorityName1 .. "@W\" to priority \"@G" ..
+             priorityName2 .. "@W\" would result in these changes:\n@w")
 
   for level = startLevel, endLevel do
     local set1 = inv.set.get(priorityName1, level)
@@ -10703,15 +10805,15 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
   end -- if
 
   -- Create the first line of the header
-  local priString = generalPrefix .. string.format("%12s", "Field")
+  local priString = generalPrefix .. string.format("%12s", "MinLevel")
   for _, blockEntry in ipairs(priorityTable) do
-    priString = priString .. string.format("  %sL%03d-%s", levelPrefix, blockEntry.minLevel, levelSuffix)
+    priString = priString .. string.format("    %s%3d%s", levelPrefix, blockEntry.minLevel, levelSuffix)
   end -- for
 
   -- Create the second line of the header
-  priString = priString .. string.format("\n%12s", "Name")
+  priString = priString .. string.format("\n%12s", "MaxLevel")
   for _, blockEntry in ipairs(priorityTable) do
-    priString = priString .. string.format("  %sL%03d%s ", levelPrefix, blockEntry.maxLevel, levelSuffix)
+    priString = priString .. string.format("    %s%3d%s", levelPrefix, blockEntry.maxLevel, levelSuffix)
   end -- for
   priString = priString .. "\n" .. generalSuffix
 
@@ -10778,7 +10880,128 @@ function inv.priority.stringToTable(priorityString)
   local retval = DRL_RET_SUCCESS
   local priEntry = {}
 
---FIXME: add this!
+  if (priorityString == nil) or (priorityString == "") then
+    dbot.warn("inv.priority.stringToTable: Missing priority string parameter")
+    return priEntry, DRL_RET_INVALID_ENTRY
+  end -- if
+
+  local lines = utils.split(priorityString, "\n")
+
+  -- Remove any color codes and comments.  This makes parsing everything much simpler.
+  for i, line in ipairs(lines) do
+    lines[i] = string.gsub(strip_colours(line), ":.*$", "")
+  end -- for
+
+  -- Verify the integrity of the string table.  Each line should have the same number
+  -- of columns.
+  local numColumns = nil
+  for i, line in ipairs(lines) do
+    local words, retval = dbot.wordsToArray(line)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.priority.stringToTable: Failed to convert line into array: " .. 
+                dbot.retval.getString(retval))
+      return priEntry, retval
+    end -- if
+
+    -- Remove any lines containing only white space.  Those just complicate things...
+    if (#words == 0) then
+      table.remove(lines, i)
+
+    elseif (numColumns == nil) then
+      numColumns = #words
+
+    elseif (numColumns ~= #words) then
+      dbot.warn("inv.priority.stringToTable: Malformed line has wrong number of columns: ")
+      dbot.warn("    \"" .. line .. "\"")
+      return priEntry, DRL_RET_INVALID_PARAM
+    end -- if
+  end -- for
+
+  if (numColumns == nil) then
+    dbot.warn("inv.priority.stringToTable: No valid lines were detected")
+      return priEntry, DRL_RET_INVALID_PARAM
+  elseif (numColumns < 2) then
+    dbot.warn("inv.priority.stringToTable: Missing priority block column(s)")
+      return priEntry, DRL_RET_INVALID_PARAM
+  end -- if
+
+  -- Parse the header lines
+  if (#lines < 2) then
+    dbot.warn("inv.priority.stringToTable: Missing header lines")
+    return priEntry, DRL_RET_INVALID_PARAM
+  end -- if
+
+  local header1, retval = dbot.wordsToArray(lines[1])
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.stringToTable: Failed to convert header1 into array: " .. 
+              dbot.retval.getString(retval))
+    return priEntry, retval
+  end -- if
+
+  if (header1[1] ~= "MinLevel") then
+    dbot.warn("inv.priority.stringToTable: Missing Field header")
+    return priEntry, DRL_RET_INVALID_PARAM
+  end -- if  
+
+  local header2, retval = dbot.wordsToArray(lines[2])
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.stringToTable: Failed to convert header2 into array: " .. 
+              dbot.retval.getString(retval))
+    return priEntry, retval
+  end -- if
+
+  if (header2[1] ~= "MaxLevel") then
+    dbot.warn("inv.priority.stringToTable: Missing field name header")
+    return priEntry, DRL_RET_INVALID_PARAM
+  end -- if  
+
+  -- Set up the initial block entries and level ranges
+  for i = 2, numColumns do -- Skip the first column (min/max levels and the field names)
+    local _, _, minLevel = string.find(header1[i], "(%d+)")
+    local _, _, maxLevel = string.find(header2[i], "(%d+)")
+    minLevel = tonumber(minLevel or "") or 0
+    maxLevel = tonumber(maxLevel or "") or 0
+
+    table.insert(priEntry, { minLevel = minLevel, maxLevel = maxLevel, priorities = {} })
+  end -- for
+
+  -- For each priority field, add the field's value to each block entry
+  for i = 3, #lines do
+    local fieldLine, retval = dbot.wordsToArray(lines[i])
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.priority.stringToTable: Failed to parse line \"" .. lines[i] .. "\"")
+      return priEntry, DRL_RET_INVALID_PARAM
+    end -- if
+
+    if (#fieldLine > 0) then
+      -- Verify that the field name is valid
+      local fieldName = fieldLine[1]
+      local fieldIsValid = false
+      for _, entry in ipairs(inv.priority.fieldTable) do
+        if (entry[1] == fieldName) then
+          fieldIsValid = true
+          break
+        end -- if
+      end -- if
+      if (not fieldIsValid) then
+        dbot.warn("Unsupported priority field \"" .. (fieldName or "nil") .. "\" in line\n      \"" ..
+                  (lines[i] or "nil") .. "\"")
+        return priEntry, DRL_RET_INVALID_PARAM
+      end -- if
+
+      for blockIdx, priorityBlock in ipairs(priEntry) do
+        local fieldValue = tonumber(fieldLine[blockIdx + 1] or "") -- add one to skip over the field name
+        if (fieldValue == nil) then
+          dbot.warn("inv.priority.stringToTable: Invalid field value at column " .. blockIdx + 1 ..
+                    " in line \"" .. lines[i] .. "\"")
+          return priEntry, DRL_RET_INVALID_PARAM
+        end -- if
+
+        priorityBlock.priorities[fieldName] = fieldValue
+      end -- for
+    end -- if
+
+  end -- for
 
   return priEntry, retval
 end -- inv.priority.stringToTable
@@ -10826,16 +11049,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 10,  
-                       int        = 15,
-                       wis        = 15,
-                       dex        = 10, 
-                       con        = 10,  
-                       luck       = 12,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.0,  
+                       int        = 1.5,
+                       wis        = 1.5,
+                       dex        = 1.0, 
+                       con        = 1.0,  
+                       luck       = 1.2,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -10878,16 +11101,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 15,  
-                       int        = 10,
-                       wis        = 10,
-                       dex        = 15, 
-                       con        = 10,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.5,  
+                       int        = 1.0,
+                       wis        = 1.0,
+                       dex        = 1.5, 
+                       con        = 1.0,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -10930,16 +11153,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 10,  
-                       int        = 15,
-                       wis        = 10,
-                       dex        = 10, 
-                       con        = 10,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.0,  
+                       int        = 1.5,
+                       wis        = 1.0,
+                       dex        = 1.0, 
+                       con        = 1.0,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -10982,16 +11205,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 12,  
-                       int        = 10,
-                       wis        = 10,
-                       dex        = 15, 
-                       con        = 10,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.2,  
+                       int        = 1.0,
+                       wis        = 1.0,
+                       dex        = 1.5, 
+                       con        = 1.0,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -11034,16 +11257,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 10,  
-                       int        = 10,
-                       wis        = 15,
-                       dex        = 10, 
-                       con        = 15,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.0,  
+                       int        = 1.0,
+                       wis        = 1.5,
+                       dex        = 1.0, 
+                       con        = 1.5,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -11086,16 +11309,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 10,  
-                       int        = 15,
-                       wis        = 10,
-                       dex        = 10, 
-                       con        = 15,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.0,  
+                       int        = 1.5,
+                       wis        = 1.0,
+                       dex        = 1.0, 
+                       con        = 1.5,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -11138,16 +11361,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 10,  
-                       int        = 10,
-                       wis        = 15,
-                       dex        = 10, 
-                       con        = 10,  
-                       luck       = 10,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.0,  
+                       int        = 1.0,
+                       wis        = 1.5,
+                       dex        = 1.0, 
+                       con        = 1.0,  
+                       luck       = 1.0,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -11162,16 +11385,16 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { 
-                       str        = 12,  
-                       int        = 12,
-                       wis        = 15,
-                       dex        = 13, 
-                       con        = 15,  
-                       luck       = 13,  
-                       hit        = 5,  
-                       dam        = 5,
-                       avedam     = 4,
-                       offhandDam = 4,
+                       str        = 1.2,  
+                       int        = 1.2,
+                       wis        = 1.5,
+                       dex        = 1.3, 
+                       con        = 1.5,  
+                       luck       = 1.3,  
+                       hit        = 0.5,  
+                       dam        = 0.5,
+                       avedam     = 0.4,
+                       offhandDam = 0.4,
                      }
       }
     })
@@ -16453,6 +16676,28 @@ function dbot.isWordInString(word, field)
 
   return false
 end -- dbot.isWordInString
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.wordsToArray: converts a string into an array of individual white-space separated words
+--
+-- Returns array, retval
+----------------------------------------------------------------------------------------------------
+
+function dbot.wordsToArray(myString)
+  local wordTable = {}
+
+  if (myString == nil) then
+    dbot.warn("dbot.wordsToArray: Missing string parameter")
+    return wordTable, DRL_RET_INVALID_PARAM
+  end -- if
+
+  for word in string.gmatch(myString, "%S+") do
+    table.insert(wordTable, word)
+  end -- for
+
+  return wordTable, DRL_RET_SUCCESS
+end -- dbot.wordsToArray
 
 
 ----------------------------------------------------------------------------------------------------
