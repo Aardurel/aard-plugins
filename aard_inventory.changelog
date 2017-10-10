@@ -10,7 +10,7 @@ dbot.changelog[2.0009] =
   },
   { change = drlDbotChangeLogTypeNew,
     desc   = "Implemented a minimal GUI for priority creation and editing"
-  }
+  },
   { change = drlDbotChangeLogTypeMisc,
     desc   = "Updated default priorities to have a more consistent range of values"
   }
