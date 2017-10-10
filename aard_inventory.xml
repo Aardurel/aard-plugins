@@ -10562,13 +10562,14 @@ The first column lists the names of each available priority field.  Subsequent c
 
     if (priorityString == nil) then
       dbot.info("Cancelled request to edit priority \"@C" .. priorityName .. "@W\"")
+      retval = DRL_RET_SUCCESS
       break
 
     else
       priorityEntry, retval = inv.priority.stringToTable(priorityString)
       if (retval ~= DRL_RET_SUCCESS) then
-        dbot.warn("inv.priority.edit: Failed to convert priority string into priority: " ..
-                  dbot.retval.getString(retval))
+        dbot.debug("inv.priority.edit: Failed to convert priority string into priority: " ..
+                   dbot.retval.getString(retval))
       else
         inv.priority.table[priorityName] = priorityEntry
         if (not isQuiet) then
@@ -10911,47 +10912,46 @@ function inv.priority.stringToTable(priorityString)
       numColumns = #words
 
     elseif (numColumns ~= #words) then
-      dbot.warn("inv.priority.stringToTable: Malformed line has wrong number of columns: ")
-      dbot.warn("    \"" .. line .. "\"")
+      dbot.warn("Malformed line has wrong number of columns:\n\"" .. line .. "\"")
       return priEntry, DRL_RET_INVALID_PARAM
     end -- if
   end -- for
 
   if (numColumns == nil) then
-    dbot.warn("inv.priority.stringToTable: No valid lines were detected")
+    dbot.warn("No valid lines were detected in the priority")
       return priEntry, DRL_RET_INVALID_PARAM
   elseif (numColumns < 2) then
-    dbot.warn("inv.priority.stringToTable: Missing priority block column(s)")
+    dbot.warn("Missing one or more columns in the priority")
       return priEntry, DRL_RET_INVALID_PARAM
   end -- if
 
   -- Parse the header lines
   if (#lines < 2) then
-    dbot.warn("inv.priority.stringToTable: Missing header lines")
+    dbot.warn("Missing header lines in priority")
     return priEntry, DRL_RET_INVALID_PARAM
   end -- if
 
   local header1, retval = dbot.wordsToArray(lines[1])
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.stringToTable: Failed to convert header1 into array: " .. 
+    dbot.warn("The priority's first line (part of the header) is malformed: " ..
               dbot.retval.getString(retval))
     return priEntry, retval
   end -- if
 
   if (header1[1] ~= "MinLevel") then
-    dbot.warn("inv.priority.stringToTable: Missing Field header")
+    dbot.warn("Missing or malformed minLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
   end -- if  
 
   local header2, retval = dbot.wordsToArray(lines[2])
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.stringToTable: Failed to convert header2 into array: " .. 
+    dbot.warn("The priority's second line (part of the header) is malformed: " ..
               dbot.retval.getString(retval))
     return priEntry, retval
   end -- if
 
   if (header2[1] ~= "MaxLevel") then
-    dbot.warn("inv.priority.stringToTable: Missing field name header")
+    dbot.warn("Missing or malformed maxLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
   end -- if  
 
@@ -10962,14 +10962,30 @@ function inv.priority.stringToTable(priorityString)
     minLevel = tonumber(minLevel or "") or 0
     maxLevel = tonumber(maxLevel or "") or 0
 
+    -- Ensure that there aren't any gaps in the level ranges.  The minLevel for this block
+    -- should be exactly one more than the maxLevel from the previous block.
+    if (#priEntry > 0) and (priEntry[#priEntry].maxLevel + 1 ~= minLevel) then
+      dbot.warn("Detected level gap between consecutive priority blocks\n" ..
+                "     Previous level block [" .. priEntry[#priEntry].minLevel .. "-" .. 
+                priEntry[#priEntry].maxLevel .. "], current level block [" .. minLevel .. "-" ..
+                maxLevel .. "]")
+      return priEntry, DRL_RET_INVALID_PARAM
+    end -- if
+
     table.insert(priEntry, { minLevel = minLevel, maxLevel = maxLevel, priorities = {} })
   end -- for
+
+  -- The priority must start at level 1 and end at 291
+  if (priEntry[1].minLevel ~= 1) or (priEntry[#priEntry].maxLevel ~= 291) then
+    dbot.warn("Priority must start at level 1 and continue to level 291")
+    return priEntry, DRL_RET_INVALID_PARAM
+  end -- if
 
   -- For each priority field, add the field's value to each block entry
   for i = 3, #lines do
     local fieldLine, retval = dbot.wordsToArray(lines[i])
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.priority.stringToTable: Failed to parse line \"" .. lines[i] .. "\"")
+      dbot.warn("Failed to parse priority line \"" .. lines[i] .. "\"")
       return priEntry, DRL_RET_INVALID_PARAM
     end -- if
 
@@ -10984,16 +11000,22 @@ function inv.priority.stringToTable(priorityString)
         end -- if
       end -- if
       if (not fieldIsValid) then
-        dbot.warn("Unsupported priority field \"" .. (fieldName or "nil") .. "\" in line\n      \"" ..
+        dbot.warn("Unsupported priority field \"" .. (fieldName or "nil") .. "\" in line\n     \"" ..
                   (lines[i] or "nil") .. "\"")
         return priEntry, DRL_RET_INVALID_PARAM
       end -- if
 
       for blockIdx, priorityBlock in ipairs(priEntry) do
-        local fieldValue = tonumber(fieldLine[blockIdx + 1] or "") -- add one to skip over the field name
+        local fieldValueRaw = fieldLine[blockIdx + 1]  -- add one to skip over the field name
+        if (fieldValueRaw == nil) then
+          dbot.warn("Missing one or more columns for priority field \"" .. fieldName .. "\"")
+          return priEntry, DRL_RET_INVALID_PARAM
+        end -- if
+
+        local fieldValue = tonumber(fieldValueRaw or "")
         if (fieldValue == nil) then
-          dbot.warn("inv.priority.stringToTable: Invalid field value at column " .. blockIdx + 1 ..
-                    " in line \"" .. lines[i] .. "\"")
+          dbot.warn("Non-numeric field value in priority at column " .. blockIdx + 1 ..
+                    " in line\n     \"" .. lines[i] .. "\"")
           return priEntry, DRL_RET_INVALID_PARAM
         end -- if
 
