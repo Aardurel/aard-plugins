@@ -10811,11 +10811,11 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
   end -- for
 
   -- Create the second line of the header
-  priString = priString .. string.format("\n%12s", "MaxLevel")
+  priString = priString .. string.format("\r\n%12s", "MaxLevel")
   for _, blockEntry in ipairs(priorityTable) do
     priString = priString .. string.format("    %s%3d%s", levelPrefix, blockEntry.maxLevel, levelSuffix)
   end -- for
-  priString = priString .. "\n" .. generalSuffix
+  priString = priString .. "\r\n" .. generalSuffix
 
   for _, fieldEntry in ipairs(inv.priority.fieldTable) do
     local fieldName = fieldEntry[1]
@@ -10838,7 +10838,7 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
     end -- if
 
     if (useField) then
-      priString = priString .. fieldPrefix .. string.format("\n%12s", fieldName) .. fieldSuffix
+      priString = priString .. fieldPrefix .. string.format("\r\n%12s", fieldName) .. fieldSuffix
 
       for _, blockEntry in ipairs(priorityTable) do
         local fieldValue = tonumber(blockEntry.priorities[fieldName] or "") or 0
