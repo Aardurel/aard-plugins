@@ -2513,6 +2513,10 @@ default priorities match the "score" priorities found by running "@Gcompare set@
 a given class.  You will almost certainly want to tweak (or massively overhaul!) these, but they
 give you a rough idea for a starting point.
 
+NOTE: Editing a priority will invalidate any previous equipment set analysis based on that
+priority.  See "@Gdinv help analyze@W" for instructions on recreating a set analysis.  In most
+instances, you will simply run "@Gdinv analyze create <priority name>@W".
+
 Examples:
   1) List all existing priorities defined for the plugin
      "@Gdinv priority list@W"
@@ -2879,6 +2883,11 @@ all of the data.  If you add new equipment to your inventory, you should recreat
 to pick up any changes due to the new equipment.  Note that the "@Gdinv set ...@W" options
 automatically use all of your equipment when creating sets but we don't proactively create new
 sets for all 200 levels unless you explicitly request that via "@Gdinv analyze create [name]@W".
+
+If you edit a priority (e.g., "@Gdinv priority edit [name]@W") then any analysis created with
+the previous version of that priority is invalid.  As a result, the plugin will erase any stale
+analysis when a priority changes and you will need to create it again using the updated version
+of the priority.
 
 You have the option of displaying equipment results for one or more specific wearable locations.
 For example, you could display results for the arms, head, and neck locations if you don't wish
@@ -10536,9 +10545,9 @@ function inv.priority.edit(priorityName, useAllFields, isQuiet, endTag)
   end -- if
 
   local instructions = 
-[[Edit your priority!
+[[Edit your priority!  See "dinv help priority" for more details.
 
-The first column lists the names of each available priority field.  Subsequent columns specify the numeric values of that field for a level range.  You may have as many level ranges as you wish, but ranges should not overlap.
+The first column lists the names of each available priority field.  Subsequent columns specify the numeric values of that field for a level range.  You may have as many level ranges as you wish, but ranges should not overlap and they should cover all levels between 1 - 291.
 ]]
 
   local fontName = GetAlphaOption("output_font_name")
@@ -10576,6 +10585,11 @@ The first column lists the names of each available priority field.  Subsequent c
           dbot.info("Updated priority \"@C" .. priorityName .. "@W\"")
         end -- if
         inv.priority.save()
+
+        -- Invalidate any previous equipment set analyzis based on this priority
+        inv.set.table[priorityName] = nil
+        inv.set.save()
+
       end -- if
     end -- if
   until (retval == DRL_RET_SUCCESS)
@@ -14936,8 +14950,8 @@ function inv.analyze.display(priorityName, wearableLoc, endTag)
   end -- if
 
   if (inv.set.table == nil) or (inv.set.table[priorityName] == nil) then
-    dbot.warn("inv.analyze.display: Analysis table is not populated for priority \"" .. priorityName ..
-              "\".  You need to perform a full analysis before displaying results.")
+    dbot.warn("Analysis is not available for priority \"@C" .. priorityName ..
+              "@W\".  Run \"@Gdinv analyze create " .. priorityName .. "@W\" to create it.")
     return inv.tags.stop(invTagsAnalyze, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
