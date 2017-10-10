@@ -1,6 +1,21 @@
 
 dbot.changelog = {}
 
+
+dbot.changelog[2.0009] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Added the \"@Ccreate@W\", \"@Cclone@W\", \"@Cdelete@W\", and \"@Cedit@W\" modes "  ..
+	     "to \"dinv priority ...\""
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = "Implemented a minimal GUI for priority creation and editing"
+  }
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Updated default priorities to have a more consistent range of values"
+  }
+}
+
 dbot.changelog[2.0008] =
 {
   { change = drlDbotChangeLogTypeNew,
