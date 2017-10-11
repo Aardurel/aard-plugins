@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0011] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed broken consume check that prevented you from using potions in combat.  Ouch."
+  }
+}
+
 dbot.changelog[2.0010] =
 {
   { change = drlDbotChangeLogTypeNew,

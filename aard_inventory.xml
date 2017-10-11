@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0010"
+   version="2.0011"
    >
 <description trim="y">
 <![CDATA[
@@ -4000,7 +4000,7 @@ function inv.cli.consume.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping consume request: plugin is not yet initialized (are you AFK or sleeping?)")
     return DRL_RET_UNINITIALIZED
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
+  elseif (dbot.gmcp.getState() ~= dbot.stateActive) and (not dbot.gmcp.isInCombat()) then
     dbot.info("Skipping consume request: character is not in the active state")
     return DRL_RET_NOT_ACTIVE
   end -- if
