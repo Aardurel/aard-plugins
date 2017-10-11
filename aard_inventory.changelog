@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0010] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = Added "dinv priority copy [name]" and "dinv priority paste [name]"
+  }
+}
+
 dbot.changelog[2.0009] =
 {
   { change = drlDbotChangeLogTypeNew,
