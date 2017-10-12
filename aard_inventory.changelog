@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0012] =
+{
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Loosened restrictions on many dinv modes to allow their use during combat"
+  }
+}
+
 dbot.changelog[2.0011] =
 {
   { change = drlDbotChangeLogTypeFix,

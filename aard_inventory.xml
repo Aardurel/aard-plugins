@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0011"
+   version="2.0012"
    >
 <description trim="y">
 <![CDATA[
@@ -209,10 +209,7 @@ Feature Wishlist
 
 1) Support masking out specific wearable locations for a set (e.g., dinv set wear psi ~hold)
 
-2) Implement a configuration option so that you can explicitly allow dinv operations to take
-   place even during combat.  By default, most operations are blocked during combat.
-
-3) Implement a mechanism to (more) fully identify items if the identify wish is not available.
+2) Implement a mechanism to (more) fully identify items if the identify wish is not available.
    For example, we could use lore, the identify or object read spells, or Hester's identify
    service found at "runto identify".  This would be a manual process to "clean up" partially
    identified items.
@@ -1193,6 +1190,19 @@ function inv.reload(doSaveState)
 end -- inv.reload
 
 
+-- We can perform actions in the "active" and "combat" states.  Any other state has the potential
+-- to prevent us from performing an action.  
+function inv.statePreventsActions()
+  local state = dbot.gmcp.getState() or "Uninitialized"
+
+  if (state == dbot.stateActive) or (state == dbot.stateCombat) then
+    return false
+  else
+    return true
+  end -- if
+end -- dbot.gmcp.statePreventsActions
+
+
 ----------------------------------------------------------------------------------------------------
 -- Versions of the plugin and plugin components
 --
@@ -1376,6 +1386,7 @@ function inv.config.new()
            priorityFormat  = version.priorityFormat,
            setFormat       = version.setFormat,
            snapshotFormat  = version.snapshotFormat,
+
            isPromptEnabled = true,
            isBackupEnabled = true,
            isBuildExecuted = false,
@@ -1977,8 +1988,8 @@ function inv.cli.get.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping get request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsGet, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping get request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping get request: character's state does not allow actions")
     return inv.tags.stop(invTagsGet, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -2039,8 +2050,8 @@ function inv.cli.put.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping put request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsPut, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping put request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping put request: character's state does not allow actions")
     return inv.tags.stop(invTagsPut, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -2096,8 +2107,8 @@ function inv.cli.store.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping store request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsStore, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping store request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping store request: character's state does not allow actions")
     return inv.tags.stop(invTagsStore, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -2192,8 +2203,8 @@ function inv.cli.set.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping set request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsSet, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping set request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping set request: character's state does not allow actions")
     return inv.tags.stop(invTagsSet, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -2658,8 +2669,8 @@ function inv.cli.snapshot.fn(name, line, wildcards)
 
   elseif (command == "wear") then
 
-    if (dbot.gmcp.getState() ~= dbot.stateActive) then
-      dbot.info("Skipping snapshot wear request: character is not in the active state")
+    if inv.statePreventsActions() then
+      dbot.info("Skipping snapshot wear request: character's state does not allow actions")
       return inv.tags.stop(invTagsSnapshot, line, DRL_RET_NOT_ACTIVE)
     end -- if
 
@@ -3030,8 +3041,8 @@ function inv.cli.usage.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping usage request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsUsage, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping usage request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping usage request: character's state does not allow actions")
     return inv.tags.stop(invTagsUsage, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -3300,8 +3311,8 @@ function inv.cli.notify.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping notify request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsNotify, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping notify request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping notify request: character's state does not allow actions")
     return inv.tags.stop(invTagsNotify, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -3377,8 +3388,8 @@ function inv.cli.forget.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping forget request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsForget, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping forget request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping forget request: character's state does not allow actions")
     return inv.tags.stop(invTagsForget, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -3535,12 +3546,12 @@ function inv.cli.backup.fn(name, line, wildcards)
     retval = inv.config.save()
     retval = inv.tags.stop(invTagsBackup, line, retval)
 
+  elseif (command == "list") then
+    retval = dbot.backup.list(line)
+
   elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
     dbot.info("Skipping backup request: character is not in the active state")
     retval = inv.tags.stop(invTagsBackup, line, DRL_RET_NOT_ACTIVE)
-
-  elseif (command == "list") then
-    retval = dbot.backup.list(line)
 
   elseif (command == "create") and (backupName ~= "") then
     retval = dbot.backup.create(backupName, line)
@@ -3648,8 +3659,8 @@ function inv.cli.cache.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping cache request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsCache, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping cache request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping cache request: character's state does not allow actions")
     return inv.tags.stop(invTagsCache, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -3867,8 +3878,8 @@ function inv.cli.portal.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping portal request: plugin is not yet initialized (are you AFK or sleeping?)")
     return DRL_RET_UNINITIALIZED
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping portal request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping portal request: character's state does not allow actions")
     return DRL_RET_NOT_ACTIVE
   end -- if
 
@@ -3936,8 +3947,8 @@ function inv.cli.pass.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping pass request: plugin is not yet initialized (are you AFK or sleeping?)")
     return DRL_RET_UNINITIALIZED
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping pass request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping pass request: character's state does not allow actions")
     return DRL_RET_NOT_ACTIVE
   end -- if
 
@@ -4000,8 +4011,8 @@ function inv.cli.consume.fn(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping consume request: plugin is not yet initialized (are you AFK or sleeping?)")
     return DRL_RET_UNINITIALIZED
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) and (not dbot.gmcp.isInCombat()) then
-    dbot.info("Skipping consume request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping consume request: character's state does not allow actions")
     return DRL_RET_NOT_ACTIVE
   end -- if
 
@@ -4180,8 +4191,8 @@ function inv.cli.organize.fn1(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping organize request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping organize request: character's state does not allow actions")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -4205,8 +4216,8 @@ function inv.cli.organize.fn2(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping organize request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping organize request: character's state does not allow actions")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -4228,8 +4239,8 @@ function inv.cli.organize.fn3(name, line, wildcards)
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping organize request: character is not in the active state")
+  elseif inv.statePreventsActions() then
+    dbot.info("Skipping organize request: character's state does not allow actions")
     return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
   end -- if
 
@@ -4330,13 +4341,13 @@ function inv.cli.version.fn(name, line, wildcards)
     dbot.info("Skipping version request: plugin is not yet initialized (are you AFK or sleeping?)")
     return inv.tags.stop(invTagsVersion, line, DRL_RET_UNINITIALIZED)
 
-  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
-    dbot.info("Skipping version request: character is not in the active state")
-    return inv.tags.stop(invTagsVersion, line, DRL_RET_NOT_ACTIVE)
-
   elseif (command == "") then
     retval = inv.version.display()
     return inv.tags.stop(invTagsVersion, line, retval)
+
+  elseif (dbot.gmcp.getState() ~= dbot.stateActive) then
+    dbot.info("Skipping version request: character is not in the active state")
+    return inv.tags.stop(invTagsVersion, line, DRL_RET_NOT_ACTIVE)
 
   elseif (command == "changelog") then
     dbot.info("Full changelog:")
@@ -8252,8 +8263,8 @@ function inv.items.organize.cleanupCR()
         end -- if
       end -- if
 
-      if (dbot.gmcp.getState() ~= dbot.stateActive) then
-        dbot.note("Skipping organize request: character is not in the active state")
+      if inv.statePreventsActions() then
+        dbot.info("Skipping organize request: character's state does not allow actions")
         retval = DRL_RET_NOT_ACTIVE
         break
       end -- if
