@@ -12093,13 +12093,13 @@ function inv.priority.addDefault()
         minLevel = 1, 
         maxLevel = 291, 
         priorities = { int        = 1,
-                       luck       = 0.5,
                        wis        = -1
                      }
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"balance\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"balance\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
   ------------------
@@ -12178,6 +12178,13 @@ inv.priority.fieldTable = {
 
   { "allmagic"    , "Value of 1 point in each magical resist type" },
   { "allphys"     , "Value of 1 point in each physical resist type" },
+
+  { "maxstr"      , "Value of hitting a level's strength ceiling" },
+  { "maxint"      , "Value of hitting a level's intelligence ceiling" },
+  { "maxwis"      , "Value of hitting a level's wisdom ceiling" },
+  { "maxdex"      , "Value of hitting a level's dexterity ceiling" },
+  { "maxcon"      , "Value of hitting a level's constitution ceiling" },
+  { "maxluck"     , "Value of hitting a level's luck ceiling" },
 
   { "bash"        , "Value of 1 point of bash physical resistance" },
   { "pierce"      , "Value of 1 point of pierce physical resistance" },
