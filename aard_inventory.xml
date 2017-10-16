@@ -1785,10 +1785,12 @@ You can also "OR" multiple query clauses together into a larger query using the 
 If you want move all of your potions and pills into a container named "2.bag" you could do that
 with this command: "@Gdinv put 2.bag type potion || type pill@W".
 
-An empty query matches everything in your inventory.  This is convenient if you want to see all
-of your stuff :)  For example "@Gdinv search@W" will display basic info on everything you are
-wearing, everything you are holding in your main inventory, and everything in containers you are
-holding.
+Most queries are in the form "someKey someValue" but there are a few one-word queries that make
+life a bit simpler.  If a query is the string "all" it will match everything in your inventory --
+including everything you are wearing, everything you are holding in your main inventory, and
+everything in your containers.  If you use the "worn" query, it will only match items that are
+currently equipped.  If you use an empty query (i.e., the query is "") then it will match
+everything in your inventory that is not currently equipped.
 
 Search queries support both absolute and relative names and locations.  If you want to specify
 all weapons that have "axe" in their name, use "@Gtype weapon name axe@W".  If you want to
@@ -1885,6 +1887,12 @@ Examples:
 @W  1@w @RAardWords (TM)@Y - [H] - S @Whold        0    0   0   0   0   0   0   0   0    0    0    0
 @W  1@w @RAardWords (TM)@Y - [P] - S @Whold        0    0   0   0   0   0   0   0   0    0    0    0
 @W  1@w @RAardWords (TM)@Y - [W] - S @Whold        0    0   0   0   0   0   0   0   0    0    0    0
+
+  7) Display your items that are equipped
+     "@Gdinv search worn@W"
+
+  8) Display EVERYTHING (no I'm not pasting that output here!)
+     "@Gdinv search all@W"
 ]])
 
 end -- inv.cli.search.examples
@@ -1903,6 +1911,12 @@ lore ability.
 A query's format includes one or more key-value pairs.  Details on this can be
 found at the helpfile displayed by the command "@Gdinv help search@W" but let's give a
 few more examples here too.  You can never have too many examples :)
+
+The plugin supports a few special queries that are not in the "someKey someValue"
+format:
+   @Call@W: Matches everything you have equipped or are carrying
+  @Cworn@W: Matches all of your worn equipment
+    @C""@W: The "empty query" matches everything in your inventory that is not equipped
 
 Examples:
 
@@ -1947,6 +1961,15 @@ Examples:
 
   7) Find everything in the container with relative location name "2.bag"
      "@Gdinv search rloc 2.bag@W"
+
+  8) Match everything you currently have equipped
+     "@Gdinv search worn@W"
+
+  9) Match everything in your inventory that is not equipped
+     "@Gdinv search@W"
+
+ 10) Match everything you have equipped or are carrying
+     "@Gdinv search all@W"
 
 Queries support lots of keys that are found when you identify an item.  Here is the
 list of currently supported keys:
@@ -7158,6 +7181,12 @@ function inv.items.search(arrayOfQueryArrays)
       if (stats ~= nil) and (idAlreadyMatches == false) then
         itemMatches = true -- start by assuming we have a match and halt if we find any non-conforming query
 
+        -- If we have an empty query (query == "") and the item is equipped, we don't match it.  The
+        -- empty query refers to everything that is not equipped.
+        if (queryArray ~= nil) and (#queryArray == 0) and inv.items.isWorn(itemId) then
+          itemMatches = false
+        end -- if
+
         for queryIdx,query in ipairs(queryArray) do
           local key = string.lower(query[1])   -- Stat keys and values are lower case to avoid conflicts
           local value = string.lower(query[2])
@@ -7166,6 +7195,21 @@ function inv.items.search(arrayOfQueryArrays)
           if (key == nil) or (value == nil) then
             dbot.warn("inv.items.search: query " .. queryIdx .. " is malformed with a nil component")
             return nil, DRL_RET_MISSING_ENTRY
+          end -- if
+
+          -- There are a few "one-off" search queries that make life simplier.  We support the
+          -- "all", "equipped" (or "worn"), and "unequipped" search queries.
+          if (key == invQueryKeyCustom) then
+
+            if (value == invQueryKeyAll) then
+              itemMatches = true
+            elseif (value == invQueryKeyEquipped) and (not inv.items.isWorn(itemId)) then
+              itemMatches = false
+            elseif (value == invQueryKeyUnequipped) and inv.items.isWorn(itemId) then
+              itemMatches = false
+            end -- if
+
+            break
           end -- if
 
           -- Check if the query has a prefix.  We currently support the prefixes "~", "min", and "max".
@@ -7212,9 +7256,9 @@ function inv.items.search(arrayOfQueryArrays)
               break
             end -- if
  
-          -- If the current item doesn't have a field matching the given key, we don't match; try the next item.
-          -- The behavior is the same whether or not the field is inverted (i.e., "~fieldName") so we don't
-          -- bother checking for inversion in this test.
+          -- If the current item doesn't have a field matching the given key, we don't match; try the next
+          -- item.  The behavior is the same whether or not the field is inverted (i.e., "~fieldName") so
+          -- we don't bother checking for inversion in this test.
           elseif (stats[key] == nil) then
             itemMatches = false
             break
@@ -7239,7 +7283,7 @@ function inv.items.search(arrayOfQueryArrays)
               break
             end -- if
 
-          elseif (key == invStatFieldKeywords) or (key == invStatFieldFlags) then
+          elseif (key == invStatFieldKeywords) or (key == invStatFieldFlags) or (key == invStatFieldClan) then
             local statField = stats[key] or ""
             local element
             local isInField = false
@@ -7311,6 +7355,11 @@ function inv.items.searchCR(queryString)
   local element
   local numWordsInQuery = 0
 
+  if (queryString == nil) then
+    dbot.warn("inv.items.searchCR: Missing query string parameter")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
   -- Count the number of words in the query string.  We use an obscure form of gsub() for this.
   -- The gsub function's 2nd return value is the number of substitutions made.  If we do a dummy
   -- substitution for each block of non-space characters in the query, we can get a count of the
@@ -7319,10 +7368,23 @@ function inv.items.searchCR(queryString)
     _, numWordsInQuery = queryString:gsub("%S+", "")
   end -- if
 
+  -- An empty query matches everything that is not equipped
+  if (queryString == "") then
+    table.insert(kvArray, { invQueryKeyCustom, invQueryKeyUnequipped })
+
+  -- A query that only consists of "all" will match everything -- including equipped items
+  elseif (Trim(queryString) == invQueryKeyAll) then
+    table.insert(kvArray, { invQueryKeyCustom, invQueryKeyAll })
+
+  -- You can match all worn equipment with the "equipped" or "worn" query
+  elseif (Trim(queryString) == invQueryKeyEquipped) or (Trim(queryString) == invQueryKeyWorn) then
+    table.insert(kvArray, { invQueryKeyCustom, invQueryKeyEquipped })
+
   -- If there is just a single word in the queryString, assume it is a name search.
   -- We don't really need to support this, but it is a convenient kludge.
-  if (numWordsInQuery == 1) then
+  elseif (numWordsInQuery == 1) then
     table.insert(kvArray, { invStatFieldName, queryString })
+
   else
     -- Parse the query string into key-value pairs and pass those pairs to inv.items.search()
     -- to search the inventory table for items matching each key-value query
@@ -9799,6 +9861,12 @@ invQueryKeyKey              = string.lower(inv.stats.key.name)
 invQueryKeyKeyword          = string.lower(inv.stats.keyword.name)
 invQueryKeyFlag             = string.lower(inv.stats.flag.name)
 
+invQueryKeyCustom           = "custom"
+invQueryKeyAll              = "all"
+invQueryKeyEquipped         = "equipped"
+invQueryKeyWorn             = "worn" -- this is an alias for invQueryKeyEquipped
+invQueryKeyUnequipped       = "unequipped"
+
 
 ----------------------------------------------------------------------------------------------------
 -- The "affect mods" item fields (yes, I really think it should be "effect mods" but I'm sticking
@@ -12131,7 +12199,39 @@ inv.priority.fieldTable = {
   { "poison"      , "Value of 1 point of poison magical resistance" },
   { "shadow"      , "Value of 1 point of shadow magical resistance" },
   { "sonic"       , "Value of 1 point of sonic magical resistance" },
-  { "water"       , "Value of 1 point of water magical resistance" }
+  { "water"       , "Value of 1 point of water magical resistance" },
+
+  { "~light"      , "Set to 1 to disable the light location" },
+  { "~head"       , "Set to 1 to disable the head location" },
+  { "~eyes"       , "Set to 1 to disable the eyes location" },
+  { "~lear"       , "Set to 1 to disable the left ear location" },
+  { "~rear"       , "Set to 1 to disable the right ear location" },
+  { "~neck1"      , "Set to 1 to disable the neck1 location" },
+  { "~neck2"      , "Set to 1 to disable the neck2 location" },
+  { "~back"       , "Set to 1 to disable the back location" },
+  { "~medal1"     , "Set to 1 to disable the medal1 location" },
+  { "~medal2"     , "Set to 1 to disable the medal2 location" },
+  { "~medal3"     , "Set to 1 to disable the medal3 location" },
+  { "~medal4"     , "Set to 1 to disable the medal4 location" },
+  { "~torso"      , "Set to 1 to disable the torso location" },
+  { "~body"       , "Set to 1 to disable the body location" },
+  { "~waist"      , "Set to 1 to disable the waist location" },
+  { "~arms"       , "Set to 1 to disable the arms location" },
+  { "~lwrist"     , "Set to 1 to disable the left wrist location" },
+  { "~rwrist"     , "Set to 1 to disable the right wrist location" },
+  { "~hands"      , "Set to 1 to disable the hands location" },
+  { "~lfinger"    , "Set to 1 to disable the left finger location" },
+  { "~rfinger"    , "Set to 1 to disable the right finger location" },
+  { "~legs"       , "Set to 1 to disable the legs location" },
+  { "~feet"       , "Set to 1 to disable the feet location" },
+  { "~shield"     , "Set to 1 to disable the shield location" },
+  { "~wielded"    , "Set to 1 to disable the wielded location" },
+  { "~second"     , "Set to 1 to disable the second location" },
+  { "~hold"       , "Set to 1 to disable the hold location" },
+  { "~float"      , "Set to 1 to disable the float location" },
+  { "~above"      , "Set to 1 to disable the above location" },
+  { "~portal"     , "Set to 1 to disable the portal location" },
+  { "~sleeping"   , "Set to 1 to disable the sleeping location" }
 }
 
 
@@ -12256,7 +12356,7 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
 
     -- Update the score for individual stats
     elseif (priorityTable[statKey] ~= nil) then
-      if (priorityTable[statKey] <= 0) then
+      if (priorityTable[statKey] == 0) then
         multiplier = 0
       else
         multiplier = priorityTable[statKey]
@@ -12269,7 +12369,7 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
 
       score = score + (multiplier * v)
       dbot.debug("Score: " .. string.format("%.3f", score) .. " after key \"" .. 
-      statKey .. "\" with value \"" .. v .. "\", multiplier=" .. multiplier)
+                 statKey .. "\" with value \"" .. v .. "\", multiplier=" .. multiplier)
 
     -- Update the score for consolidated stats
     else
@@ -12748,16 +12848,32 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     level = dbot.gmcp.getLevel() or 0
   end -- if
 
+  -- We don't want to scan GMCP for each item so we grab the char's alignment here outside
+  -- of the for loop
+  local isGood    = dbot.gmcp.isGood()
+  local isNeutral = dbot.gmcp.isNeutral()
+  local isEvil    = dbot.gmcp.isEvil()
+
   for objId,_ in pairs(inv.items.table) do
     local objIdentified = inv.items.getField(objId, invFieldIdentifyLevel) or ""
     local objLevel      = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
+    local objFlags      = inv.items.getStatField(objId, invStatFieldFlags) or ""
 
     if ((objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull)) and
        (objLevel ~= nil) and (objLevel <= level) then
 
-      if (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
+      -- Check the object alignment (we first strip out commas in the flags to make searching easier)
+      objFlags = string.gsub(objFlags, ",", "")
+      if (dbot.isWordInString("anti-good",    objFlags) and isGood)      or
+         (dbot.isWordInString("anti-neutral", objFlags) and isNeutral) or
+         (dbot.isWordInString("anti-evil",    objFlags) and isEvil)    then
+        dbot.debug("Skipping item: align=" .. (dbot.gmcp.getAlign() or "nil") ..
+                   ", flags=\"" .. (objFlags or "nil") .. "\"")
+
+      -- The alignment is acceptable.  Check the other requirements...
+      elseif (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
         score, offhandScore = inv.score.item(objId, priorityName, handicap, level)
         local nextBest = { id = objId, score = score }
 
@@ -13968,7 +14084,7 @@ function inv.snapshot.add(snapshotName, endTag)
       local objLoc = inv.items.getField(objId, invFieldObjLoc) or ""
 
       if (objLoc ~= "") then
-        snap[objLoc] = { id = objId, score = 0 } -- snapshots don't have scores but the set format assumes them
+        snap[objLoc] = { id = objId, score = 0 } -- snapshots don't have scores but the set format needs them
         numItemsInSnap = numItemsInSnap + 1
       end -- if
     end -- if
@@ -17326,8 +17442,13 @@ end -- dbot.error
 --  dbot.gmcp.getArea
 --  dbot.gmcp.getClass
 --  dbot.gmcp.getLevel
+--  dbot.gmcp.getAlign
 --  dbot.gmcp.getRoomId
 --  dbot.gmcp.getTier
+--
+--  dbot.gmcp.isGood
+--  dbot.gmcp.isNeutral
+--  dbot.gmcp.isEvil
 --
 --  dbot.gmcp.statePreventsActions()
 --  dbot.gmcp.stateIsInCombat
@@ -17456,7 +17577,7 @@ function dbot.gmcp.getName()
   end -- if
 
   return dbot.gmcp.charName, dbot.gmcp.charPretitle
-end -- dbot.gmcp.getClass
+end -- dbot.gmcp.getName
 
 
 function dbot.gmcp.getLevel()
@@ -17474,6 +17595,22 @@ function dbot.gmcp.getLevel()
   return myLevel
 
 end -- dbot.gmcp.getLevel
+
+
+function dbot.gmcp.getAlign()
+  local charStatus, myAlign
+
+  if dbot.gmcp.isInitialized then
+    charStatus = gmcp("char.status")
+    myAlign = tonumber(charStatus.align)
+  else
+    dbot.note("dbot.gmcp.getAlign: GMCP is not initialized")
+    myAlign = 0
+  end -- if
+
+  return myAlign
+
+end -- dbot.gmcp.getAlign
 
 
 function dbot.gmcp.getRoomId()
@@ -17507,6 +17644,42 @@ function dbot.gmcp.getTier()
   return myTier
 
 end -- dbot.gmcp.getTier
+
+
+function dbot.gmcp.isGood()
+  local align = dbot.gmcp.getAlign()
+
+  if (align >= 875) then
+    return true
+  else
+    return false
+  end -- if
+
+end -- dbot.gmcp.isGood
+
+
+function dbot.gmcp.isNeutral()
+  local align = dbot.gmcp.getAlign()
+
+  if (align >= -874) and (align <= 874) then
+    return true
+  else
+    return false
+  end -- if
+
+end -- dbot.gmcp.isNeutral
+
+
+function dbot.gmcp.isEvil()
+  local align = dbot.gmcp.getAlign()
+
+  if (align <= -875) then
+    return true
+  else
+    return false
+  end -- if
+
+end -- dbot.gmcp.isEvil
 
 
 -- We can perform actions in the "active" and "combat" states.  Any other state has the potential
@@ -17641,7 +17814,6 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
 
   local shortName = string.gsub(fileName, ".*\\", "")
   dbot.debug("dbot.storage.saveTable: Saving \"@G" .. shortName .. "@W\"")
-  --dbot.note("FIXME: Saving \"@G" .. fileName .. "@W\"")
 
   local fileData = "\n" .. serialize.save(tableName, theTable) 
   local fileHash = utils.hash((fileData or "") .. dbot.storage.fileVersion)
