@@ -6,27 +6,27 @@ dbot.changelog[2.0013] =
 {
   { change = drlDbotChangeLogTypeFix,
     desc   = "Priority fields with negative values are now interpreted properly"
-  }
+  },
   { change = drlDbotChangeLogTypeNew,
     desc   = "Added support for custom search queries \"worn\" and \"all\""
-  }
+  },
   { change = drlDbotChangeLogTypeMisc,
     desc   = "Changed interpretation of an empty search string to mean \"everything not worn\""
-  }
+  },
   { change = drlDbotChangeLogTypeFix,
     desc   = "Search queries with the \"clan\" key now match individual words in the clan name"
-  }
+  },
   { change = drlDbotChangeLogTypeFix,
     desc   = "Equipment sets now check alignment before using anti-[good|neutral|evil] items"
-  }
+  },
   { change = drlDbotChangeLogTypeFix,
     desc   =
 [[Fixed priority parsing so that max[stat name] correctly gives a bonus for
            maxing the specified stat at the target level]]
-  }
+  },
   { change = drlDbotChangeLogTypeNew,
     desc   = "Added ability to ignore specific wearable locations in a priority"
-  }
+  },
   { change = drlDbotChangeLogTypeMisc,
     desc   =
 [[If a set does not have an item for a wearable location, wearing the set now
