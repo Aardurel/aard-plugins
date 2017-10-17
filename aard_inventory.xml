@@ -13036,8 +13036,14 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
   -- whack the shield and hold items in the set because we won't be using them.  Otherwise, stick with
   -- the highest scoring weapon, shield, and hold items that we found in the initial search.
   if dualWieldAvailable and (bestWeaponSet.score > scorePrimary + scoreShield + scoreHold) then
-    newSet[inv.wearLoc[invWearableLocWielded]] = bestWeaponSet.primary
-    newSet[inv.wearLoc[invWearableLocSecond]]  = bestWeaponSet.offhand
+    if inv.priority.locIsAllowed(inv.wearLoc[invWearableLocWielded], priorityName, level) then
+      newSet[inv.wearLoc[invWearableLocWielded]] = bestWeaponSet.primary
+      newSet[inv.wearLoc[invWearableLocSecond]]  = bestWeaponSet.offhand
+    else
+      newSet[inv.wearLoc[invWearableLocWielded]] = nil
+      newSet[inv.wearLoc[invWearableLocSecond]]  = bestWeaponSet.primary
+    end -- if
+
     newSet[inv.wearLoc[invWearableLocShield]]  = nil
     newSet[inv.wearLoc[invWearableLocHold]]    = nil
   else
