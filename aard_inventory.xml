@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0012"
+   version="2.0013"
    >
 <description trim="y">
 <![CDATA[
@@ -2589,6 +2589,9 @@ Examples:
 @C      shield@G   5.00   5.00  10.00  20.00  25.00  40.00@W  : @cValue of a shield's damage reduction effect
 @C    allmagic@r   0.03   0.03   0.05   0.05   0.05   0.05@W  : @cValue of 1 point in each magical resist type
 @C     allphys@r   0.03   0.05   0.10   0.10   0.10   0.10@W  : @cValue of 1 point in each physical resist type
+@C      maxint@R   0.00   0.00   0.00   0.00@G   5.00  20.00@W  : @cValue of hitting a level's intelligence ceiling
+@C      maxwis@R   0.00   0.00   0.00   0.00@G   5.00  20.00@W  : @cValue of hitting a level's wisdom ceiling
+@C     maxluck@R   0.00   0.00   0.00   0.00@G   5.00  20.00@W  : @cValue of hitting a level's luck ceiling
 @W
   4) Create a new priority from scratch.  This will pop up a window populated with a single level
      range (1 - 291) and values of 0 for each possible priority field.  You can break the level
@@ -10360,6 +10363,8 @@ end -- inv.cache.clearOld
 -- inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayColors, doDisplayDesc)
 -- inv.priority.stringToTable(priorityString)
 --
+-- inv.priority.locIsAllowed(wearableLoc, priorityName, level)
+-- 
 -- inv.priority.addDefault() -- add some default priorities
 --
 -- Data:
@@ -11187,6 +11192,44 @@ function inv.priority.stringToTable(priorityString)
 
   return priEntry, retval
 end -- inv.priority.stringToTable
+
+
+-- Priorities can have lines of the form "~hold 1 0 0 1 1" to indicate that the
+-- "hold" location should be ignored when creating the priority equipment sets
+function inv.priority.locIsAllowed(wearableLoc, priorityName, level)
+
+  if (wearableLoc == nil) or (wearableLoc == "") then
+    dbot.warn("inv.priority.locIsAllowed: Missing wearable location parameter")
+    return false
+  end -- if
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.locIsAllowed: Missing priority name parameter")
+    return false
+  end -- if
+
+  level = tonumber(level or "")
+  if (level == nil) or (level < 1) or (level > 291) then
+    dbot.warn("inv.priority.locIsAllowed: Invalid level parameter")
+    return false
+  end -- if
+
+  -- Check if the specified priority exists for the specified level
+  local priorityTable, retval = inv.priority.get(priorityName, level)
+  if (priorityTable == nil) then
+    dbot.warn("inv.priority.locIsAllowed: Priority \"" .. priorityName ..
+              "\" does not have a priority table " .. "for level " .. level)
+    return false
+  end -- if
+
+  local value = tonumber(priorityTable["~" .. wearableLoc] or "") or 0
+  if (value == 0) then
+    return true
+  else
+    return false
+  end -- if
+
+end -- inv.priority.locIsAllowed
 
 
 function inv.priority.addDefault()
@@ -12909,9 +12952,9 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
           end -- if
         end -- for        
 
-        -- prune slots that don't have any items 
+        -- prune slots that don't have any items or slots that are ignored
         for _,w in ipairs(inv.wearables[objWearable]) do
-          if (newSet[w].id == -1) then
+          if (newSet[w].id == -1) or (not inv.priority.locIsAllowed(w, priorityName, level)) then
             newSet[w] = nil
           end -- if
         end -- for        
@@ -12937,6 +12980,11 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
         dualWieldAvailable = true
       end -- if
     end -- if
+  end -- if
+
+  -- Check if the priority explicitly bans the "second" wield slot
+  if (dualWieldAvailable) then
+    dualWieldAvailable = inv.priority.locIsAllowed(inv.wearLoc[invWearableLocSecond], priorityName, level)
   end -- if
 
   -- We already know the highest scoring solo weapon (it is in the "wielded" slot).  We now
@@ -12987,7 +13035,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
   -- Check if we want dual weapons or primary weapon + shield + hold.  If we are using dual weapons,
   -- whack the shield and hold items in the set because we won't be using them.  Otherwise, stick with
   -- the highest scoring weapon, shield, and hold items that we found in the initial search.
-  if (bestWeaponSet.score > scorePrimary + scoreShield + scoreHold) then
+  if dualWieldAvailable and (bestWeaponSet.score > scorePrimary + scoreShield + scoreHold) then
     newSet[inv.wearLoc[invWearableLocWielded]] = bestWeaponSet.primary
     newSet[inv.wearLoc[invWearableLocSecond]]  = bestWeaponSet.offhand
     newSet[inv.wearLoc[invWearableLocShield]]  = nil
