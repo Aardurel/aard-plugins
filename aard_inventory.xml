@@ -13299,18 +13299,40 @@ function inv.set.wear(equipSet)
   -- Disable the prompt to make the output look cleaner
   dbot.prompt.hide()
 
-  -- Store any items that simply aren't part of the current equipment set.  This typically happens
-  -- when you switch from a single weapon to a dual weapon setup.
+  -- It's possible that an equipment set doesn't specify what to wear at a particular location.
+  -- In this case we would like to simply leave that wearable location alone and keep using
+  -- the equipment (if any) that is already equipped at that location.  However, some locations
+  -- are incompatible with each other and we may be forced to store an item to avoid a conflict.
+  -- For example, if a set does not have anything at the "second" location but it does include
+  -- a "hold" or "shield" item, them we don't have any choice.  We must store the item that
+  -- previously was at the "second" location.  The code below loops through all items to find
+  -- all currently equipped items and then stores anything that would be incompatible with the
+  -- new set.
   for _, v in pairs(inv.wearLoc) do
     itemLoc = v or "none"
     if (equipSet[itemLoc] == nil) then
       for objId, objInfo in pairs(inv.items.table) do
         local currentLoc = inv.items.getField(objId, invFieldObjLoc) or ""
         if (currentLoc == itemLoc) then
-          retval = inv.items.storeItem(objId, commandArray)
-          if (retval ~= DRL_RET_SUCCESS) then
-            dbot.debug("inv.set.wear: Failed to store item " .. objId .. ": " .. 
-                       dbot.retval.getString(retval))
+          local eqPrimary = equipSet[inv.wearLoc[invWearableLocWielded]]
+          local eqSecond  = equipSet[inv.wearLoc[invWearableLocSecond]]
+          local eqHold    = equipSet[inv.wearLoc[invWearableLocHold]]
+          local eqShield  = equipSet[inv.wearLoc[invWearableLocWielded]]
+
+          if ((itemLoc == inv.wearLoc[invWearableLocSecond]) and ((eqHold ~= nil) or (eqShield ~= nil))) or
+             ((itemLoc == inv.wearLoc[invWearableLocHold]) and (eqSecond ~= nil)) or
+             ((itemLoc == inv.wearLoc[invWearableLocShield]) and (eqSecond ~= nil)) or
+             ((itemLoc == inv.wearLoc[invWearableLocSecond]) and (eqPrimary ~= nil) and
+              (2 * tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0) >
+               tonumber(inv.items.getStatField(eqPrimary.id, invStatFieldWeight) or 0))) then
+
+            dbot.debug("Storing incompatible item at location \"" .. itemLoc .. "\"")
+
+            retval = inv.items.storeItem(objId, commandArray)
+            if (retval ~= DRL_RET_SUCCESS) then
+              dbot.debug("inv.set.wear: Failed to store item " .. objId .. ": " .. 
+                         dbot.retval.getString(retval))
+            end -- if
           end -- if
         end -- if
       end -- for
