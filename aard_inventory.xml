@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0013"
+   version="2.0014"
    >
 <description trim="y">
 <![CDATA[
@@ -173,11 +173,13 @@ Release Notes
 
 2) Most aard operations that modify an item's stats are detected and automatically trigger a 
    re-identification.  For example, enchantment spells, sharpening, reinforcing, tpenchanting, and wset
-   all are handled transparently.  The one known exception is the setweight command which is not
-   currently handled by aard's invitem system.  Until this is changed (or until we include a trigger
-   watching for setweight) you will need to use the "dinv forget <query>" option on an item that changes
-   weight in order to "forget" the old stats and then pick up the correct weight (and other stats) on
-   the next inventory refresh.
+   all are handled transparently.  There are two known exceptions to this.  First, the setweight
+   command does not result in an invitem update from aard's invitem system.  Second, scribing a scroll
+   does not trigger an invitem update.  As a result, until this is changed on aard's side of things
+   (or we manually add triggers in the plugin to watch for setweight and scribing) you will need to use
+   the "dinv forget <query>" option on an item that changes weight or a scroll that is scribed.  This
+   will cause the plugin to "forget" the existing data on the item so that the new information will be
+   picked up on the next inventory refresh.
 
 3) Wands and staves are not re-identified as they are used.  As a result, the number of charges
    shown in the item's display may not match reality as the item is used.  If this mode is not added
@@ -207,9 +209,7 @@ Release Notes
 Feature Wishlist
 ================
 
-1) Support masking out specific wearable locations for a set (e.g., dinv set wear psi ~hold)
-
-2) Implement a mechanism to (more) fully identify items if the identify wish is not available.
+1) Implement a mechanism to (more) fully identify items if the identify wish is not available.
    For example, we could use lore, the identify or object read spells, or Hester's identify
    service found at "runto identify".  This would be a manual process to "clean up" partially
    identified items.
@@ -3714,6 +3714,10 @@ function inv.cli.cache.fn(name, line, wildcards)
   else
     dbot.warn("inv.cli.cache.fn: Invalid cache command \"" .. cacheCommand .. "\" detected")
     retval = DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (retval == DRL_RET_SUCCESS) then
+    dbot.info("Cache request completed successfully")
   end -- if
 
   inv.tags.stop(invTagsCache, line, retval)
@@ -9945,7 +9949,7 @@ inv.cache.frequent.name = "frequent"
 inv.cache.recent.stateName   = "inv-cache-recent.state"
 inv.cache.frequent.stateName = "inv-cache-frequent.state"
 
-inv.cache.recent.defaultNumEntries   = 500
+inv.cache.recent.defaultNumEntries   = 1000
 inv.cache.frequent.defaultNumEntries = 100
 
 inv.cache.recent.prunePercent   = 0.2
@@ -18676,7 +18680,7 @@ function dbot.prompt.getStatusCR()
 
   -- Spin until both the enable trigger and disable trigger are detected (both "prompt" commands complete)
   local totTime = 0
-  local timeout = 5
+  local timeout = 60
   retval = DRL_RET_TIMEOUT
   while (totTime <= timeout) do
     if (dbot.prompt.foundEnable == true) and (dbot.prompt.foundDisable == true) then
@@ -18863,7 +18867,7 @@ function dbot.invmon.getStatusCR()
 
   -- Spin until both the enable trigger and disable trigger are detected (both "invmon" commands complete)
   local totTime = 0
-  local timeout = 5
+  local timeout = 60
   retval = DRL_RET_TIMEOUT
   while (totTime <= timeout) do
     if (dbot.invmon.foundEnable == true) and (dbot.invmon.foundDisable == true) then
