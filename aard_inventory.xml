@@ -710,7 +710,7 @@ function OnPluginSaveState()
 
   -- Update any automatic backups for the saved plugin state
   retval = dbot.backup.current()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_BUSY) then
     dbot.warn("OnPluginSaveState: Failed to backup plugin state: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -18131,6 +18131,7 @@ end -- dbot.backup.getFile(name)
 
 
 -- The automatic backup scheme: auto --> auto2 --> auto3
+dbot.backup.inProgress = false
 function dbot.backup.current()
   local retval
   local backupFile
@@ -18155,9 +18156,17 @@ function dbot.backup.current()
     return DRL_RET_IN_COMBAT
   end -- if
 
+  if dbot.backup.inProgress then
+    dbot.info("Skipping backup request: another backup request is in progress")
+    return DRL_RET_BUSY
+  end -- if
+
+  dbot.backup.inProgress = true
+
   backupDir, retval = dbot.backup.getBackupDir()
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("dbot.backup.current: Failed to get backup directory: " .. dbot.retval.getString(retval))
+    dbot.backup.inProgress = false
     return retval
   end -- if
 
@@ -18171,6 +18180,7 @@ function dbot.backup.current()
         dbot.warn("dbot.backup.current: Failed to create newest automatic backup \"@G" .. newestBackupName ..
                   "@W\": " .. dbot.retval.getString(retval))
       end -- if
+      dbot.backup.inProgress = false
       return retval
     end -- if
   end -- if  
@@ -18222,6 +18232,7 @@ function dbot.backup.current()
               "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
+  dbot.backup.inProgress = false
   return retval
 end -- dbot.backup.current
 
