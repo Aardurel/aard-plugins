@@ -746,12 +746,12 @@ end -- OnPluginDisconnect
 
 
 function OnPluginEnable()
-  dbot.note("OnPluginEnable!")
+  dbot.debug("OnPluginEnable!")
 end -- OnPluginEnable
 
 
 function OnPluginDisable()
-  dbot.note("OnPluginDisable!")
+  dbot.debug("OnPluginDisable!")
 end -- OnPluginDisable
 
 
@@ -771,7 +771,7 @@ function OnPluginTelnetOption(msg)
     -- if the user is AFK when they log in and then exits AFK at some indeterminate time in the future.
     if (dbot.gmcp.isInitialized) and (not inv.init.initializedActive) then
       local retval = inv.init.atActive()
-      if (retval ~= DRL_RET_SUCCESS) then
+      if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_BUSY) then
         dbot.warn("OnPluginTelnetOption: Failed to init \"at active\" inventory modules: " ..
                   dbot.retval.getString(retval))
       end -- if
@@ -815,7 +815,7 @@ function OnPluginBroadcast(msg, pluginId, pluginName, text)
 
       if dbot.gmcp.stateIsActive() then
         retval = inv.init.atActive()
-        if (retval ~= DRL_RET_SUCCESS) then
+        if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_BUSY) then
           dbot.warn("OnPluginBroadcast: Failed to init \"at active\" inventory modules: " ..
                     dbot.retval.getString(retval))
         end -- if
@@ -935,6 +935,8 @@ inv.inSafeMode = false
 
 inv.init.initializedInstall = false
 inv.init.initializedActive  = false
+inv.init.activePending      = false
+
 
 drlDoSaveState    = true
 drlDoNotSaveState = false
@@ -969,8 +971,8 @@ function inv.init.atInstall()
       if (inv[module].init.atInstall ~= nil) then
         local initVal = inv[module].init.atInstall()
         if (initVal ~= DRL_RET_SUCCESS) then
-          dbot.warn("inv.init.atInstall: Failed to initialize \"at install\" inv." .. module .. " module: " .. 
-                    dbot.retval.getString(initVal))
+          dbot.warn("inv.init.atInstall: Failed to initialize \"at install\" inv." .. module ..
+                    " module: " .. dbot.retval.getString(initVal))
           retval = initVal
         else
           dbot.debug("Initialized \"at install\" module inv." .. module)
@@ -1004,9 +1006,17 @@ end -- inv.init.atInstall
 -- at the "active" state involve waiting for results so we use a co-routine to handle all of
 -- the "at active" operations.
 function inv.init.atActive()
-  wait.make(inv.init.atActiveCR)
+  local retval = DRL_RET_SUCCESS
 
-  return DRL_RET_SUCCESS
+  if (not inv.init.activePending) then
+    inv.init.activePending = true
+    wait.make(inv.init.atActiveCR)
+  else
+    dbot.debug("inv.init.atActive: Another initialization is in progress")
+    retval = DRL_RET_BUSY
+  end -- if
+
+  return retval
 end -- inv.init.atActive
 
 
@@ -1015,6 +1025,7 @@ function inv.init.atActiveCR()
 
   if (dbot.gmcp.isInitialized == false) then
     dbot.error("inv.init.atActiveCR: GMCP is not initialized when we are active!?!")
+    inv.init.activePending = false
     return DRL_RET_INTERNAL_ERROR
   end -- if
 
@@ -1037,8 +1048,8 @@ function inv.init.atActiveCR()
       if (inv[module].init.atActive ~= nil) then
         local initVal = inv[module].init.atActive()
         if (initVal ~= DRL_RET_SUCCESS) then
-          dbot.warn("inv.init.atActiveCR: Failed to initialize \"at active\" inv." .. module .. " module: " .. 
-                    dbot.retval.getString(initVal))
+          dbot.warn("inv.init.atActiveCR: Failed to initialize \"at active\" inv." .. module ..
+                    " module: " .. dbot.retval.getString(initVal))
           retval = initVal
         else
           dbot.debug("Initialized \"at active\" module inv." .. module)
@@ -1069,6 +1080,7 @@ function inv.init.atActiveCR()
   end -- if
 
   -- Return success or the most recently encountered init error
+  inv.init.activePending = false
   return retval
 
 end -- inv.init.atActiveCR
@@ -1109,6 +1121,7 @@ function inv.fini(doSaveState)
   -- This indicates that we are now uninitialized
   inv.init.initializedInstall = false
   inv.init.initializedActive  = false
+  inv.init.activePending      = false
   inv.state = nil
 
   -- Return success or the most recently encountered de-init error
