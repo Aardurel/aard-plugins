@@ -123,7 +123,7 @@ Usage
 
   Inventory table access
     dinv build confirm
-    dinv refresh [on | off | all] <minutes>
+    dinv refresh [on | off | eager | all] <minutes>
     dinv search [id | full] <query>
 
   Item management
@@ -260,7 +260,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.refresh.fn"
-   match="^[ ]*dinv[ ]+refresh[ ]*(on)[ ]*([0-9]+)?$"
+   match="^[ ]*dinv[ ]+refresh[ ]*(on|eager)[ ]*([0-9]+)?$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1067,8 +1067,8 @@ function inv.init.atActiveCR()
       -- or added and removed items.  Ideally, we would do this at every login.  However, some
       -- users may have refreshes disabled because they want to handle things manually.  That's
       -- fine too.  If refreshes are disabled (their period is 0 minutes) then we skip this.
-      if (inv.items.refreshGetPeriod() > 0) then
-        dbot.info("Running a full scan to check if anything was moved outside of this client")
+      if (inv.items.refreshGetPeriods() > 0) then
+        dbot.info("Running initial full scan to check if your inventory was modified outside of this plugin")
         retval = inv.items.refresh(0, invItemsRefreshLocAll, nil, nil)
         if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
            dbot.info("Initial full inventory rescan could not complete: " .. dbot.retval.getString(retval))
@@ -1348,8 +1348,8 @@ function inv.config.load()
 
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.config.stateName, inv.config.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.config.load: Failed to load table from file \"@R" .. 
-              dbot.backup.getCurrentDir() .. inv.config.stateName .. "@W\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.config.load: Failed to load table from file \"@R" .. dbot.backup.getCurrentDir() ..
+              inv.config.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
   if (inv.config.table == nil) or (inv.config.table.tableFormat == nil) then
@@ -1390,7 +1390,8 @@ function inv.config.new()
            isPromptEnabled = true,
            isBackupEnabled = true,
            isBuildExecuted = false,
-           refreshPeriod   = 0
+           refreshPeriod   = 0,
+           refreshEagerSec = 0
          }
 end -- inv.config.new
 
@@ -1671,8 +1672,13 @@ function inv.cli.refresh.fn(name, line, wildcards)
     inv.tags.stop(invTagsRefresh, line, retval)
 
   elseif (command == "on") then
-    retval = inv.items.refreshOn(refreshPeriod)
+    retval = inv.items.refreshOn(refreshPeriod, 0)
     dbot.note("Inventory refresh is enabled")
+    inv.tags.stop(invTagsRefresh, line, retval)
+
+  elseif (command == "eager") then
+    retval = inv.items.refreshOn(refreshPeriod, inv.items.timer.refreshEagerSec or 0)
+    dbot.note("Inventory refresh is enabled and uses eager refreshes after acquiring items")
     inv.tags.stop(invTagsRefresh, line, retval)
 
   elseif (command == "") or (command == "all") then
@@ -1693,7 +1699,7 @@ end -- inv.cli.refresh.fn
 
 
 function inv.cli.refresh.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " refresh @Y[on | off | all] <minutes>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " refresh @Y[on | off | eager | all] <minutes>@w")
 end -- inv.cli.refresh.usage
 
 
@@ -1719,9 +1725,13 @@ There are two types of refreshes: manual and automatic.  A manual refresh simply
 refresh when the user requests one.  An automatic refresh occurs when a timer expires after a
 specified period of time.  Automatic refreshes are disabled by default on a new installation.
 If automatic refreshes are turned on ("@Gdinv refresh on <minutes>@W") then an automatic refresh
-refresh will trigger 5 seconds after an item is added to your inventory and every N minutes since
-the previous automatic refresh (if N is not supplied, it will default to 5 minutes.)  If nothing
-has changed since the last refresh, the refresh simply returns.
+runs every N minutes since the previous automatic refresh (if N is not supplied, it will default
+to 5 minutes.)  If nothing has changed since the last refresh, the refresh simply returns.
+
+If you really *really* like your inventory to always be up-to-date, you should use the "eager"
+refresh mode ("@Gdinv refresh eager <minutes>@W").  This is identical to the "refresh on" mode
+described above but it will also schedule a refresh to run 5 seconds after an item is added to
+your inventory.
 
 The plugin will skip a refresh or halt it early if you go to sleep, go AFK, enter combat, or hit
 a paging prompt.  In this case, any changes that were missed will be picked up the next time a
@@ -1738,12 +1748,14 @@ Examples:
      "@Gdinv refresh@W"
   2) Disable automatic refreshes
      "@Gdinv refresh off@W"
-  3) Enable automatic refreshes with default times (5 seconds since adding an item or 5 minutes
-     since the last refresh)
+  3) Enable automatic refreshes with the default period (5 minutes since the last refresh)
      "@Gdinv refresh on@W"
-  4) Enable automatic refreshes with a 10 minute delay between refreshes 
+  4) Enable automatic refreshes with a 10-minute delay between refreshes 
      "@Gdinv refresh on 10@W"
-  5) Perform a manual full refresh scan
+  5) Enable automatic refreshes with a 7-minute delay between refreshes and an "eager" refresh
+     a few seconds after a new item is added to your inventory
+     "@Gdinv refresh eager 7@W"
+  6) Perform a manual full refresh scan
      "@Gdinv refresh all@W"
 ]])
 end -- inv.cli.refresh.examples
@@ -4523,10 +4535,11 @@ end -- inv.cli.debug.fn
 --   inv.items.refreshCR
 --   inv.items.refreshAtTime
 --   inv.items.refreshDefault()
---   inv.items.refreshGetPeriod()
---   inv.items.refreshSetPeriod(numMinutes)
---   inv.items.refreshOn(minutes)
+--   inv.items.refreshGetPeriods()
+--   inv.items.refreshSetPeriods(autoMin, eagerSec)
+--   inv.items.refreshOn(autoMin, eagerSec)
 --   inv.items.refreshOff()
+--   inv.items.isDirty()
 --
 --   inv.items.build
 --
@@ -4607,7 +4620,7 @@ inv.items.stateName     = "inv-items.state"
 
 inv.items.mainState     = invItemsRefreshDirty -- state for the main inventory (as detected by invdata)
 inv.items.wornState     = invItemsRefreshDirty -- state for items you are wearing (as detected by eqdata)
-inv.items.keyringState  = invItemsRefreshDirty -- state for items on your keyring (as detected by keyring data)
+inv.items.keyringState  = invItemsRefreshDirty -- state for keyring items (as detected by keyring data)
 
 inv.items.burstSize     = 20 -- max # of items that can be moved in one atomic operation
 
@@ -4828,7 +4841,7 @@ function inv.items.init.atActive()
 
   -- If automatic refreshes are enabled (i.e., the period is > 0 minutes), kick off the 
   -- refresh timer to periodically scan our inventory and update the inventory table
-  local refreshPeriod = inv.items.refreshGetPeriod() or inv.items.timer.refreshMin
+  local refreshPeriod = inv.items.refreshGetPeriods() or inv.items.timer.refreshMin
   if (refreshPeriod > 0) then
     inv.items.refreshAtTime(refreshPeriod, 0)
   else
@@ -5241,7 +5254,7 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
         if (refreshLocation == invItemsRefreshLocAll) or
            ((refreshLocation == invItemsRefreshLocDirty) and 
             (not dbot.isWordInString(invItemsRefreshClean, keywordField))) then
-          dbot.note("Discovering contents of container " .. objId .. ": " .. v[invFieldColorName])
+          dbot.debug("Discovering contents of container " .. objId .. ": " .. v[invFieldColorName])
 
           -- Discover items in the container
           retval = inv.items.discoverLocation(objId)
@@ -5799,7 +5812,7 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
   -- If we aren't in the "active" character state (sleeping, running, AFK, writing a note, etc.)
   -- then we wait a bit and try again
   elseif (charState ~= dbot.stateActive) then
-    dbot.note("Skipping refresh request: char is in state \"" .. dbot.gmcp.getStateString(charState) .. "\"")
+    dbot.debug("Skipping refresh request: char is in state \"" .. dbot.gmcp.getStateString(charState) .. "\"")
     retval = DRL_RET_NOT_ACTIVE    
 
   -- If the char is in the active state (e.g., not AFK, in a note, in combat, etc.) refresh now
@@ -5825,9 +5838,9 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
   end -- if
 
   -- Schedule the next refresh if automatic refreshes are enabled (i.e., the period is > 0 minutes)
-  local refreshMin = inv.items.refreshGetPeriod() or 0
+  local refreshMin = inv.items.refreshGetPeriods() or 0
   if (refreshMin > 0) and (inv.state ~= nil) then
-    dbot.note("Scheduling automatic inventory refresh in " .. refreshMin .. " minutes")
+    dbot.debug("Scheduling automatic inventory refresh in " .. refreshMin .. " minutes")
     inv.items.refreshAtTime(refreshMin, 0)
   end -- if
 
@@ -5843,9 +5856,19 @@ end -- inv.items.refresh
 
 
 function inv.items.refreshCR()
-  local retval
+  local retval = DRL_RET_SUCCESS
 
-  dbot.info("Refreshing inventory: START")
+  -- We can skip the refresh if we've already done a full scan, there are no known "dirty" 
+  -- locations or containers, and the user didn't explicitly request a full scan
+  if inv.items.fullScanCompleted and
+     (inv.items.refreshPkg.refreshLocations ~= invItemsRefreshLocAll) and
+     (not inv.items.isDirty()) then
+    dbot.debug("Skipping refresh because there are no known unidentified items")
+    inv.state = invStateIdle
+    return inv.tags.stop(inv.items.refreshPkg.tagModule, inv.items.refreshPkg.endTag, retval)
+  end -- if
+
+  dbot.note("Refreshing inventory: START")
 
   -- Disable the prompt to avoid confusing output during the refresh
   dbot.prompt.hide()
@@ -5909,7 +5932,7 @@ function inv.items.refreshCR()
     resultString = "ERROR! (" .. dbot.retval.getString(retval) .. ")"
   end -- if
 
-  dbot.info("Refreshing inventory: " .. resultString)
+  dbot.note("Refreshing inventory: " .. resultString)
 
   inv.state = invStateIdle
 
@@ -5970,7 +5993,7 @@ function inv.items.refreshDefault()
 
   -- By default, refresh only dirty locations and skip item locations that don't contain any
   -- unidentified items.
-  if (inv.items.refreshGetPeriod() > 0) then
+  if (inv.items.refreshGetPeriods() > 0) then
     retval = inv.items.refresh(0, invItemsRefreshLocDirty, nil, nil)
   end -- if
 
@@ -5978,36 +6001,72 @@ function inv.items.refreshDefault()
 end -- inv.items.refreshDefault
 
 
-function inv.items.refreshGetPeriod()
-  return inv.config.table.refreshPeriod
-end -- inv.items.refreshGetPeriod
+function inv.items.refreshGetPeriods()
+  return inv.config.table.refreshPeriod, inv.config.table.refreshEagerSec
+end -- inv.items.refreshGetPeriods
 
 
-function inv.items.refreshSetPeriod(numMinutes)
-  inv.config.table.refreshPeriod = tonumber(numMinutes) or inv.items.timer.refreshMin
+function inv.items.refreshSetPeriods(autoMin, eagerSec)
+  inv.config.table.refreshPeriod = tonumber(autoMin) or inv.items.timer.refreshMin
+  inv.config.table.refreshEagerSec = tonumber(eagerSec) or inv.items.timer.refreshEagerSec
+
   return inv.config.save()
-end -- inv.items.refreshSetPeriod
+end -- inv.items.refreshSetPeriods
 
 
-function inv.items.refreshOn(numMinutes)
-  numMinutes = tonumber(numMinutes or "") or inv.items.timer.refreshMin
-  if (numMinutes < 1) then
+function inv.items.refreshOn(autoMin, eagerSec)
+  autoMin = tonumber(autoMin or "") or inv.items.timer.refreshMin
+  if (autoMin < 1) then
     dbot.warn("inv.items.refreshOn: Automatic refreshes must have a period of at least one minute")
     return DRL_RET_INVALID_PARAM
   end -- if
 
-  inv.items.refreshSetPeriod(numMinutes)
+  inv.items.refreshSetPeriods(autoMin, eagerSec or 0)
+
+  inv.state = invStateIdle
 
   -- Schedule the next refresh
-  return inv.items.refreshAtTime(numMinutes, 0)
+  return inv.items.refreshAtTime(autoMin, 0)
 end -- inv.items.refreshOn
 
 
 function inv.items.refreshOff()
   inv.state = invStatePaused
   dbot.deleteTimer(inv.items.timer.refreshName)
-  return inv.items.refreshSetPeriod(0)
+  return inv.items.refreshSetPeriods(0, 0)
 end -- inv.items.refreshOff
+
+
+-- This checks all locations and determines if there are any known unidentified items.  If there
+-- is at least one unidentified item, isDirty() returns true.  Otherwise, it returns false.
+function inv.items.isDirty()
+  local isDirty = false
+
+  -- Check the easy locations first.  If something unidentified is worn, on your keyring, or in
+  -- your main inventory, return true.  We don't even need to look at containers.
+  if (inv.items.wornState    == invItemsRefreshDirty) or
+     (inv.items.mainState    == invItemsRefreshDirty) or
+     (inv.items.keyringState == invItemsRefreshDirty) then
+    isDirty = true
+
+  -- Check containers to see if any are "dirty" and hold at least one unidentified item
+  else
+    -- For every item in your inventory, check if it's a container.  If it is a container we must
+    -- next check if it has the "clean" keyword indicating that it hasn't had any unidentified
+    -- items added to it since its last scan.  If it's not "clean", then it's "dirty".
+    for objId,_ in pairs(inv.items.table) do
+      if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) then
+        local keywordField = inv.items.getStatField(objId, invStatFieldKeywords) or ""
+        if (not dbot.isWordInString(invItemsRefreshClean, keywordField)) then
+          isDirty = true
+          break
+        end -- if
+      end -- if
+    end -- for
+  end -- if
+
+  return isDirty
+end -- inv.items.isDirty
 
 
 function inv.items.build(endTag)
@@ -7826,8 +7885,10 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   end
 
   if (#strip_colours(formattedName) < maxNameLen - #formattedId) then
-    formattedName = formattedName .. string.rep(" ", maxNameLen - #strip_colours(formattedName) - #formattedId)
+    formattedName = formattedName ..
+                    string.rep(" ", maxNameLen - #strip_colours(formattedName) - #formattedId)
   end -- if
+
   -- The trimmed name could end on an "@" which messes up color codes and spacing
   formattedName = string.gsub(formattedName, "@$", " ") .. " " .. DRL_XTERM_GREY
   formattedName = formattedName .. colorizedId 
@@ -9370,8 +9431,9 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
   -- inventory refresh a few seconds from now.  That will give some time to buffer up a few items
   -- if we picked up several things.
   local idLevel = inv.items.getField(objId, invFieldIdentifyLevel)
-  if (idLevel == invIdLevelNone) and (inv.state == invStateIdle) then
-    inv.items.refreshAtTime(0, 5)
+  local eagerRefreshSec = tonumber(inv.config.table.refreshEagerSec or 0)
+  if (idLevel == invIdLevelNone) and (inv.state == invStateIdle) and (eagerRefreshSec > 0) then
+    inv.items.refreshAtTime(0, eagerRefreshSec)
   end -- if
 
   if (action == invmonActionRemoved) then
@@ -9511,6 +9573,7 @@ inv.items.timer = {}
 inv.items.timer.refreshName = "drlInvItemsTimerRefresh"
 inv.items.timer.refreshMin  = 5 -- by default, run the item refresh timer every 5 minutes, 0 seconds
 inv.items.timer.refreshSec  = 0
+inv.items.timer.refreshEagerSec = 5 -- If enabled, run a refresh 5 seconds after acquiring a new item
 
 inv.items.timer.idTimeoutName         = "drlInvItemsTimerIdTimeout"
 inv.items.timer.idTimeoutThresholdSec = 15  -- timeout the id request if it doesn't complete in this # sec
