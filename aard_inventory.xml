@@ -7253,6 +7253,7 @@ function inv.items.search(arrayOfQueryArrays)
             end -- if
           end -- if
 
+          local statsVal = stats[key] or ""
           local statsNum = tonumber(stats[key] or 0)
 
           -- Ensure that "min" and "max" queries are only used on numbers
@@ -7276,13 +7277,6 @@ function inv.items.search(arrayOfQueryArrays)
               break
             end -- if
  
-          -- If the current item doesn't have a field matching the given key, we don't match; try the next
-          -- item.  The behavior is the same whether or not the field is inverted (i.e., "~fieldName") so
-          -- we don't bother checking for inversion in this test.
-          elseif (stats[key] == nil) then
-            itemMatches = false
-            break
-
           -- If we are searching for an element in a string of elements (e.g., a keyword in a keyword list
           -- or a flag in a list of flags) check if the queried string is present.  We use a case-insensitive
           -- search by making everything in the strings lower case.  We also temporarily replace special
@@ -7297,14 +7291,14 @@ function inv.items.search(arrayOfQueryArrays)
 
           elseif (key == invStatFieldName) or (key == invStatFieldLeadsTo) then
             local escapedValue = string.gsub(value, "[%(%)%.%+%-%*%?%[%]%^%$%%]", "%%%1")
-            local noMatch = (string.find(string.lower(stats[key]), string.lower(escapedValue)) == nil)
+            local noMatch = (string.find(string.lower(statsVal), string.lower(escapedValue)) == nil)
             if ((invert == false) and noMatch) or ((invert == true) and not noMatch) then
               itemMatches = false
               break
             end -- if
 
           elseif (key == invStatFieldKeywords) or (key == invStatFieldFlags) or (key == invStatFieldClan) then
-            local statField = stats[key] or ""
+            local statField = statsVal or ""
             local element
             local isInField = false
 
@@ -7332,11 +7326,19 @@ function inv.items.search(arrayOfQueryArrays)
             itemMatches = false
             break
 
+          -- Check for entries that aren't present (defaults to "0")
+          elseif (statsVal == "") then
+            if ((invert == false) and (statsNum ~= valueNum)) or
+               ((invert == true)  and (statsNum == valueNum)) then
+              itemMatches = false
+              break
+            end -- if
+
           -- Handle a basic string query (use lowercase only to make queries a bit simpler)
           elseif ((invert == false) and (prefix == nil) and 
-                  (string.lower(stats[key]) ~= string.lower(value))) or
+                  (string.lower(statsVal) ~= string.lower(value))) or
                  ((invert == true)  and (prefix == nil) and
-                  (string.lower(stats[key]) == string.lower(value))) then
+                  (string.lower(statsVal) == string.lower(value))) then
             itemMatches = false
             break
           end -- if
