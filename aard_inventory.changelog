@@ -2,6 +2,45 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0014] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   =
+[[Fixed a race condition that could allow multiple threads to run the plugin
+	   initialization code simultaneously]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed a bug that allowed multiple automatic backups to execute simultaneously"
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   =
+[[Fixed search queries that compare something with a field that isn't present.
+           If a field is not present, we use a default value of 0 for that field.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   =
+[[Added "eager" refresh mode to allow ASAP identification of newly acquired
+           items.  The previous refresh "on" mode works the same as before.]]
+
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   =
+[[Optimized refresh code to skip notifications and checks in some cases where
+           there are no known unidentified items in your inventory]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Increased default size of recent cache from 500 entries to 1000 entries"
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Increased timeout when attempting to detect the prompt and invmon states"
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   =
+[[Made the plugin less verbose.  Some info notifications were downgraded to
+           notes and some notes were downgraded to debug messages.]]
+  }
+}
+
 dbot.changelog[2.0013] =
 {
   { change = drlDbotChangeLogTypeFix,

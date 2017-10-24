@@ -1667,24 +1667,31 @@ function inv.cli.refresh.fn(name, line, wildcards)
 
   if (command == "off") then
     retval = inv.items.refreshOff()
-    dbot.note("Automatic inventory refresh is disabled: run \"@G" .. pluginNameCmd .. 
+    dbot.info("Automatic inventory refresh is disabled: run \"@G" .. pluginNameCmd .. 
               " refresh on@W\" to re-enable it")
     inv.tags.stop(invTagsRefresh, line, retval)
 
   elseif (command == "on") then
     retval = inv.items.refreshOn(refreshPeriod, 0)
-    dbot.note("Inventory refresh is enabled")
+    dbot.info("Inventory refresh is enabled")
     inv.tags.stop(invTagsRefresh, line, retval)
 
   elseif (command == "eager") then
     retval = inv.items.refreshOn(refreshPeriod, inv.items.timer.refreshEagerSec or 0)
-    dbot.note("Inventory refresh is enabled and uses eager refreshes after acquiring items")
+    dbot.info("Inventory refresh is enabled and uses eager refreshes after acquiring items")
     inv.tags.stop(invTagsRefresh, line, retval)
 
   elseif (command == "") or (command == "all") then
     if (inv.state == invStatePaused) then
       inv.state = invStateIdle
     end -- if
+
+    if (command == "") then
+      dbot.info("Inventory refresh started")
+    else
+      dbot.info("Inventory refresh full scan started")
+    end -- if
+
     local retval = inv.items.refresh(0, refreshLoc, line, nil)
     if (retval == DRL_RET_HALTED) then
       dbot.note("Run \"" .. pluginNameCmd .. " refresh on\" to re-enable automatic inventory refreshes")
