@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0015] =
+{
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = "Removed references to \"dbot\" that were echoed to the mud and confusing the imms :P"
+  }
+}
+
 dbot.changelog[2.0014] =
 {
   { change = drlDbotChangeLogTypeFix,

@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0014"
+   version="2.0015"
    >
 <description trim="y">
 <![CDATA[
@@ -1689,7 +1689,7 @@ function inv.cli.refresh.fn(name, line, wildcards)
     if (command == "") then
       dbot.info("Inventory refresh started")
     else
-      dbot.info("Inventory refresh full scan started")
+      dbot.info("Inventory refresh full scan: started")
     end -- if
 
     local retval = inv.items.refresh(0, refreshLoc, line, nil)
@@ -5266,7 +5266,7 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
           -- Discover items in the container
           retval = inv.items.discoverLocation(objId)
           if (retval ~= DRL_RET_SUCCESS) then
-            dbot.warn("inv.items.discoverCR: Failed to discover container " .. objId .. 
+            dbot.debug("inv.items.discoverCR: Failed to discover container " .. objId .. 
                        ": " .. dbot.retval.getString(retval))
           else
             inv.items.keyword(invItemsRefreshClean, invKeywordOpAdd, "id " .. objId, true)
@@ -5945,8 +5945,12 @@ function inv.items.refreshCR()
 
   -- We want at least one full scan after the plugin loads.  If we've successfully completed a full
   -- scan, remember it so that we don't need to do it again until the plugin reloads.
-  if (retval == DRL_RET_SUCCESS) and (inv.items.refreshPkg.refreshLocations == invItemsRefreshLocAll) then
-    inv.items.fullScanCompleted = true
+  if (inv.items.refreshPkg.refreshLocations == invItemsRefreshLocAll) then
+    if (retval == DRL_RET_SUCCESS) then
+      inv.items.fullScanCompleted = true
+    end -- if
+
+    dbot.info("Inventory refresh full scan: " .. dbot.retval.getString(retval))
   end -- if
 
   return inv.tags.stop(inv.items.refreshPkg.tagModule, inv.items.refreshPkg.endTag, retval)
@@ -10107,7 +10111,7 @@ function inv.cache.save()
 
   if (inv.cache.recent.table ~= nil) then
     recentRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
-                                                "inv.cache.recent.table", inv.cache.recent.table)
+                                          "inv.cache.recent.table", inv.cache.recent.table)
     if (recentRetval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.cache.save: Failed to save cache.recent table: " .. dbot.retval.getString(recentRetval))
     end -- if
@@ -10115,9 +10119,10 @@ function inv.cache.save()
 
   if (inv.cache.frequent.table ~= nil) then
     frequentRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
-                                                  "inv.cache.frequent.table", inv.cache.frequent.table)
+                                            "inv.cache.frequent.table", inv.cache.frequent.table)
     if (frequentRetval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.cache.save: Failed to save cache.frequent table: " .. dbot.retval.getString(frequentRetval))
+      dbot.warn("inv.cache.save: Failed to save cache.frequent table: " ..
+                dbot.retval.getString(frequentRetval))
     end -- if
   end -- if
 
@@ -10254,7 +10259,7 @@ function inv.cache.add(cache, objId)
       end -- if
     end -- if
 
-    dbot.debug("Added \"" .. (inv.items.getField(objId, "colorName") or "Unidentified") .. "\" " ..
+    dbot.note("FIXME: Added \"" .. (inv.items.getField(objId, "colorName") or "Unidentified") .. "\" " ..
                "to the \"" .. cache.name .. "\" cache")
   end -- if
 
@@ -10489,7 +10494,8 @@ function inv.priority.fini(doSaveState)
     -- Save our current data
     retval = inv.priority.save()
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.priority.fini: Failed to save inv.priority module data: " .. dbot.retval.getString(retval))
+      dbot.warn("inv.priority.fini: Failed to save inv.priority module data: " ..
+                dbot.retval.getString(retval))
     end -- if
   end -- if
 
@@ -19505,7 +19511,7 @@ function dbot.wish.getCR()
       local timeout = 5
       while (dbot.wish.inProgress == true) do
         if (totTime > timeout) then
-          dbot.warn("dbot.wish.getCR: Timed out getting list of wishes")
+          dbot.debug("dbot.wish.getCR: Timed out getting list of wishes")
           retval = DRL_RET_TIMEOUT
           break
         end -- if
@@ -20025,7 +20031,7 @@ dbot.execute.queue.fenceCounter = 1
 -- user state that allows the fence to proceed.  We don't need to worry about being AFK here.
 function dbot.execute.queue.fence()
 
-  local uniqueString = "{ dbot.execute.queue.fence " .. dbot.execute.queue.fenceCounter .. " }"
+  local uniqueString = "{ DINV fence " .. dbot.execute.queue.fenceCounter .. " }"
 
   -- We will spin on this until we match the fence command in our trigger
   dbot.execute.fenceIsDetected = false
