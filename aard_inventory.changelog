@@ -7,7 +7,7 @@ dbot.changelog[2.0016] =
   { change = drlDbotChangeLogTypeNew,
     desc   =
 [[Added "custom" cache to provide long-term storage for custom keywords and
-           container organize queries]]
+           container "dinv organize ..." queries]]
   },
   { change = drlDbotChangeLogTypeFix,
     desc   =
