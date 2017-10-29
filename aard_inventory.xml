@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0015"
+   version="2.0016"
    >
 <description trim="y">
 <![CDATA[
@@ -149,7 +149,7 @@ Usage
     dinv reset [list | confirm] <module names | all>
     dinv forget <query>
     dinv notify [none | light | standard | all]
-    dinv cache [reset | size] [recent | frequent | all] <# entries>
+    dinv cache [reset | size] [recent | frequent | custom | all] <# entries>
     dinv tags <names | all> [on | off]
     dinv reload
 
@@ -189,19 +189,13 @@ Release Notes
 4) The plugin does not automatically open containers that are closed.  As a result, you won't be able
    to get/put items in a closed container.  Keep your containers open! :)
 
-5) If you add a keyword to an item, drop it, and then pick it back up, the new keyword will still
-   be available on the item if it is still in your cache.  However, this is not the case for common
-   consumable items.  For example, we treat all duff beer potions as being identical so that you don't
-   need to individually identify each potion.  As a result, the cached versions of those common items
-   won't maintain custom keywords.
-
-6) If the plugin tags are enabled, they will echo an end tag at the conclusion of an operation.  However,
+5) If the plugin tags are enabled, they will echo an end tag at the conclusion of an operation.  However,
    if the user goes into a state that doesn't allow echoing (e.g., AFK) then the plugin cannot report the
    end tag.  In this scenario, the plugin will notify the user about the end tag via a warning notification
    instead of an echo.  Triggers cannot catch notifications though so any code relying on end tags should
    either detect when you go AFK or cleanly time out after a reasonable amount of time.
 
-7) If you add the portal wish after you have built your inventory table, you will need to either rebuild
+6) If you add the portal wish after you have built your inventory table, you will need to either rebuild
    the table (dinv build confirm) or forget/re-identify your portals (dinv forget type portal) and
    (dinv refresh all).
 
@@ -413,7 +407,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.cache.fn"
-   match="^[ ]*dinv[ ]+cache[ ]+(reset|display|size)[ ]+(recent|frequent|all)[ ]*([0-9]+)?.*$"
+   match="^[ ]*dinv[ ]+cache[ ]+(reset|display|size)[ ]+(recent|frequent|custom|all)[ ]*([0-9]+)?.*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -2196,7 +2190,7 @@ inv.cli.keyword = {}
 function inv.cli.keyword.fn(name, line, wildcards)
   local operation = wildcards[1] or ""
   local keyword   = wildcards[2] or ""
-  local query     = wildcards[3] or ""
+  local query     = Trim(wildcards[3] or "")
 
   inv.items.keyword(keyword, operation, query, false, line)
 end -- inv.cli.keyword.fn
@@ -3528,8 +3522,8 @@ reset back to default values:
              need to rebuild your inventory table if you reset this.
   @Citems@W:     This is your inventory table.  You'll need to rebuild it if you
              reset this.
-  @Ccache@W:     This clears both your "recent item cache" and "frequently used
-             item cache".
+  @Ccache@W:     This clears your "recent item cache", "frequently used item cache",
+             and "customization item cache".
   @Csnapshot@W:  This table stores all custom equipment set snapshots that you have
              created.
   @Cpriority@W:  This wipes out all custom stat priorities and implements the 
@@ -3716,6 +3710,9 @@ function inv.cli.cache.fn(name, line, wildcards)
     if (cacheType == "frequent") or (cacheType == "all") then
       retval = inv.cache.resetCache(inv.cache.frequent.name)
     end -- if
+    if (cacheType == "custom") or (cacheType == "all") then
+      retval = inv.cache.resetCache(inv.cache.custom.name)
+    end -- if
 
   elseif (cacheCommand == "display") then
     if (cacheType == "recent") or (cacheType == "all") then
@@ -3723,6 +3720,9 @@ function inv.cli.cache.fn(name, line, wildcards)
     end -- if
     if (cacheType == "frequent") or (cacheType == "all") then
       retval = inv.cache.dump(inv.cache.frequent.table)
+    end -- if
+    if (cacheType == "custom") or (cacheType == "all") then
+      retval = inv.cache.dump(inv.cache.custom.table)
     end -- if
 
   elseif (cacheCommand == "size") then
@@ -3742,6 +3742,14 @@ function inv.cli.cache.fn(name, line, wildcards)
         retval = inv.cache.setSize(inv.cache.frequent.table, cacheSize)
       end -- if
     end -- if
+    if (cacheType == "custom") or (cacheType == "all") then
+      if (cacheSize < 0) then
+        dbot.print("@WCustom item cache: " .. dbot.table.getNumEntries(inv.cache.custom.table.entries) ..
+                   " / " .. (inv.cache.getSize(inv.cache.custom.table) or 0) .. " entries are in use@w")
+      else
+        retval = inv.cache.setSize(inv.cache.custom.table, cacheSize)
+      end -- if
+    end -- if
 
   else
     dbot.warn("inv.cli.cache.fn: Invalid cache command \"" .. cacheCommand .. "\" detected")
@@ -3759,7 +3767,7 @@ end -- inv.cli.cache.fn
 
 function inv.cli.cache.usage()
   dbot.print("@W    " .. pluginNameCmd .. 
-                " cache @G[reset | size] [recent | frequent | all] @Y<# entries>@w")
+                " cache @G[reset | size] [recent | frequent | custom | all] @Y<# entries>@w")
 end -- inv.cli.cache.usage
 
 
@@ -3768,13 +3776,13 @@ function inv.cli.cache.examples()
   inv.cli.cache.usage()
   dbot.print(
 [[@W
-This plugin implements two types of item caches.  The first type is the "@Crecent item@W"
+This plugin implements three types of item caches.  The first type is the "@Crecent item@W"
 cache.  If an identified item leaves your inventory (e.g., you dropped it or you put
 it into your vault) then information about that item is moved to the recent cache.
 If you add that item back to your inventory at some point in the future then you won't
 need to re-identify the item.  The plugin will pull the necessary info directly from the
 recent cache.  This is very convenient and speeds up accessing your vault or using a bag
-filled with keys.  By default, the recent cache keeps entries for the 500 most-recently
+filled with keys.  By default, the recent cache keeps entries for the 1000 most-recently
 used items that left your inventory but you can adjust the cache size as shown below.
 
 The second type of cache is the "@Cfrequently used@W" item cache.  The recent cache stores
@@ -3788,11 +3796,19 @@ and avoid re-identification.  By default, the plugin will use the frequent cache
 all potions, pills, and consumable items.  The frequent cache stores information on up
 to 100 different items at a time.
 
+The third type of cache is the "@Ccustomization cache@W".  Most details about an item
+can be regenerated by re-identifying the item.  However, customizations such as adding
+a keyword or adding an organization query to an item could be lost if an item is removed
+from your inventory and that item is no longer in your recent cache when you add it back
+to your inventory.  The custom cache is a long-lived repository for item customizations
+that makes it possible to recover details such as custom keywords or organization queries.
+This is especially handy if you die and all of your items are no longer in your inventory.
+
 Examples:
   1) Reset just the recent cache
      "@Gdinv cache reset recent@W"
 
-  2) Reset both the recent and frequent caches
+  2) Reset the recent, frequent, and custom caches
      "@Gdinv cache reset all@W"
 
   3) Set the number of entries in the frequent cache to 200
@@ -4684,7 +4700,7 @@ function inv.items.init.atInstall()
 
   -- Trigger on an eqdata, invdata, or keyring data tag
   check (AddTriggerEx(inv.items.trigger.itemDataStartName,
-                      "^{(eqdata|invdata|keyring)[ ]?([0-9]+)?}$",
+                      "^{(eqdata|invdata|keyring)[ ]?([0-9]+)?}$|^(Item) ([0-9]+) not found.$",
                       "inv.items.trigger.itemDataStart(\"%1\",\"%2\")",
                       drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -5501,6 +5517,25 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
             dbot.note("Added \"" .. (colorName or "Unidentified") .. "@W\" to frequent item cache")
           end -- if
         end -- if
+      end -- if
+    end -- if
+
+    -- Check if the custom cache has additional details for this item.  For example, we might have
+    -- custom keywords or an organize query for the item.
+    local cachedEntry = inv.cache.get(inv.cache.custom.table, objId)
+    if (cachedEntry ~= nil) then
+      -- Merge any cached keywords into the item's keywords field
+      if (cachedEntry.keywords ~= nil) and (cachedEntry.keywords ~= "") then
+        local oldKeywords = inv.items.getStatField(objId, invStatFieldKeywords) or ""
+        local mergedKeywords = dbot.mergeFields(cachedEntry.keywords, oldKeywords) or cachedEntry.keywords
+        inv.items.setStatField(objId, invStatFieldKeywords, mergedKeywords)
+        dbot.debug("Merged cached keywords = \"" .. mergedKeywords .. "\"")
+      end -- if
+
+      -- Use any cached organize queries that exist
+      if (cachedEntry.organize ~= nil) and (cachedEntry.organize ~= "") then
+        inv.items.setStatField(objId, invQueryKeyOrganize, cachedEntry.organize)
+        dbot.debug("Cached organize queries = \"" .. cachedEntry.organize .. "\"")
       end -- if
     end -- if
 
@@ -7157,6 +7192,16 @@ function inv.items.keywordCR()
 
   local endTag = inv.items.keywordPkg.endTag
 
+  -- The custom cache will store any relevant customizable pieces from an object.  We don't
+  -- bother caching the "clean" keyword because it is updated so frequently and we can easily
+  -- get back to a known good state even if it isn't cached.  This will reduce disk overhead.
+  local doCacheItem
+  if (inv.items.keywordPkg.keyword == invItemsRefreshClean) then
+    doCacheItem = false
+  else
+    doCacheItem = true
+  end -- if
+
   idArray, retval = inv.items.searchCR(inv.items.keywordPkg.queryString)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.items.keywordCR: failed to search inventory table: " .. dbot.retval.getString(retval))
@@ -7170,6 +7215,7 @@ function inv.items.keywordCR()
     -- Update the keyword for each item that matched the query string
     for i,objId in ipairs(idArray) do
       local keywordField = inv.items.getStatField(objId, invStatFieldKeywords) or ""
+      local customEntry
 
       if (inv.items.keywordPkg.keywordOperation == invKeywordOpAdd) then
         dbot.debug("Adding keyword \"" .. inv.items.keywordPkg.keyword .. "\" to object " .. objId)
@@ -7211,12 +7257,27 @@ function inv.items.keywordCR()
         inv.items.keywordPkg = nil
         return inv.tags.stop(invTagsKeyword, endTag, DRL_RET_INTERNAL_ERROR)
       end -- if
+
+      if (doCacheItem) then
+        retval = inv.cache.add(inv.cache.custom.table, objId)
+        if (retval ~= DRL_RET_SUCCESS) then
+          dbot.warn("inv.items.keywordCR: Failed to add keywords to custom cache for object " .. objId ..
+                    dbot.retval.getString(retval))
+        end -- if
+      end -- if
     end -- for
   end -- if
 
   if (not inv.items.keywordPkg.useQuietMode) then
     dbot.info("Updated keyword \"" .. (inv.items.keywordPkg.keyword or "Unknown")  .. "\" for " .. 
               numUpdatedKeywords .. " out of " .. numQueryItems .. " items matching query")
+  end -- if
+
+  -- Save the inventory table and the custom cache to disk if we just updated keywords for one or more
+  -- items and the keywords are cacheable
+  if doCacheItem and (numUpdatedKeywords > 0) then
+    inv.items.save()
+    inv.cache.saveCustom()
   end -- if
 
   inv.items.keywordPkg = nil
@@ -8202,7 +8263,15 @@ function inv.items.organize.addCR()
   inv.items.setStatField(objId, invQueryKeyOrganize, organizeField)
   inv.items.save()
 
-  dbot.note("Added organization query \"@C" .. inv.items.organize.addPkg.query .. "@W\" to container \"" ..
+  -- Add the new organization query to the custom cache
+  retval = inv.cache.add(inv.cache.custom.table, objId)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.items.organize.addCR: Failed to add organize queries to custom cache for object " ..
+              objId .. dbot.retval.getString(retval))
+  end -- if
+  inv.cache.saveCustom()
+
+  dbot.info("Added organization query \"@C" .. inv.items.organize.addPkg.query .. "@W\" to container \"" ..
             (inv.items.getField(objId, invFieldColorName) or "Unidentified"))
 
   -- Clean up, print an end tag (if necessary), and return
@@ -8246,7 +8315,8 @@ function inv.items.organize.clearCR()
   -- Find the unique container specified by the user via a relative name (e.g., "2.bag")
   idArray, retval = inv.items.searchCR("type container rname " .. inv.items.organize.clearPkg.container)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.items.organize.clearCR: failed to search inventory table: " .. dbot.retval.getString(retval))
+    dbot.warn("inv.items.organize.clearCR: failed to search inventory table: " ..
+              dbot.retval.getString(retval))
   elseif (#idArray ~= 1) then
     -- There should only be a single match to the container's relative name (e.g., "2.bag")
     dbot.warn("Container relative name \"" .. inv.items.organize.clearPkg.container .. 
@@ -8268,7 +8338,15 @@ function inv.items.organize.clearCR()
   inv.items.setStatField(objId, invQueryKeyOrganize, "")
   inv.items.save()
 
-  dbot.note("Cleared all organization queries from container \"" ..
+  -- Update the custom cache because organization queries are stored there long term
+  retval = inv.cache.add(inv.cache.custom.table, objId)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.items.organize.clearCR: Failed to add organize queries to custom cache for object " ..
+              objId .. dbot.retval.getString(retval))
+  end -- if
+  inv.cache.saveCustom()
+
+  dbot.info("Cleared all organization queries from container \"" ..
             (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. DRL_ANSI_WHITE .. "@W\"")
 
   -- Clean up, print an end tag (if necessary) and return
@@ -9211,6 +9289,7 @@ function inv.items.trigger.itemDataStart(dataType, containerId)
   -- We are scanning worn items, main inventory items, keyring items, or a container
   if (dataType == "eqdata") then
     inv.items.discoverPkg.loc = invItemLocWorn
+
   elseif (dataType == "invdata") then
     containerIdNum = tonumber(containerId)
     if (containerIdNum == nil) then
@@ -9218,12 +9297,14 @@ function inv.items.trigger.itemDataStart(dataType, containerId)
     else
       inv.items.discoverPkg.loc = containerId
     end -- if
+
   elseif (dataType == "keyring") then
     inv.items.discoverPkg.loc = invItemLocKeyring
+
   else
-    dbot.error("inv.items.trigger.itemDataStart: invalid dataType parameter")
+    dbot.debug("inv.items.trigger.itemDataStart: Could not find target item")
     inv.items.trigger.itemDataEnd() -- clean up state
-    return DRL_RET_INTERNAL_ERROR
+    return DRL_RET_MISSING_ENTRY
   end -- if
 
   -- Watch for the eqdata, invdata, or keyring end tag so that we can stop scanning
@@ -9315,6 +9396,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
         inv.items.setField(objId, invFieldColorName, itemName)
       end -- if
     end -- if
+
   else -- we got here from an eqdata or invdata request
     -- Remember that we saw this item during a discovery/refresh.  This lets us prune items that
     -- are listed in the inventory table but are no longer in our inventory.  This situation could
@@ -9998,6 +10080,16 @@ invItemEffectsShield    = "shield"
 -- pill, food, etc. matches a key in the cache.  In that case, we use the cached details
 -- without performing the identification.
 --
+-- The "custom" cache contains user-specified customizations to items.  For example, an
+-- item may have been assigned a custom keyword or a container may have been assigned one
+-- or more organize queries.  The recent cache can hold some items including any customizations
+-- for each item.  However, there can be a lot of turnover in the recent cache -- especially
+-- during catastrophic events such as dying where your entire inventory may overflow the cache.
+-- Entries in the "custom" cache are much longer-lived than entries in the recent cache and
+-- this greatly reduces the odds that someone will lose a customization that they actually
+-- want.  Also, the custom cache can support more entries than the recent cache because only
+-- custom fields need to be saved.
+--
 -- Functions:
 --   inv.cache.init.atActive()
 --   inv.cache.fini(doSaveState)
@@ -10005,7 +10097,15 @@ invItemEffectsShield    = "shield"
 --   inv.cache.config(cacheName, numEntries)
 --   inv.cache.save()
 --   inv.cache.load()
+--
+--   inv.cache.saveRecent()
+--   inv.cache.saveFrequent()
+--   inv.cache.saveCustom()
+--
 --   inv.cache.reset() -- reset all caches
+--   inv.cache.resetRecent()
+--   inv.cache.resetFrequent()
+--   inv.cache.resetCustom()
 --
 --   inv.cache.resetCache(cacheName) -- reset a single specific cache
 --   inv.cache.add
@@ -10022,27 +10122,34 @@ invItemEffectsShield    = "shield"
 -- Data:
 --   inv.cache.recent.table
 --   inv.cache.frequent.table
+--   inv.cache.custom.table
 ----------------------------------------------------------------------------------------------------
 
 inv.cache          = {}
 inv.cache.init     = {}
 inv.cache.recent   = {}
 inv.cache.frequent = {}
+inv.cache.custom   = {}
 
 inv.cache.recent.table   = nil
 inv.cache.frequent.table = nil
+inv.cache.custom.table   = nil
 
 inv.cache.recent.name   = "recent"
 inv.cache.frequent.name = "frequent"
+inv.cache.custom.name   = "custom"
 
 inv.cache.recent.stateName   = "inv-cache-recent.state"
 inv.cache.frequent.stateName = "inv-cache-frequent.state"
+inv.cache.custom.stateName   = "inv-cache-custom.state"
 
 inv.cache.recent.defaultNumEntries   = 1000
 inv.cache.frequent.defaultNumEntries = 100
+inv.cache.custom.defaultNumEntries   = 1500
 
-inv.cache.recent.prunePercent   = 0.2
-inv.cache.frequent.prunePercent = 0.2
+inv.cache.recent.prunePercent   = 0.20
+inv.cache.frequent.prunePercent = 0.10
+inv.cache.custom.prunePercent   = 0.05
 
 
 function inv.cache.init.atActive()
@@ -10074,7 +10181,11 @@ end -- inv.cache.fini
 
 
 function inv.cache.config(cacheName, numEntries)
-  if (cacheName ~= inv.cache.recent.name) and (cacheName ~= inv.cache.frequent.name) then
+  local retval = DRL_RET_SUCCESS
+
+  if (cacheName ~= inv.cache.recent.name)   and
+     (cacheName ~= inv.cache.frequent.name) and
+     (cacheName ~= inv.cache.custom.name)   then
     dbot.warn("inv.cache.config: Invalid cache name \"" .. (cacheName or "nil") .. "\"")
     return DRL_RET_INVALID_PARAM
   end -- if
@@ -10092,64 +10203,117 @@ function inv.cache.config(cacheName, numEntries)
 
   if (cacheName == inv.cache.recent.name) then
     inv.cache.recent.table = cache
+    retval = inv.cache.saveRecent()
+
   elseif (cacheName == inv.cache.frequent.name) then
     inv.cache.frequent.table = cache
+    retval = inv.cache.saveFrequent()
+
+  elseif (cacheName == inv.cache.custom.name) then
+    inv.cache.custom.table = cache
+    retval = inv.cache.saveCustom()
+
   else
     dbot.error("inv.cache.config: Invalid cache name detected: \"" .. (cacheName or "nil") .. "\"")
     return DRL_RET_INTERNAL_ERROR
   end -- if
 
-  inv.cache.save() 
-
-  return DRL_RET_SUCCESS
+  return retval
 end -- inv.cache.config
 
 
 function inv.cache.save()
-  local recentRetval   = DRL_RET_SUCCESS
-  local frequentRetval = DRL_RET_SUCCESS
-
-  if (inv.cache.recent.table ~= nil) then
-    recentRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
-                                          "inv.cache.recent.table", inv.cache.recent.table)
-    if (recentRetval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.cache.save: Failed to save cache.recent table: " .. dbot.retval.getString(recentRetval))
-    end -- if
-  end -- if
-
-  if (inv.cache.frequent.table ~= nil) then
-    frequentRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
-                                            "inv.cache.frequent.table", inv.cache.frequent.table)
-    if (frequentRetval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.cache.save: Failed to save cache.frequent table: " ..
-                dbot.retval.getString(frequentRetval))
-    end -- if
-  end -- if
+  local recentRetval   = inv.cache.saveRecent()
+  local frequentRetval = inv.cache.saveFrequent()
+  local customRetval   = inv.cache.saveCustom()
 
   if (recentRetval ~= DRL_RET_SUCCESS) then
     return recentRetval
-  else
+  elseif (frequentRetval ~= DRL_RET_SUCCESS) then
     return frequentRetval
+  else
+    return customRetval
   end -- if
 
 end -- inv.cache.save
 
 
+function inv.cache.saveRecent()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.recent.table ~= nil) then
+    retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
+                                    "inv.cache.recent.table", inv.cache.recent.table)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.saveRecent: Failed to save cache.recent table: " ..
+                dbot.retval.getString(retval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.saveRecent
+
+
+function inv.cache.saveFrequent()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.frequent.table ~= nil) then
+    retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
+                                    "inv.cache.frequent.table", inv.cache.frequent.table)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.saveFrequent: Failed to save cache.frequent table: " ..
+                dbot.retval.getString(retval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.saveFrequent
+
+
+function inv.cache.saveCustom()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.custom.table ~= nil) then
+    retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.custom.stateName,
+                                    "inv.cache.custom.table", inv.cache.custom.table)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.saveCustom: Failed to save cache.custom table: " ..
+                dbot.retval.getString(retval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.saveCustom
+
+
 function inv.cache.load()
+  local retval = DRL_RET_SUCCESS
+
   local recentRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
-                                              inv.cache.reset)
+                                              inv.cache.resetRecent)
   if (recentRetval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
               dbot.backup.getCurrentDir() .. inv.cache.recent.stateName .. "@W\": " ..
               dbot.retval.getString(recentRetval))
+    retval = recentRetval
   end -- if
 
   local frequentRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
-                                                inv.cache.reset)
+                                                inv.cache.resetFrequent)
   if (frequentRetval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
               dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName .. "@W\": " ..
               dbot.retval.getString(frequentRetval))
+    retval = frequentRetval
+  end -- if
+
+  local customRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.custom.stateName,
+                                              inv.cache.resetCustom)
+  if (customRetval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
+              dbot.backup.getCurrentDir() .. inv.cache.custom.stateName .. "@W\": " ..
+              dbot.retval.getString(customRetval))
+    retval = customRetval
   end -- if
 
   if (inv.version.table ~= nil) and (inv.version.table.tableFormat ~= nil) and
@@ -10168,45 +10332,71 @@ function inv.cache.load()
     end -- if
   else
     dbot.error("inv.cache.load: Missing inv.version components")
-    return DRL_RET_INTERNAL_ERROR
+    retval = DRL_RET_INTERNAL_ERROR
   end -- if
 
-  if (recentRetval ~= DRL_RET_SUCCESS) then
-    return recentRetval
-  else
-    return frequentRetval
-  end -- if
+  return retval
 
 end -- inv.cache.load
 
 
 function inv.cache.reset()
-  local recentRetval = DRL_RET_SUCCESS
-  local frequentRetval = DRL_RET_SUCCESS
+  local recentRetval   = inv.cache.resetRecent()
+  local frequentRetval = inv.cache.resetFrequent()
+  local customRetval   = inv.cache.resetCustom()
 
-  if (inv.cache.recent ~= nil) then
-    recentRetval = inv.cache.resetCache(inv.cache.recent.name)
-    if (recentRetval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.cache.reset: recent cache reset failed: " .. dbot.retval.getString(recentRetval))
-    end -- if
-  end -- if
-
-  if (inv.cache.frequent ~= nil) then
-    frequentRetval = inv.cache.resetCache(inv.cache.frequent.name)
-    if (frequentRetval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.cache.reset: frequent cache reset failed: " .. dbot.retval.getString(frequentRetval))
-    end -- if
-  end -- if
-
-  -- If the recent cache reset failed, return that error code.  Otherwise, return the frequent
-  -- cache reset's return value.
   if (recentRetval ~= DRL_RET_SUCCESS) then
     return recentRetval
-  else
+  elseif (frequentRetval ~= DRL_RET_SUCCESS) then
     return frequentRetval
+  else
+    return customRetval
   end -- if
 
 end -- inv.cache.reset
+
+
+function inv.cache.resetRecent()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.recent ~= nil) then
+    retval = inv.cache.resetCache(inv.cache.recent.name)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.resetRecent: recent cache reset failed: " .. dbot.retval.getString(recentRetval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.resetRecent
+
+
+function inv.cache.resetFrequent()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.frequent ~= nil) then
+    retval = inv.cache.resetCache(inv.cache.frequent.name)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.resetFrequent: frequent cache reset failed: " ..
+                dbot.retval.getString(frequentRetval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.resetFrequent
+
+
+function inv.cache.resetCustom()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.cache.custom ~= nil) then
+    retval = inv.cache.resetCache(inv.cache.custom.name)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.cache.resetCustom: custom cache reset failed: " .. dbot.retval.getString(customRetval))
+    end -- if
+  end -- if
+
+  return retval
+end -- inv.cache.resetCustom
 
 
 function inv.cache.resetCache(cacheName)
@@ -10221,6 +10411,8 @@ function inv.cache.resetCache(cacheName)
     numEntries = inv.cache.recent.defaultNumEntries
   elseif (cacheName == inv.cache.frequent.name) then
     numEntries = inv.cache.frequent.defaultNumEntries
+  elseif (cacheName == inv.cache.custom.name) then
+    numEntries = inv.cache.custom.defaultNumEntries
   end -- if
  
   local retval = inv.cache.config(cacheName, numEntries)
@@ -10245,21 +10437,26 @@ function inv.cache.add(cache, objId)
     return DRL_RET_MISSING_ENTRY
   end -- if
 
-  local cacheEntry = { timeCached = dbot.getTime(), entry = dbot.table.getCopy(entry) }
-
   -- Cache the object if we've done some type of identification on it
   local idLevel = inv.items.getField(objId, invFieldIdentifyLevel)
-  if (idLevel ~= nil) and (idLevel ~= invIdLevelNone) then
+  if (idLevel ~= nil) then
     if (cache.name == inv.cache.recent.name) then
-      cache.entries[objId] = cacheEntry
+      cache.entries[objId] = { timeCached = dbot.getTime(), entry = dbot.table.getCopy(entry) }
     elseif (cache.name == inv.cache.frequent.name) then
       local name = inv.items.getStatField(objId, invStatFieldName)
       if (name ~= nil) and (name ~= "") then
-        cache.entries[name] = cacheEntry
+        cache.entries[name] = { timeCached = dbot.getTime(), entry = dbot.table.getCopy(entry) }
       end -- if
+    elseif (cache.name == inv.cache.custom.name) then
+      local newEntry = {}
+      newEntry.keywords = inv.items.getStatField(objId, invStatFieldKeywords) or ""
+      newEntry.organize = inv.items.getStatField(objId, invQueryKeyOrganize)  or ""
+      cache.entries[objId] = { timeCached = dbot.getTime(), entry = newEntry }
+    else
+      dbot.warn("inv.cache.add: Unknown cache name \"" .. (cache.name or "nil") .. "\"")
     end -- if
 
-    dbot.note("FIXME: Added \"" .. (inv.items.getField(objId, "colorName") or "Unidentified") .. "\" " ..
+    dbot.debug("Added \"" .. (inv.items.getField(objId, "colorName") or "Unidentified") .. "@W\" " ..
                "to the \"" .. cache.name .. "\" cache")
   end -- if
 
@@ -10273,9 +10470,11 @@ function inv.cache.add(cache, objId)
   end -- if
 
   -- Note: To cut down on overhead, we currently do not call inv.cache.save() here.  Instead,
-  --       the cache is saved in inv.cache.fini when we disconnect or reload the plugin.  There
-  --       is a chance we may miss some cache updates this way if mush exits uncleanly, but the
-  --       downside is low because we we'll just re-identify anything we need if that happens.
+  --       the lossy caches (recent and frequent) are saved in inv.cache.fini.  There is a chance
+  --       we may miss some cache updates this way if mush exits uncleanly, but the downside is
+  --       low because we we'll just re-identify anything we need if that happens.  On the other
+  --       hand, we must save the custom cache after a batch add so that we don't lose what the
+  --       user entered.
 
   return retval
 end -- inv.cache.add
@@ -10286,9 +10485,9 @@ function inv.cache.remove(cache, key)
   assert(key ~= nil, "Received nil key!!!")
   local cacheKey = key
 
-  -- The recent cache uses a numeric object ID as a key and we do a little extra parameter
+  -- The recent and custom caches use a numeric object ID as a key and we do a little extra parameter
   -- checking in this case because I'm paranoid...
-  if (cache.name == inv.cache.recent.name) then
+  if (cache.name == inv.cache.recent.name) or (cache.name == inv.cache.custom.name) then
     cacheKey = tonumber(key)
     if (cacheKey == nil) then
       dbot.warn("inv.cache.remove: failed to remove item for non-numeric objId key " .. key)
@@ -10325,23 +10524,56 @@ function inv.cache.prune(cache)
     numEntriesToPrune = math.floor(numEntriesInCache * inv.cache.recent.prunePercent) + 1 or 0
   elseif (cache.name == inv.cache.frequent.name) then
     numEntriesToPrune = math.floor(numEntriesInCache * inv.cache.frequent.prunePercent) + 1 or 0
+  elseif (cache.name == inv.cache.custom.name) then
+    numEntriesToPrune = math.floor(numEntriesInCache * inv.cache.custom.prunePercent) + 1 or 0
   end -- if
 
-  dbot.note("The " .. cache.name .. " cache is full, removing the " .. 
-            numEntriesToPrune .. " least recently used items")
+  dbot.debug("The " .. cache.name .. " cache is full, removing the " .. 
+             numEntriesToPrune .. " least recently used items")
 
-  -- Sort the cache entries by the date they were last used.  We create a temporary array of the
-  -- entries so that we can sort them (you can't sort a table.)
+  -- Sort the cache entries.  We create a temporary array of the entries so that we can sort them
+  -- (you can't sort a table.)
   local entryArray = {}
-  for k,v in pairs(cache.entries) do
-    table.insert(entryArray, { key=k, timeCached=v.timeCached })
-  end -- for
-  table.sort(entryArray, function (entry1, entry2) return entry1.timeCached < entry2.timeCached end)
+
+  -- The custom cache only prunes items that aren't currently in inventory.  If an item is not
+  -- in inventory, we first get rid of items that are no longer even in the recent cache before
+  -- we remove recently cached items.  If all else fails, we sort things by cache time.
+  if (cache.name == inv.cache.custom.name) then
+    for k,v in pairs(cache.entries) do
+      if (inv.items.getEntry(k) == nil) then
+        table.insert(entryArray, { key=k, timeCached=v.timeCached })
+      end -- if
+    end -- for
+    table.sort(entryArray,
+               function (e1, e2)
+                 local recent1 = inv.cache.recent.table.entries[e1]
+                 local recent2 = inv.cache.recent.table.entries[e2]
+
+                 if (recent1 == nil) and (recent2 ~= nil) then
+                   return true
+                 elseif (recent1 ~= nil) and (recent2 == nil) then
+                   return false
+                 else
+                   return e1.timeCached < e2.timeCached
+                 end -- if
+               end) -- function
+
+  -- The recent and frequent caches sort by the last access time
+  else
+    for k,v in pairs(cache.entries) do
+      table.insert(entryArray, { key=k, timeCached=v.timeCached })
+    end -- for
+    table.sort(entryArray, function (entry1, entry2) return entry1.timeCached < entry2.timeCached end)
+  end -- if
 
   -- Remove the "numEntriesToPrune" first entries in the array
   for i = 1, numEntriesToPrune do
+    if (entryArray[i] == nil) then
+      break
+    end -- if
+
     local key = entryArray[i].key
-    retval = inv.cache.remove(cache, entryArray[i].key)
+    retval = inv.cache.remove(cache, key)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.cache.prune: Failed to remove cache item " .. key)
       break
@@ -10360,9 +10592,9 @@ function inv.cache.get(cache, key)
 
   local cacheKey = key
 
-  -- The recent cache uses a numeric object ID as a key and we do a little extra parameter
+  -- The recent and custom caches use a numeric object ID as a key and we do a little extra parameter
   -- checking in this case because I'm paranoid...
-  if (cache.name == inv.cache.recent.name) then
+  if (cache.name == inv.cache.recent.name) or (cache.name == inv.cache.custom.name) then
     cacheKey = tonumber(key)
     if (cacheKey == nil) then
       dbot.warn("inv.cache.get: failed to get item for non-numeric objId key " .. key)
@@ -10391,14 +10623,30 @@ end -- inv.cache.getSize
 
 
 function inv.cache.setSize(cache, numEntries)
+  local retval = DRL_RET_SUCCESS
+
   assert(cache ~= nil, "Cache is nil!!!")
   assert(tonumber(numEntries) ~= nil, "numEntries parameter is not numeric!")
 
   cache.maxEntries = numEntries
 
-  return inv.cache.save()
+  if (cache.name == inv.cache.recent.name) then
+    retval = inv.cache.saveRecent()
 
-end -- inv.cache.getSize
+  elseif (cache.name == inv.cache.frequent.name) then
+    retval = inv.cache.saveFrequent()
+
+  elseif (cache.name == inv.cache.custom.name) then
+    retval = inv.cache.saveCustom()
+
+  else
+    dbot.warn("inv.cache.setSize: Invalid cache name detected: \"" .. (cache.name or "nil") .. "\"")
+    retval = DRL_RET_INTERNAL_ERROR
+  end -- if
+
+  return retval
+
+end -- inv.cache.setSize
 
 
 function inv.cache.dump(cache)

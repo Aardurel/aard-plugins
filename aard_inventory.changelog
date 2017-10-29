@@ -2,6 +2,30 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0016] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   =
+[[Added "custom" cache to provide long-term storage for custom keywords and
+           container organize queries]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   =
+[[Fixed a bug that prevented caching containers that had a refresh scan pending.
+           This could result in lost container organize queries in some scenarios (e.g., death).]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = "Fixed a bug that could potentially lose custom keywords if refreshes were disabled"
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   =
+[[Fixed bug in recovery code that handles if an item isn't at the expected location.
+           For example, if you restore a backup and no longer have a container that was in the
+           backup's inventory table, the previous code would repeatedly complain about the
+           missing container.  The fix allows the plugin to recognize the situation and recover.]]
+  }
+}
+
 dbot.changelog[2.0015] =
 {
   { change = drlDbotChangeLogTypeMisc,
