@@ -7,7 +7,7 @@ dbot.changelog[2.0017] =
   { change = drlDbotChangeLogTypeFix,
     desc   =
 [[Fixed an error handling bug that didn't properly time out if you failed to run to
-   a shopkeeper in a "dinv consume buy ..." request]]
+           a shopkeeper in a "dinv consume buy ..." request]]
   },
   { change = drlDbotChangeLogTypeNew,
     desc   = "Added error checking on the results of all gmcp calls"
