@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0016"
+   version="2.0017"
    >
 <description trim="y">
 <![CDATA[
@@ -16504,7 +16504,7 @@ function inv.consume.buy(typeName, numItems, containerName)
 
   -- If the user didn't specify how many items to buy, default to 1 item
   numItems = tonumber(numItems or "")
-  if (numItems == nil) or (numItems == "") then
+  if (numItems == nil) then
     numItems = 1
   end -- if
 
@@ -16574,7 +16574,7 @@ function inv.consume.buyCR()
     totTime = totTime + drlSpinnerPeriodDefault
     if (totTime > timeout) then
       dbot.warn("inv.consume.buyCR: Timed out running to room " .. room)
-      reval = DRL_RET_TIMEOUT
+      retval = DRL_RET_TIMEOUT
       break
     end -- if
   end -- if 
@@ -17960,27 +17960,32 @@ end -- dbot.gmcp.getStateString
 
 function dbot.gmcp.getArea()
   local roomInfo
-  local area
+  local area = ""
 
   if dbot.gmcp.isInitialized then
     roomInfo = gmcp("room.info")
-    area = roomInfo.zone
+    if (roomInfo ~= nil) then
+      area = roomInfo.zone
+    end -- if
   else
     dbot.note("dbot.gmcp.getArea: GMCP is not initialized")
   end -- if
 
-  dbot.debug("dbot.gmcp.getArea returns " .. (area or "nil"))
+  dbot.debug("dbot.gmcp.getArea returns \"" .. (area or "nil") .. "\"")
   return area
 end -- dbot.gmcp.getArea
 
 
 function dbot.gmcp.getClass()
-  local char, class, subclass
+  local char
+  local class, subclass = "", ""
 
   if dbot.gmcp.isInitialized then
     char = gmcp("char.base")
-    class = char.class
-    subclass = char.subclass
+    if (char ~= nil) then
+      class = char.class
+      subclass = char.subclass
+    end -- if
   else
     dbot.note("dbot.gmcp.getClass: GMCP is not initialized")
   end -- if
@@ -17992,12 +17997,12 @@ end -- dbot.gmcp.getClass
 dbot.gmcp.charName = "unknown"
 dbot.gmcp.charPretitle = "unknown"
 function dbot.gmcp.getName()
-  local char
-
   if dbot.gmcp.isInitialized then
-    char = gmcp("char.base")
-    dbot.gmcp.charName = char.name
-    dbot.gmcp.charPretitle = char.pretitle
+    local char = gmcp("char.base")
+    if (char ~= nil) then
+      dbot.gmcp.charName = char.name
+      dbot.gmcp.charPretitle = char.pretitle
+    end -- if
   else
     dbot.debug("dbot.gmcp.getName: GMCP is not initialized")
   end -- if
@@ -18007,14 +18012,16 @@ end -- dbot.gmcp.getName
 
 
 function dbot.gmcp.getLevel()
-  local charStatus, myLevel
+  local charStatus
+  local myLevel = 1
 
   if dbot.gmcp.isInitialized then
     charStatus = gmcp("char.status")
-    myLevel = tonumber(charStatus.level) + (dbot.gmcp.getTier() * 10)
+    if (charStatus ~= nil) then
+      myLevel = (tonumber(charStatus.level) or 1) + (dbot.gmcp.getTier() * 10)
+    end -- if
   else
     dbot.note("dbot.gmcp.getLevel: GMCP is not initialized")
-    myLevel = 1
   end -- if
 
   dbot.debug("dbot.gmcp.getLevel returns " .. myLevel)
@@ -18024,14 +18031,16 @@ end -- dbot.gmcp.getLevel
 
 
 function dbot.gmcp.getAlign()
-  local charStatus, myAlign
+  local charStatus
+  local myAlign = 0
 
   if dbot.gmcp.isInitialized then
     charStatus = gmcp("char.status")
-    myAlign = tonumber(charStatus.align)
+    if (charStatus ~= nil) then
+      myAlign = tonumber(charStatus.align) or 0
+    end -- if
   else
     dbot.note("dbot.gmcp.getAlign: GMCP is not initialized")
-    myAlign = 0
   end -- if
 
   return myAlign
@@ -18040,14 +18049,16 @@ end -- dbot.gmcp.getAlign
 
 
 function dbot.gmcp.getRoomId()
-  local roomInfo, roomId
+  local roomInfo
+  local roomId = 0
 
   if dbot.gmcp.isInitialized then
     roomInfo = gmcp("room.info")
-    roomId = roomInfo.num
+    if (roomInfo ~= nil) and (roomInfo.num ~= nil) then
+      roomId = roomInfo.num
+    end -- if
   else
     dbot.note("dbot.gmcp.getRoomId: GMCP is not initialized")
-    roomId = 0
   end -- if
 
   dbot.debug("dbot.gmcp.getRoomId returns " .. roomId)
@@ -18056,14 +18067,16 @@ end -- dbot.gmcp.getRoomId
 
 
 function dbot.gmcp.getTier()
-  local charBase, myTier
+  local charBase
+  local myTier = 0
 
   if dbot.gmcp.isInitialized then
     charBase = gmcp("char.base")
-    myTier = tonumber(charBase.tier)
+    if (charBase ~= nil) and (charBase.tier ~= nil) then
+      myTier = tonumber(charBase.tier)
+    end -- if
   else
     dbot.note("dbot.gmcp.getTier: GMCP is not initialized")
-    myTier = 0
   end -- if
 
   dbot.debug("dbot.gmcp.getTier returns " .. myTier)
