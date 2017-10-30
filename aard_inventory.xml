@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0017"
+   version="2.0018"
    >
 <description trim="y">
 <![CDATA[
@@ -1063,7 +1063,8 @@ function inv.init.atActiveCR()
       -- fine too.  If refreshes are disabled (their period is 0 minutes) then we skip this.
       if (inv.items.refreshGetPeriods() > 0) then
         dbot.info("Running initial full scan to check if your inventory was modified outside of this plugin")
-        retval = inv.items.refresh(0, invItemsRefreshLocAll, nil, nil)
+        local endTag = inv.tags.new(nil, "Completed initial refresh full scan", nil, inv.tags.cleanup.timed)
+        retval = inv.items.refresh(0, invItemsRefreshLocAll, endTag, nil)
         if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
            dbot.info("Initial full inventory rescan could not complete: " .. dbot.retval.getString(retval))
            dbot.info("Please run \"@Gdinv refresh all@W\" to ensure the plugin knows that you didn't do " ..
@@ -1552,6 +1553,7 @@ end -- inv.cli.fullUsage
 inv.cli.build = {}
 function inv.cli.build.fn(name, line, wildcards)
   local confirmation = Trim(wildcards[1] or "")
+  local endTag = inv.tags.new(line, "Build completed", nil, inv.tags.cleanup.timed)
 
   dbot.debug("inv.cli.build.fn: confirmation = \"" .. confirmation .. "\"")
 
@@ -1567,14 +1569,15 @@ function inv.cli.build.fn(name, line, wildcards)
    dbot.print("    2) Enter \"" .. pluginNameCmd .. " build confirm\"")
    dbot.print("    3) Wait for the build to complete or enter \"" .. pluginNameCmd .. 
               " refresh off\" to halt early\n")
-    inv.tags.stop(invTagsBuild, line, DRL_RET_UNINITIALIZED)
+    inv.tags.stop(invTagsBuild, endTag, DRL_RET_UNINITIALIZED)
 
   elseif (confirmation == "confirm") then
-    dbot.info("Build confirmed: commencing inventory build...")
-    inv.items.build(line)
+    dbot.info("Build confirmed: Prompts will be disabled until the build completes")
+    dbot.info("Commencing inventory build...")
+    inv.items.build(endTag)
   else
     inv.cli.build.usage()
-    inv.tags.stop(invTagsBuild, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsBuild, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 end -- inv.cli.build.fn
 
@@ -1650,30 +1653,33 @@ function inv.cli.refresh.fn(name, line, wildcards)
   local refreshPeriod = tonumber(wildcards[2] or "") or inv.items.timer.refreshMin
   local refreshLoc
   local retval
+  local endTag
 
   dbot.debug("inv.cli.refresh.fn: command=\"" .. command .. "\", period=\"" .. refreshPeriod .. "\"")
 
   if (command == "all") then
     refreshLoc = invItemsRefreshLocAll
+    endTag = inv.tags.new(line, "Inventory refresh full scan done", nil, inv.tags.cleanup.timed)
   else
     refreshLoc = invItemsRefreshLocDirty
+    endTag = inv.tags.new(line, "Inventory refresh done")
   end -- if
 
   if (command == "off") then
     retval = inv.items.refreshOff()
     dbot.info("Automatic inventory refresh is disabled: run \"@G" .. pluginNameCmd .. 
               " refresh on@W\" to re-enable it")
-    inv.tags.stop(invTagsRefresh, line, retval)
+    inv.tags.stop(invTagsRefresh, endTag, retval)
 
   elseif (command == "on") then
     retval = inv.items.refreshOn(refreshPeriod, 0)
     dbot.info("Inventory refresh is enabled")
-    inv.tags.stop(invTagsRefresh, line, retval)
+    inv.tags.stop(invTagsRefresh, endTag, retval)
 
   elseif (command == "eager") then
     retval = inv.items.refreshOn(refreshPeriod, inv.items.timer.refreshEagerSec or 0)
     dbot.info("Inventory refresh is enabled and uses eager refreshes after acquiring items")
-    inv.tags.stop(invTagsRefresh, line, retval)
+    inv.tags.stop(invTagsRefresh, endTag, retval)
 
   elseif (command == "") or (command == "all") then
     if (inv.state == invStatePaused) then
@@ -1681,19 +1687,19 @@ function inv.cli.refresh.fn(name, line, wildcards)
     end -- if
 
     if (command == "") then
-      dbot.info("Inventory refresh started")
+      dbot.debug("Inventory refresh started")
     else
-      dbot.info("Inventory refresh full scan: started")
+      dbot.info("Inventory refresh full scan started")
     end -- if
 
-    local retval = inv.items.refresh(0, refreshLoc, line, nil)
+    local retval = inv.items.refresh(0, refreshLoc, endTag, nil)
     if (retval == DRL_RET_HALTED) then
       dbot.note("Run \"" .. pluginNameCmd .. " refresh on\" to re-enable automatic inventory refreshes")
     end -- if
 
   else
     inv.cli.refresh.usage()
-    inv.tags.stop(invTagsRefresh, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsRefresh, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.refresh.fn
@@ -1766,6 +1772,7 @@ inv.cli.search = {}
 function inv.cli.search.fn(name, line, wildcards)
   local verbosity = wildcards[1] or ""
   local query = wildcards[2] or ""
+  local endTag = inv.tags.new(line)
 
   -- Use the "basic" display mode for searches by default
   if (verbosity == "") then
@@ -1774,7 +1781,7 @@ function inv.cli.search.fn(name, line, wildcards)
 
   dbot.debug("verbosity=\"" .. verbosity .. "\", query=\"" .. query .. "\"")
 
-  local retval = inv.items.display(query, verbosity, line)
+  local retval = inv.items.display(query, verbosity, endTag)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cli.search.fn: Failed to display search query: " .. dbot.retval.getString(retval))
   end -- if
@@ -2018,18 +2025,19 @@ end -- inv.cli.query.examples
 inv.cli.get = {}
 function inv.cli.get.fn(name, line, wildcards)
   local query = wildcards[1] or ""
+  local endTag = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " get \"" .. query .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping get request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsGet, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsGet, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping get request: character's state does not allow actions")
-    return inv.tags.stop(invTagsGet, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsGet, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.get(query, line)
+  inv.items.get(query, endTag)
 end -- inv.cli.get.fn
 
 
@@ -2080,18 +2088,19 @@ inv.cli.put = {}
 function inv.cli.put.fn(name, line, wildcards)
   local container = wildcards[1] or ""
   local query = wildcards[2] or ""
+  local endTag = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " put \"" .. container .. "\", \"" .. query .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping put request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsPut, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsPut, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping put request: character's state does not allow actions")
-    return inv.tags.stop(invTagsPut, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsPut, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.put(container, query, line)
+  inv.items.put(container, query, endTag)
 end -- inv.cli.put.fn
 
 
@@ -2137,18 +2146,19 @@ end -- inv.cli.put.examples
 inv.cli.store = {}
 function inv.cli.store.fn(name, line, wildcards)
   local query = wildcards[1] or ""
+  local endTag = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " store \"" .. query .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping store request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsStore, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsStore, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping store request: character's state does not allow actions")
-    return inv.tags.stop(invTagsStore, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsStore, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.store(query, line)
+  inv.items.store(query, endTag)
 end -- inv.cli.store.fn
 
 
@@ -2191,8 +2201,9 @@ function inv.cli.keyword.fn(name, line, wildcards)
   local operation = wildcards[1] or ""
   local keyword   = wildcards[2] or ""
   local query     = Trim(wildcards[3] or "")
+  local endTag    = inv.tags.new(line)
 
-  inv.items.keyword(keyword, operation, query, false, line)
+  inv.items.keyword(keyword, operation, query, false, endTag)
 end -- inv.cli.keyword.fn
 
 
@@ -2235,13 +2246,14 @@ function inv.cli.set.fn(name, line, wildcards)
   local command = wildcards[1] or ""
   local priority = wildcards[2] or ""
   local level = wildcards[3] or ""
+  local endTag = inv.tags.new(line)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping set request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsSet, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping set request: character's state does not allow actions")
-    return inv.tags.stop(invTagsSet, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   -- If the user doesn't provide a level, use the current level
@@ -2251,12 +2263,12 @@ function inv.cli.set.fn(name, line, wildcards)
              "\", level=" .. level)
 
   if (command == "display") then
-    inv.set.display(priority, level, line)
+    inv.set.display(priority, level, endTag)
   elseif (command == "wear") then
-    inv.set.createAndWear(priority, level, inv.set.createIntensity, line)
+    inv.set.createAndWear(priority, level, inv.set.createIntensity, endTag)
   else
     inv.cli.set.usage()
-    inv.tags.stop(invTagsSet, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsSet, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.set.fn
@@ -2425,42 +2437,43 @@ function inv.cli.priority.fn(name, line, wildcards)
   local command       = Trim(wildcards[1] or "")
   local priorityName1 = Trim(wildcards[2] or "")
   local priorityName2 = Trim(wildcards[3] or "")
+  local endTag        = inv.tags.new(line)
 
   dbot.debug("inv.cli.priority.fn: command=\"" .. command .. "\", name1=\"" .. priorityName1 ..
              "\", name2=\"" .. priorityName2 .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping priority request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsPriority, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_UNINITIALIZED)
   end -- if
 
   if (command == "list") then
-    inv.priority.list(line)
+    inv.priority.list(endTag)
 
   elseif (command == "display") then
-    inv.priority.display(priorityName1, line)
+    inv.priority.display(priorityName1, endTag)
 
   elseif (command == "compare") then
-    inv.priority.compare(priorityName1, priorityName2, line)
+    inv.priority.compare(priorityName1, priorityName2, endTag)
 
   elseif (command == "create") then
-    inv.priority.create(priorityName1, line)
+    inv.priority.create(priorityName1, endTag)
 
   elseif (command == "delete") then
-    inv.priority.delete(priorityName1, line)
+    inv.priority.delete(priorityName1, endTag)
 
   elseif (command == "clone") then
-    inv.priority.clone(priorityName1, priorityName2, line)
+    inv.priority.clone(priorityName1, priorityName2, endTag)
 
   elseif (command == "copy") then
-    inv.priority.copy(priorityName1, line)
+    inv.priority.copy(priorityName1, endTag)
 
   elseif (command == "paste") then
-    inv.priority.paste(priorityName1, line)
+    inv.priority.paste(priorityName1, endTag)
 
   else
     inv.cli.priority.usage()
-    return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.priority.fn
@@ -2471,13 +2484,14 @@ function inv.cli.priority.fn2(name, line, wildcards)
   local priorityName = Trim(wildcards[2] or "")
   local editFields   = Trim(wildcards[3] or "")
   local level        = tonumber(wildcards[3] or "")
+  local endTag       = inv.tags.new(line)
 
   dbot.debug("inv.cli.priority.fn2: command=\"" .. command .. "\", priority=\"" .. priorityName ..
              "\", level=\"" .. (level or "nil") .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping priority request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsPriority, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_UNINITIALIZED)
   end -- if
 
   if (command == "edit") then
@@ -2489,20 +2503,20 @@ function inv.cli.priority.fn2(name, line, wildcards)
       useAllFields = false
     else
       inv.cli.priority.usage()
-      return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
+      return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
     end -- if
 
-    inv.priority.edit(priorityName, useAllFields, false, line)
+    inv.priority.edit(priorityName, useAllFields, false, endTag)
 
   elseif (command == "split") then
-    inv.priority.split(priorityName, level, line)
+    inv.priority.split(priorityName, level, endTag)
 
   elseif (command == "join") then
-    inv.priority.join(priorityName, level, line)
+    inv.priority.join(priorityName, level, endTag)
 
   else
     inv.cli.priority.usage()
-    return inv.tags.stop(invTagsPriority, line, DRL_RET_INVALID_PARAM)
+    return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.priority.fn2
@@ -2686,38 +2700,39 @@ inv.cli.snapshot = {}
 function inv.cli.snapshot.fn(name, line, wildcards)
   local command      = wildcards[1] or ""
   local snapshotName = wildcards[2] or ""
+  local endTag       = inv.tags.new(line)
 
   dbot.debug("inv.cli.snapshot: command=\"" .. command .. "\", name=\"" .. snapshotName .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping snapshot request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsSnapshot, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_UNINITIALIZED)
   end -- if
 
   if (command == "create") then
-    inv.snapshot.add(snapshotName, line)
+    inv.snapshot.add(snapshotName, endTag)
 
   elseif (command == "delete") then
-    inv.snapshot.remove(snapshotName, line)
+    inv.snapshot.remove(snapshotName, endTag)
 
   elseif (command == "list") then
-    inv.snapshot.list(line)
+    inv.snapshot.list(endTag)
 
   elseif (command == "display") then
-    inv.snapshot.display(snapshotName, line)
+    inv.snapshot.display(snapshotName, endTag)
 
   elseif (command == "wear") then
 
     if dbot.gmcp.statePreventsActions() then
       dbot.info("Skipping snapshot wear request: character's state does not allow actions")
-      return inv.tags.stop(invTagsSnapshot, line, DRL_RET_NOT_ACTIVE)
+      return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_NOT_ACTIVE)
     end -- if
 
-    inv.snapshot.wear(snapshotName, line)
+    inv.snapshot.wear(snapshotName, endTag)
 
   else
     inv.cli.snapshot.usage()
-    inv.tags.stop(invTagsSnapshot, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.snapshot.fn
@@ -2812,17 +2827,17 @@ function inv.cli.analyze.fn(name, line, wildcards)
   local priorityName = wildcards[2] or ""
   local wearableLocs = wildcards[3] or ""
   local expandedLocs = ""
-  local endTag       = line
+  local endTag       = inv.tags.new(line, "Analysis results", nil, inv.tags.cleanup.timed)
   local retval
 
   dbot.debug("inv.cli.analyze.fn: priority=\"" .. priorityName .. "\", loc=\"" .. wearableLocs .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping analyze request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsAnalyze, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsAnalyze, endTag, DRL_RET_UNINITIALIZED)
   elseif (not dbot.gmcp.stateIsActive()) then
     dbot.info("Skipping analyze request: character is not in the active state")
-    return inv.tags.stop(invTagsAnalyze, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsAnalyze, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   -- If the user gave a wearable location, check if it is actually valid.  We also support the
@@ -2872,14 +2887,16 @@ end -- inv.cli.analyze.fn
 
 
 function inv.cli.analyze.fn2(name, line, wildcards)
+  local endTag = inv.tags.new(line)
+
   if (not inv.init.initializedActive) then
     dbot.info("Skipping analyze request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsAnalyze, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsAnalyze, endTag, DRL_RET_UNINITIALIZED)
   end -- if
 
   local retval = inv.analyze.list()
 
-  inv.tags.stop(invTagsAnalyze, line, retval)
+  inv.tags.stop(invTagsAnalyze, endTag, retval)
 end -- inv.cli.analyze.fn2
 
 
@@ -3074,22 +3091,23 @@ inv.cli.usage = {}
 function inv.cli.usage.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local query        = wildcards[2] or ""
+  local endTag       = inv.tags.new(line)
 
   dbot.debug("inv.cli.usage.fn: priority=\"" .. priorityName .. "\", query=\"" .. query .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping usage request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsUsage, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsUsage, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping usage request: character's state does not allow actions")
-    return inv.tags.stop(invTagsUsage, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsUsage, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (priorityName == "") then
     inv.cli.usage.usage()
-    return inv.tags.stop(invTagsUsage, line, DRL_RET_INVALID_PARAM)
+    return inv.tags.stop(invTagsUsage, endTag, DRL_RET_INVALID_PARAM)
   else
-    inv.usage.display(priorityName, query, line)
+    inv.usage.display(priorityName, query, endTag)
   end -- if
 
 end -- inv.cli.usage.fn
@@ -3185,23 +3203,24 @@ inv.cli.compare = {}
 function inv.cli.compare.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local relativeName = wildcards[2] or ""
+  local endTag       = inv.tags.new(line, "Compare results", nil, inv.tags.cleanup.timed)
 
   dbot.debug("inv.cli.compare.fn: priority=\"" .. priorityName .. "\", relativeName=\"" ..
              relativeName .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping compare request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsCompare, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsCompare, endTag, DRL_RET_UNINITIALIZED)
   elseif (not dbot.gmcp.stateIsActive()) then
     dbot.info("Skipping compare request: character is not in the active state")
-    return inv.tags.stop(invTagsCompare, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsCompare, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (priorityName == "") or (relativeName == "") then
     inv.cli.compare.usage()
-    inv.tags.stop(invTagsCompare, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsCompare, endTag, DRL_RET_INVALID_PARAM)
   else
-    inv.set.compare(priorityName, relativeName, line)
+    inv.set.compare(priorityName, relativeName, endTag)
   end -- if
 
 end -- inv.cli.compare.fn
@@ -3275,30 +3294,31 @@ inv.cli.covet = {}
 function inv.cli.covet.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local auctionNum   = tonumber(wildcards[2] or "")
+  local endTag       = inv.tags.new(line, "Covet results", nil, inv.tags.cleanup.timed)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping covet request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsCovet, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsCovet, endTag, DRL_RET_UNINITIALIZED)
   elseif (not dbot.gmcp.stateIsActive()) then
     dbot.info("Skipping covet request: character is not in the active state")
-    return inv.tags.stop(invTagsCovet, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsCovet, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (auctionNum == nil) then
     dbot.warn("inv.cli.covet: auction # is not a number")
     inv.cli.covet.usage()
-    return inv.tags.stop(invTagsCovet, line, DRL_RET_INVALID_PARAM)
+    return inv.tags.stop(invTagsCovet, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   if (priorityName == "") then
     dbot.warn("inv.cli.covet: priorityName is nil")
     inv.cli.covet.usage()
-    return inv.tags.stop(invTagsCovet, line, DRL_RET_INVALID_PARAM)
+    return inv.tags.stop(invTagsCovet, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   dbot.debug("inv.cli.covet.fn: priority=\"" .. priorityName .. "\", auctionNum=" .. auctionNum)
 
-  inv.set.covet(priorityName, auctionNum, line)
+  inv.set.covet(priorityName, auctionNum, endTag)
 end -- inv.cli.covet.fn
 
 
@@ -3345,21 +3365,22 @@ end -- inv.cli.covet.examples
 
 inv.cli.notify = {}
 function inv.cli.notify.fn(name, line, wildcards)
-  local level = wildcards[1] or ""
+  local level  = wildcards[1] or ""
+  local endTag = inv.tags.new(line)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping notify request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsNotify, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsNotify, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping notify request: character's state does not allow actions")
-    return inv.tags.stop(invTagsNotify, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsNotify, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (level == "none") or (level == "light") or (level == "standard") or (level == "all") then
-    dbot.notify.setLevel(level, line, true)
+    dbot.notify.setLevel(level, endTag, true)
   else
     inv.cli.notify.usage()
-    inv.tags.stop(invTagsNotify, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsNotify, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 end -- inv.cli.notify.fn
 
@@ -3422,17 +3443,18 @@ end -- inv.cli.notify.examples
 
 inv.cli.forget = {}
 function inv.cli.forget.fn(name, line, wildcards)
-  local query = wildcards[1] or ""
+  local query  = wildcards[1] or ""
+  local endTag = inv.tags.new(line)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping forget request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsForget, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsForget, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping forget request: character's state does not allow actions")
-    return inv.tags.stop(invTagsForget, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsForget, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.forget(query, line)
+  inv.items.forget(query, endTag)
 end -- inv.cli.forget.fn
 
 
@@ -3486,16 +3508,17 @@ inv.cli.reset = {}
 function inv.cli.reset.fn(name, line, wildcards)
   local command = wildcards[1] or ""
   local modules = wildcards[2] or ""
+  local endTag  = inv.tags.new(line)
 
   dbot.debug("reset CLI: command = \"" .. command .. "\", modules = \"" .. modules .. "\"")
 
   if (command == "list") then
     dbot.print("@WResettable \"@G" .. pluginNameAbbr .. "@W\" modules: \"@C" .. inv.modules .. "@W\"")
   elseif (command == "confirm") then
-    inv.reset(modules, line)
+    inv.reset(modules, endTag)
   else
     inv.cli.reset.usage()
-    inv.tags.stop(invTagsReset, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsReset, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 end -- inv.cli.reset.fn
 
@@ -3566,47 +3589,48 @@ function inv.cli.backup.fn(name, line, wildcards)
   local command    = wildcards[1] or ""
   local backupName = wildcards[2] or ""
   local retval     = DRL_RET_SUCCESS
+  local endTag     = inv.tags.new(line)
 
   dbot.debug("backup CLI: command = \"" .. command .. "\", backupName = \"" .. backupName .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping backup request: plugin is not yet initialized (are you AFK or sleeping?)")
-    retval = inv.tags.stop(invTagsBackup, line, DRL_RET_UNINITIALIZED)
+    retval = inv.tags.stop(invTagsBackup, endTag, DRL_RET_UNINITIALIZED)
 
   elseif (command == "on") then
     inv.config.table.isBackupEnabled = true
     dbot.info("Automatic backups are @GENABLED@W")
     retval = inv.config.save()
-    retval = inv.tags.stop(invTagsBackup, line, retval)
+    retval = inv.tags.stop(invTagsBackup, endTag, retval)
 
   elseif (command == "off") then
     inv.config.table.isBackupEnabled = false
     dbot.info("Automatic backups are @RDISABLED@W")
     retval = inv.config.save()
-    retval = inv.tags.stop(invTagsBackup, line, retval)
+    retval = inv.tags.stop(invTagsBackup, endTag, retval)
 
   elseif (command == "list") then
-    retval = dbot.backup.list(line)
+    retval = dbot.backup.list(endTag)
 
   elseif (not dbot.gmcp.stateIsActive()) then
     dbot.info("Skipping backup request: character is not in the active state")
-    retval = inv.tags.stop(invTagsBackup, line, DRL_RET_NOT_ACTIVE)
+    retval = inv.tags.stop(invTagsBackup, endTag, DRL_RET_NOT_ACTIVE)
 
   elseif (command == "create") and (backupName ~= "") then
-    retval = dbot.backup.create(backupName, line)
+    retval = dbot.backup.create(backupName, endTag)
 
   elseif (command == "delete") and (backupName ~= "") then
-    retval = dbot.backup.delete(backupName, line, false)
+    retval = dbot.backup.delete(backupName, endTag, false)
 
   elseif (command == "restore") and (backupName ~= "") then
-    retval = dbot.backup.restore(backupName, line)   
+    retval = dbot.backup.restore(backupName, endTag)   
 
   elseif (command == "auto") then -- Note: auto is a hidden mode and not included in the help file
     retval = dbot.backup.current()
 
   else
     inv.cli.backup.usage()
-    retval = inv.tags.stop(invTagsBackup, line, DRL_RET_INVALID_PARAM)
+    retval = inv.tags.stop(invTagsBackup, endTag, DRL_RET_INVALID_PARAM)
 
   end -- if
 
@@ -3688,6 +3712,7 @@ function inv.cli.cache.fn(name, line, wildcards)
   local cacheType = wildcards[2] or ""
   local cacheSize = -1
   local retval = DRL_RET_SUCCESS
+  local endTag = inv.tags.new(line)
 
   if (wildcards[3] ~= nil) and (wildcards[3] ~= "") then
     cacheSize = tonumber(wildcards[3]) or 0
@@ -3697,10 +3722,10 @@ function inv.cli.cache.fn(name, line, wildcards)
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping cache request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsCache, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsCache, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping cache request: character's state does not allow actions")
-    return inv.tags.stop(invTagsCache, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsCache, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (cacheCommand == "reset") then
@@ -3760,7 +3785,7 @@ function inv.cli.cache.fn(name, line, wildcards)
     dbot.info("Cache request completed successfully")
   end -- if
 
-  inv.tags.stop(invTagsCache, line, retval)
+  inv.tags.stop(invTagsCache, endTag, retval)
 
 end -- inv.cli.cache.fn
 
@@ -4249,25 +4274,26 @@ function inv.cli.organize.fn1(name, line, wildcards)
   local command     = wildcards[1] or ""
   local container   = wildcards[2] or ""
   local queryString = wildcards[3] or ""
+  local endTag      = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " organize command=\"" .. (command or "") .. "\", container=\"" .. 
              container .. "\", query=\"" .. queryString .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping organize request: character's state does not allow actions")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (command == "add") then
-    inv.items.organize.add(container, queryString, line or "")
+    inv.items.organize.add(container, queryString, endTag)
   elseif (command == "clear") then
-    inv.items.organize.clear(container, line or "")
+    inv.items.organize.clear(container, endTag)
   else
     inv.cli.organize.usage()
-    inv.tags.stop(invTagsOrganize, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsOrganize, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.organize.fn1
@@ -4275,22 +4301,23 @@ end -- inv.cli.organize.fn1
 
 function inv.cli.organize.fn2(name, line, wildcards)
   local command = wildcards[1] or ""
+  local endTag  = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " organize command=\"" .. (command or "") .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping organize request: character's state does not allow actions")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
   if (command == "display") then
-    inv.items.organize.display(line or "")
+    inv.items.organize.display(endTag)
   else
     inv.cli.organize.usage()
-    inv.tags.stop(invTagsOrganize, line, DRL_RET_INVALID_PARAM)
+    inv.tags.stop(invTagsOrganize, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
 end -- inv.cli.organize.fn2
@@ -4298,18 +4325,19 @@ end -- inv.cli.organize.fn2
 
 function inv.cli.organize.fn3(name, line, wildcards)
   local queryString = wildcards[1] or ""
+  local endTag      = inv.tags.new(line)
 
   dbot.debug("CLI: " .. pluginNameCmd .. " organize query=\"" .. queryString .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping organize request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_UNINITIALIZED)
   elseif dbot.gmcp.statePreventsActions() then
     dbot.info("Skipping organize request: character's state does not allow actions")
-    return inv.tags.stop(invTagsOrganize, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.organize.cleanup(queryString, line or "")
+  inv.items.organize.cleanup(queryString, endTag)
 end -- inv.cli.organize.fn3
 
 
@@ -4398,31 +4426,32 @@ end -- inv.cli.organize.examples
 inv.cli.version = {}
 function inv.cli.version.fn(name, line, wildcards)
   local command = wildcards[1] or ""
-  local retval = DRL_RET_SUCCESS
+  local retval  = DRL_RET_SUCCESS
+  local endTag  = inv.tags.new(line)
 
   dbot.debug("CLI: command=\"" .. command .. "\"")
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping version request: plugin is not yet initialized (are you AFK or sleeping?)")
-    return inv.tags.stop(invTagsVersion, line, DRL_RET_UNINITIALIZED)
+    return inv.tags.stop(invTagsVersion, endTag, DRL_RET_UNINITIALIZED)
 
   elseif (command == "") then
     retval = inv.version.display()
-    return inv.tags.stop(invTagsVersion, line, retval)
+    return inv.tags.stop(invTagsVersion, endTag, retval)
 
   elseif (not dbot.gmcp.stateIsActive()) then
     dbot.info("Skipping version request: character is not in the active state")
-    return inv.tags.stop(invTagsVersion, line, DRL_RET_NOT_ACTIVE)
+    return inv.tags.stop(invTagsVersion, endTag, DRL_RET_NOT_ACTIVE)
 
   elseif (command == "changelog") then
     dbot.info("Full changelog:")
-    retval = dbot.version.changelog.get(0, line) -- show changelog from version 0 to the latest
+    retval = dbot.version.changelog.get(0, endTag) -- show changelog from version 0 to the latest
 
   elseif (command == "check") then
-    retval = dbot.version.update.release(drlDbotUpdateCheck, line)
+    retval = dbot.version.update.release(drlDbotUpdateCheck, endTag)
 
   else
-    retval = dbot.version.update.release(drlDbotUpdateInstall, line)
+    retval = dbot.version.update.release(drlDbotUpdateInstall, endTag)
 
   end -- if
 
@@ -4469,6 +4498,7 @@ end -- inv.cli.version.examples
 inv.cli.help = {}
 function inv.cli.help.fn(name, line, wildcards)
   local command = wildcards[1] or ""
+  local endTag  = inv.tags.new(line)
 
   dbot.debug("inv.cli.help.fn: command=\"" .. command .. "\"")
 
@@ -4478,7 +4508,7 @@ function inv.cli.help.fn(name, line, wildcards)
     inv.cli.fullUsage()
   end -- if
 
-  inv.tags.stop(invTagsHelp, line, DRL_RET_SUCCESS) 
+  inv.tags.stop(invTagsHelp, endTag, DRL_RET_SUCCESS) 
 end -- inv.cli.help.fn
 
 
@@ -5808,7 +5838,7 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
   end -- if
 
   dbot.debug("inv.items.refresh: #items=" .. (maxNumItems or "nil") .. ", locs=\"" ..
-             (refreshLocations or "nil") .. "\", endTag=\"" .. (endTag or "nil") .. "\"")
+             (refreshLocations or "nil") .. "\"")
 
   if (dbot.gmcp.isInitialized == false) then
     dbot.info("Skipping refresh request: GMCP is not yet initialized")
@@ -5985,7 +6015,7 @@ function inv.items.refreshCR()
       inv.items.fullScanCompleted = true
     end -- if
 
-    dbot.info("Inventory refresh full scan: " .. dbot.retval.getString(retval))
+    dbot.debug("Inventory refresh full scan: " .. dbot.retval.getString(retval))
   end -- if
 
   return inv.tags.stop(inv.items.refreshPkg.tagModule, inv.items.refreshPkg.endTag, retval)
@@ -8364,8 +8394,8 @@ function inv.items.organize.display(endTag)
   for objId, _ in pairs(inv.items.table) do
     local organizeQuery = inv.items.getStatField(objId, invQueryKeyOrganize) or ""
     if (organizeQuery ~= "") then
-      dbot.print("@W  \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") ..
-                 DRL_ANSI_WHITE .. "@W\": @C" .. organizeQuery .. "@w")
+      dbot.print("@W  " .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") ..
+                 DRL_ANSI_WHITE .. "@W (" .. objId .. "): @C" .. organizeQuery .. "@w")
       foundContainerWithQuery = true
     end -- if
   end -- for
@@ -14652,7 +14682,7 @@ function inv.snapshot.wearCR()
     return inv.tags.stop(invTagsSnapshot, "", DRL_RET_INTERNAL_ERROR)
   end -- if
 
-  local endTag = inv.snapshot.wearPkg.endTag or ""
+  local endTag = inv.snapshot.wearPkg.endTag
   local snapshotName = inv.snapshot.wearPkg.snapshotName
 
   if (inv.snapshot.table[snapshotName] == nil) then
@@ -15449,6 +15479,11 @@ function inv.analyze.setsCR()
     if (levelsChecked % 10 == 0) or (currentLevel == maxLevel) then
       dbot.print("@WEquipment analysis of \"@C" .. inv.analyze.setsPkg.priorityName .. "@W\": @G" ..
                  string.format("%3d", progressPercent) .. "%")
+
+      if (currentLevel == maxLevel) then
+        dbot.print("@W\nPreparing analysis report (this can take up to a minute)...")
+      end -- if
+
       wait.time(0.1)
     end -- if
 
@@ -15888,11 +15923,16 @@ end -- inv.usage.get
 -- inv.tags.start(moduleName, startTag)
 -- inv.tags.stop(moduleName, endTag, returnValue)
 --
+-- inv.tags.new(tagMsg, infoMsg, setupFn, cleanupFn)
+--
+-- inv.tags.cleanup.timed(tag, retval)
+-- inv.tags.cleanup.info(tag, retval)
 ----------------------------------------------------------------------------------------------------
 
 inv.tags           = {}
 inv.tags.init      = {}
 inv.tags.table     = {}
+inv.tags.cleanup   = {}
 inv.tags.stateName = "inv-tags.state"
 
 invTagsRefresh   = "refresh"
@@ -16140,10 +16180,24 @@ function inv.tags.stop(moduleName, endTag, retval)
     retval = DRL_RET_INTERNAL_ERROR
   end -- if
 
-  if (moduleName ~= nil) and (endTag ~= nil) and (endTag ~= "") and 
+  if (endTag == nil) then
+    return retval
+  end -- if
+
+  -- Run the end tag's cleanup callback function (if one exists).  Otherwise run the default
+  -- cleanup callback function.
+  if (endTag.cleanupFn ~= nil) then
+    endTag.cleanupFn(endTag, retval)
+  else
+    inv.tags.cleanup.info(endTag, retval)
+  end -- if
+
+  -- Output the end tag's message if the specified module tag is enabled
+  if (moduleName ~= nil) and (endTag.tagMsg ~= nil) and (endTag.tagMsg ~= "") and 
      (inv.tags.table ~= nil) and (inv.tags.table[moduleName] == drlInvTagOn) and
      inv.tags.isEnabled() then
-    local tagMsg = "{/" .. endTag .. ":" .. retval .. ":" .. dbot.retval.getString(retval) .. "}"
+    local tagMsg = "{/" .. endTag.tagMsg .. ":" .. dbot.getTime() - endTag.startTime .. ":" .. retval .. 
+                   ":" .. dbot.retval.getString(retval) .. "}"
     local charState = dbot.gmcp.getState()
 
     -- If we are in a state that allows echo'ing messages, send the end tag.  Otherwise, warn the
@@ -16163,6 +16217,68 @@ function inv.tags.stop(moduleName, endTag, retval)
 
   return retval
 end -- inv.tags.end
+
+
+function inv.tags.new(tagMsg, infoMsg, setupFn, cleanupFn)
+  local newTag = {}
+
+  newTag.tagMsg    = tagMsg or ""
+  newTag.infoMsg   = infoMsg or ""
+  newTag.cleanupFn = cleanupFn
+  newTag.startTime = dbot.getTime()
+
+  if (setupFn ~= nil) then
+    setupFn(newTag)
+  end -- if
+
+  return newTag
+end -- inv.tags.new
+
+
+function inv.tags.cleanup.timed(tag, retval)
+  if (tag == nil) or (retval == nil) then
+    return
+  end -- if
+
+  -- If an info message is included in the end tag, merge it with the time.  Otherwise just
+  -- print the execution time.
+  local executionTime = dbot.getTime() - tag.startTime
+  local minutes = math.floor(executionTime / 60)
+  local seconds = executionTime - (minutes * 60)
+  local timeString = ""
+
+  if (minutes == 1) then
+    timeString = minutes .. " minute, "
+  elseif (minutes > 1) then
+    timeString = minutes .. " minutes, "
+  end -- if
+
+  if (seconds == 1) then
+    timeString = timeString .. seconds .. " second"
+  else
+    timeString = timeString .. seconds .. " seconds"
+  end -- if
+
+  if (tag.infoMsg ~= nil) and (tag.infoMsg ~= "") then
+    dbot.info(tag.infoMsg .. " (@C" .. timeString .. "@W): " .. dbot.retval.getString(retval))
+  else
+    dbot.info("Total time for command: " .. timeString)
+  end -- if
+
+end -- inv.tags.cleanup.timed
+
+
+function inv.tags.cleanup.info(tag, retval)
+  if (tag == nil) or (retval == nil) then
+    return
+  end -- if
+
+  -- Print the "info" message if one is included in the end tag
+  if (tag.infoMsg ~= nil) and (tag.infoMsg ~= "") then
+    dbot.info(tag.infoMsg .. ": " .. dbot.retval.getString(retval))
+  end -- if
+
+end -- inv.tags.cleanup.info
 
 
 ----------------------------------------------------------------------------------------------------
