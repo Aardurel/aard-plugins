@@ -3895,12 +3895,12 @@ function inv.cli.tags.examples()
   dbot.print(
 [[@W
 This plugin supports optional end tags for all operations.  An end tag has the
-form "@G{/the command line:return value:return value string}@W".  This gives users
-an easy way to use the plugin in other scripts because those scripts can trigger on
-the end tag to know an operation is done and what result the operation had.
+form "@G{/the command line:execution time in seconds:return value:return value string}@W".
+This gives users an easy way to use the plugin in other scripts because those scripts can
+trigger on the end tag to know an operation is done and what result the operation had.
 
 For example, if you type "@Gdinv refresh@W", you could trigger on an end tag that has
-this output "@G{/dinv refresh:0:success}@W" to know when the refresh completed.  Of
+an output like "@G{/dinv refresh:0:0:success}@W" to know when the refresh completed.  Of
 course, you would want to double check the return value in the end tag to ensure
 that everything happened the way you want.
 
@@ -16638,7 +16638,7 @@ function inv.consume.buy(typeName, numItems, containerName)
   local curLevel = dbot.gmcp.getLevel()
   local bestEntry = nil
   for _, entry in ipairs(inv.consume.table[typeName]) do
-    if (entry.level < curLevel) then
+    if (entry.level <= curLevel) then
       bestEntry = entry
     end -- if
   end -- for
@@ -20457,11 +20457,12 @@ function dbot.execute.queue.fence()
     wait.time(drlSpinnerPeriodDefault)
     totTime = totTime + drlSpinnerPeriodDefault
   end -- while
-  
-  -- Remove the trigger if an error occurred and the one-shot trigger is still pending
-  if (retval ~= DRL_RET_SUCCESS) then
-    DeleteTrigger(dbot.execute.trigger.fenceName)
-  end -- if
+
+  -- Note: You might think that we'd want to delete the fence trigger if there was an error
+  --       and the trigger is still pending.  However, there is a chance that the fence echo
+  --       is still pending on the server side so we'd like to keep the trigger around as long
+  --       as possible to suppress the fence echo -- just in case.  It won't hurt anything
+  --       because the next fence will overwrite the previous fence trigger.
 
   dbot.execute.queue.fenceCounter = dbot.execute.queue.fenceCounter + 1
 
