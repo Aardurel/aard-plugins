@@ -1921,10 +1921,13 @@ Examples:
 @W  1@w @RAardWords (TM)@Y - [P] - S @Whold        0    0   0   0   0   0   0   0   0    0    0    0
 @W  1@w @RAardWords (TM)@Y - [W] - S @Whold        0    0   0   0   0   0   0   0   0    0    0    0
 
-  7) Display your items that are equipped
+  7) Find armor that is enchantable
+     "@Gdinv search type armor flag invis || type armor ~flag hum || type armor ~flag glow@W"
+
+  8) Display your items that are equipped
      "@Gdinv search worn@W"
 
-  8) Display EVERYTHING (no I'm not pasting that output here!)
+  9) Display EVERYTHING (no I'm not pasting that output here!)
      "@Gdinv search all@W"
 ]])
 
@@ -7495,10 +7498,26 @@ function inv.items.search(arrayOfQueryArrays)
               break
             end -- if
 
+          -- Handle a "spells" name search.  The spells are in a table so we need to handle
+          -- this a little differently than normal so that we can unpack the table.
+          elseif (key == invStatFieldSpells) and (type(statsVal) == "table") then
+            local foundSpell = false
+            for _,spellEntry in ipairs(statsVal) do
+              if dbot.isWordInString(string.lower(value), spellEntry.name) then
+                foundSpell = true
+                break
+              end -- if
+            end -- for
+
+            if (foundSpell and (invert == true)) or ((not foundSpell) and (invert == false)) then
+              itemMatches = false
+              break
+            end -- if
+
           -- Handle a basic string query (use lowercase only to make queries a bit simpler)
-          elseif ((invert == false) and (prefix == nil) and 
+          elseif ((invert == false) and (prefix == nil) and (type(statsVal) ~= "table") and
                   (string.lower(statsVal) ~= string.lower(value))) or
-                 ((invert == true)  and (prefix == nil) and
+                 ((invert == true)  and (prefix == nil) and (type(statsVal) ~= "table") and
                   (string.lower(statsVal) == string.lower(value))) then
             itemMatches = false
             break
