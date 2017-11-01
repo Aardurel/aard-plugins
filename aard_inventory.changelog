@@ -2,6 +2,34 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0018] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed an "off-by-one" level check that bought the wrong consumable item
+           if your level exactly matched the level of the item to buy]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug that could allow internal fence echo commands to be visible
+           to the user if the user went to sleep or went AFK at the wrong time]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a case where an item pulled from the frequent cache could have the
+           wrong location.  Instead of using the item's actual location, it used the
+           location of the first item that was put into the frequent cache.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added support for search queries for items with spells.  For example, use
+           "dinv search spells lotus" to match black lotus potions or pills or use
+           "dinv search spells heal" for healing potions or pills.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[End tags now include a command's execution time in seconds]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Several commands now report execution time]]
+  }
+}
+
 dbot.changelog[2.0017] =
 {
   { change = drlDbotChangeLogTypeFix,
