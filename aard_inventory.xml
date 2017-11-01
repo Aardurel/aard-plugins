@@ -1063,6 +1063,7 @@ function inv.init.atActiveCR()
       -- fine too.  If refreshes are disabled (their period is 0 minutes) then we skip this.
       if (inv.items.refreshGetPeriods() > 0) then
         dbot.info("Running initial full scan to check if your inventory was modified outside of this plugin")
+        dbot.info("Prompts will be disabled until the scan completes")
         local endTag = inv.tags.new(nil, "Completed initial refresh full scan", nil, inv.tags.cleanup.timed)
         retval = inv.items.refresh(0, invItemsRefreshLocAll, endTag, nil)
         if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
@@ -5475,7 +5476,12 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     if (idLevel ~= nil) and (idLevel == invIdLevelNone) and (name ~= nil) then
       local cachedEntry = inv.cache.get(inv.cache.frequent.table, name)
       if (cachedEntry ~= nil) then
-        cachedEntry.stats.id = objId
+        -- The cached entry doesn't know the actual location of this object or the object's actual
+        -- object ID.  We overwrite those fields here with the correct values for the item.
+        cachedEntry[invFieldObjLoc] = inv.items.getField(objId, invFieldObjLoc)
+        cachedEntry[invFieldColorName] = colorName
+        cachedEntry[invFieldStats].id = objId
+
         retval = inv.items.setEntry(objId, (cachedEntry))
         if (retval ~= DRL_RET_SUCCESS) then
           dbot.warn("inv.items.identifyCR: Failed to set \"" .. name .. DRL_ANSI_WHITE .. 
@@ -9480,7 +9486,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
       retval = inv.items.setField(objId, invFieldObjLoc, tonumber(inv.items.discoverPkg.loc))
     end -- if
 
-    -- Set the colorized name of the
+    -- Set the colorized name of the item
     retval = inv.items.setField(objId, invFieldColorName, itemName)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.items.trigger.itemDataStats: Failed to set colorName for item " .. objId .. 
