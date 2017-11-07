@@ -87,7 +87,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0018"
+   version="2.0019"
    >
 <description trim="y">
 <![CDATA[
@@ -417,7 +417,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.compare.fn"
-   match="^[ ]*dinv[ ]+compare[ ]+([^ ]+)[ ]+([^ ]+)$"
+   match="^[ ]*dinv[ ]+compare[ ]+([^ ]+)[ ]+([^ ]+)[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -447,7 +447,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.covet.fn"
-   match="^[ ]*dinv[ ]+covet[ ]+([^ ]+)[ ]+([^ ]+)$"
+   match="^[ ]*dinv[ ]+covet[ ]+([^ ]+)[ ]+([^ ]+)[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -13661,7 +13661,7 @@ function inv.set.createAndWearCR()
   -- Attempt to wear the set we just created
   retval = inv.set.wear(inv.set.table[priorityName][level])
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.set.createAndWearCR: Failed to wear set: " .. dbot.retval.getString(retval))
+    dbot.debug("inv.set.createAndWearCR: Failed to wear set: " .. dbot.retval.getString(retval))
   end -- if
 
   -- Clean up and return
