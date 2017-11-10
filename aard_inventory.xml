@@ -11738,7 +11738,8 @@ function inv.priority.addDefault()
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"warrior\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"warrior\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
   -----------------
@@ -11842,7 +11843,8 @@ function inv.priority.addDefault()
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"thief\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"thief\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
   -------------------
@@ -11894,7 +11896,8 @@ function inv.priority.addDefault()
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"ranger\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"ranger\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
   --------------------
@@ -11998,11 +12001,13 @@ function inv.priority.addDefault()
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric\": " .. dbot.retval.getString(retval))
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric\": " ..
+              dbot.retval.getString(retval))
   end -- if
 
+--[[FIXME: we probably shouldn't bundle this one
   retval = inv.priority.add(
-    "cleric-tank", -- Equipment priorities using the default cleric weightings from the aardwolf scoring system
+    "cleric-tank", 
     { 
       { -- Priorities for levels 1 - 291
         minLevel = 1, 
@@ -12025,475 +12030,339 @@ function inv.priority.addDefault()
     dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric-tank\": " ..
               dbot.retval.getString(retval))
   end -- if
-
-  -------------------------
-  -- Priority: psi-no-melee
-  -------------------------
-  -- This is designed for a single-class psi.  I'm not entirely happy with the values included
-  -- in it.  I'll probably tweak those once I tier again and go back to a single class psi.  Feel
-  -- free to mess with these values and try out your own experiments.  That's fun too :)
-  retval = inv.priority.add(
-  "psi-no-melee", -- Equipment priorities for a psi with no melee classes yet
-  { 
-    { -- Priorities for levels 1 - 50
-      minLevel = 1, 
-      maxLevel = 50,
-      priorities = { int          = 1,
-                     luck         = 1, 
-                     wis          = 0.7,
-                     str          = 1,  
-                     dex          = 0.6, 
-                     con          = 0.2,  
-                     dam          = 0.7,
-                     hit          = 0.7,
-                     hp           = 0.02,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.03,
-                     allmagic     = 0.03,
-                     avedam       = 1,
-                     offhandDam   = 0.33,
-                     regeneration = 5, 
-                     sanctuary    = 50,
-                     haste        = 20,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 3,
-                     detectinvis  = 4,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 5,
-                     dualwield    = 20,
-                     irongrip     = 2,
-                     invis        = 10,
-                     flying       = 5
-                   }
-    },
-
-    { -- Priorities for levels 51 - 70
-      minLevel = 51, 
-      maxLevel = 70, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 0.8,
-                     str          = 1.2,
-                     dex          = 0.4,
-                     con          = 0.2,
-                     dam          = 0.8,
-                     hit          = 0.8,
-                     hp           = 0.01,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.05,
-                     allmagic     = 0.03,
-                     avedam       = 1,
-                     offhandDam   = 0.4,
-                     regeneration = 5,
-                     sanctuary    = 10,
-                     haste        = 5,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 3,
-                     detectinvis  = 4,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 5,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 3,
-                     invis        = 5,
-                     flying       = 4
-                   }
-    },
-
-    { -- Priorities for levels 71 - 130
-      minLevel = 71, 
-      maxLevel = 130, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 0.9,
-                     str          = 0.8,
-                     dex          = 0.6,
-                     con          = 0.4,
-                     dam          = 0.8,
-                     hit          = 0.7,
-                     hp           = 0.01,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.5,
-                     regeneration = 5,
-                     sanctuary    = 10,
-                     haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 10,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 20,
-                     invis        = 3,
-                     flying       = 2
-                   }
-    },
-
-    { -- Priorities for levels 131 - 170
-      minLevel = 131, 
-      maxLevel = 170, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 1,
-                     str          = 0.7,
-                     dex          = 0.5,
-                     con          = 0.4,
-                     dam          = 0.8,
-                     hit          = 0.8,
-                     hp           = 0.01,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.6,
-                     regeneration = 5,
-                     sanctuary    = 10,
-                     haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 20,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 20,
-                     invis        = 1,
-                     flying       = 1
-                   }
-    },
-
-    { -- Priorities for levels 171 - 200
-      minLevel = 171, 
-      maxLevel = 200, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 1,
-                     str          = 0.7,
-                     dex          = 0.4,
-                     con          = 0.4,
-                     dam          = 0.8,
-                     hit          = 0.8,
-                     hp           = 0.01,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.7,
-                     regeneration = 5,
-                     sanctuary    = 20,
-                     haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 25,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 25,
-                     invis        = 1,
-                     flying       = 1
-                   }
-    },
-
-    { -- Priorities for level 201 - 291
-      minLevel = 201, 
-      maxLevel = 291, 
-      priorities = { int          = 1.0,
-                     luck         = 1.0,
-                     wis          = 1.0,
-                     str          = 0.5,
-                     dex          = 0.4,
-                     con          = 0.25,
-                     dam          = 0.8,
-                     hit          = 0.8,
-                     hp           = 0.01,
-                     mana         = 0.01,
-                     moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.8,
-                     regeneration = 2,
-                     sanctuary    = 5,
-                     haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 40,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 30,
-                     invis        = 1,
-                     flying       = 1
-                   }
-    }
-  })
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"psi-no-melee\": " ..
-               dbot.retval.getString(retval))
-  end -- if
+--]]
 
   ----------------------
   -- Priority: psi-melee
   ----------------------
   -- This is designed for a psi with at least one melee class.  It fits my playing style well, but
-  -- feel free to tweak it for your own use :)
+  -- feel free to tweak it for your own use :)  Many additional options are available to tweak this
+  -- even further.  See "dinv help priority" for more details.
   retval = inv.priority.add(
   "psi-melee", 
   { 
     { -- Priorities for levels 1 - 50
       minLevel = 1, 
       maxLevel = 50,
-      priorities = { int          = 0.8,
-                     luck         = 1, 
-                     wis          = 0.7,
+      priorities = {
                      str          = 1,  
+                     int          = 0.6,
+                     wis          = 0.6,
                      dex          = 0.8, 
                      con          = 0.2,  
+                     luck         = 1, 
                      dam          = 0.9,
-                     hit          = 0.85,
+                     hit          = 0.4,
+
+                     avedam       = 1,
+                     offhandDam   = 0.3, 
+
                      hp           = 0.02,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.03,
-                     allmagic     = 0.03,
-                     avedam       = 1,
-                     offhandDam   = 0.33, 
-                     regeneration = 5, 
+
                      sanctuary    = 50,
                      haste        = 20,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 3,
+                     flying       = 5,
+                     invis        = 10,
+                     regeneration = 5, 
                      detectinvis  = 4,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 5,
+                     detecthidden = 3,
+                     detectevil   = 2,
+                     detectgood   = 2,
                      dualwield    = 20,
                      irongrip     = 2,
-                     invis        = 10,
-                     flying       = 5,
-                     maxint       = 0,
-                     maxluck      = 0,
-                     maxwis       = 0,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
+                     shield       = 5,
+
+                     allmagic     = 0.03,
+                     allphys      = 0.03
                    }
     },
 
-    { -- Priorities for levels 51 - 70
+    { -- Priorities for levels 51 - 100
       minLevel = 51, 
-      maxLevel = 70, 
-      priorities = { int          = 1,
-                     luck         = 1,
+      maxLevel = 100, 
+      priorities = {
+                     str          = 0.9,  
+                     int          = 0.8,
                      wis          = 0.8,
-                     str          = 1,
-                     dex          = 0.5,
-                     con          = 0.2,
+                     dex          = 0.7, 
+                     con          = 0.3,  
+                     luck         = 1, 
                      dam          = 0.9,
-                     hit          = 0.8,
+                     hit          = 0.5,
+
+                     avedam       = 1,
+                     offhandDam   = 0.4, 
+
                      hp           = 0.01,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.05,
-                     allmagic     = 0.03,
-                     avedam       = 1,
-                     offhandDam   = 0.4,
-                     regeneration = 5,
+
                      sanctuary    = 10,
                      haste        = 5,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 3,
-                     detectinvis  = 4,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 5,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 3,
-                     invis        = 5,
                      flying       = 4,
-                     maxint       = 0,
-                     maxluck      = 0,
-                     maxwis       = 0,
+                     invis        = 5,
+                     regeneration = 5, 
+                     detectinvis  = 4,
+                     detecthidden = 3,
+                     detectevil   = 2,
+                     detectgood   = 2,
+                     dualwield    = 0,
+                     irongrip     = 3,
+                     shield       = 5,
+
                      maxstr       = 0,
+                     maxint       = 0,
+                     maxwis       = 0,
                      maxdex       = 0,
-                     maxcon       = 0
+                     maxcon       = 0,
+                     maxluck      = 0,
+
+                     allmagic     = 0.03,
+                     allphys      = 0.05
                    }
     },
 
-    { -- Priorities for levels 71 - 130
-      minLevel = 71, 
+    { -- Priorities for levels 101 - 130
+      minLevel = 101, 
       maxLevel = 130, 
-      priorities = { int          = 1,
-                     luck         = 1,
+      priorities = {
+                     str          = 0.8,  
+                     int          = 1.0,
                      wis          = 0.9,
-                     str          = 0.8,
-                     dex          = 0.6,
-                     con          = 0.4,
-                     dam          = 0.85,
-                     hit          = 0.75,
+                     dex          = 0.7, 
+                     con          = 0.4,  
+                     luck         = 1.0, 
+                     dam          = 0.8,
+                     hit          = 0.6,
+
+                     avedam       = 1,
+                     offhandDam   = 0.5, 
+
                      hp           = 0.01,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.5,
-                     regeneration = 5,
+
                      sanctuary    = 10,
                      haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 10,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 20,
-                     invis        = 3,
                      flying       = 2,
-                     maxint       = 0,
-                     maxluck      = 0,
-                     maxwis       = 0,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
+                     invis        = 3,
+                     regeneration = 5, 
+                     detectinvis  = 2,
+                     detecthidden = 2,
+                     detectevil   = 2,
+                     detectgood   = 2,
+                     dualwield    = 0,
+                     irongrip     = 20,
+                     shield       = 10,
+
+                     allmagic     = 0.05,
+                     allphys      = 0.10
                    }
     },
 
     { -- Priorities for levels 131 - 170
       minLevel = 131, 
       maxLevel = 170, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 1,
-                     str          = 0.7,
-                     dex          = 0.5,
-                     con          = 0.4,
-                     dam          = 0.85,
-                     hit          = 0.85,
+      priorities = {
+                     str          = 0.7,  
+                     int          = 1.0,
+                     wis          = 1.0,
+                     dex          = 0.6, 
+                     con          = 0.5,  
+                     luck         = 1.0, 
+                     dam          = 0.7,
+                     hit          = 0.6,
+
+                     avedam       = 1.0,
+                     offhandDam   = 0.6, 
+
                      hp           = 0.01,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.6,
-                     regeneration = 5,
+
                      sanctuary    = 10,
                      haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 20,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 20,
-                     invis        = 1,
                      flying       = 1,
-                     maxint       = 0,
-                     maxluck      = 0,
-                     maxwis       = 0,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
+                     invis        = 1,
+                     regeneration = 5, 
+                     detectinvis  = 2,
+                     detecthidden = 2,
+                     detectevil   = 2,
+                     detectgood   = 2,
+                     dualwield    = 0,
+                     irongrip     = 20,
+                     shield       = 20,
+
+                     allmagic     = 0.05,
+                     allphys      = 0.10
                    }
     },
 
     { -- Priorities for levels 171 - 200
       minLevel = 171, 
       maxLevel = 200, 
-      priorities = { int          = 1,
-                     luck         = 1,
-                     wis          = 1,
-                     str          = 0.7,
-                     dex          = 0.4,
-                     con          = 0.4,
-                     dam          = 0.85,
-                     hit          = 0.85,
+      priorities = {
+                     str          = 0.7,  
+                     int          = 1.0,
+                     wis          = 1.0,
+                     dex          = 0.5, 
+                     con          = 0.5,  
+                     luck         = 1.0, 
+                     dam          = 0.6,
+                     hit          = 0.6,
+
+                     avedam       = 1.0,
+                     offhandDam   = 0.7, 
+
                      hp           = 0.01,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.7,
-                     regeneration = 5,
-                     sanctuary    = 20,
+
+                     sanctuary    = 10,
                      haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 25,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 25,
-                     invis        = 1,
                      flying       = 1,
-                     maxint       = 5,
+                     invis        = 1,
+                     regeneration = 5, 
+                     detectinvis  = 2,
+                     detecthidden = 2,
+                     detectevil   = 2,
+                     detectgood   = 2,
+                     dualwield    = 0,
+                     irongrip     = 25,
+                     shield       = 25,
+
+                     maxint       = 10,
+                     maxwis       = 10,
                      maxluck      = 5,
-                     maxwis       = 5,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
+
+                     allmagic     = 0.05,
+                     allphys      = 0.10
                    }
     },
 
     { -- Priorities for level 201 - 291
       minLevel = 201, 
       maxLevel = 291, 
-      priorities = { int          = 1.0,
-                     luck         = 1.0,
+      priorities = {
+                     str          = 0.6,  
+                     int          = 1.0,
                      wis          = 1.0,
-                     str          = 0.5,
-                     dex          = 0.4,
-                     con          = 0.25,
-                     dam          = 0.8,
-                     hit          = 0.8,
+                     dex          = 0.5, 
+                     con          = 0.5,  
+                     luck         = 1.0, 
+                     dam          = 0.5,
+                     hit          = 0.5,
+
+                     avedam       = 1.0,
+                     offhandDam   = 0.85, 
+
                      hp           = 0.01,
                      mana         = 0.01,
                      moves        = 0,
-                     allphys      = 0.1,
-                     allmagic     = 0.05,
-                     avedam       = 1,
-                     offhandDam   = 0.85,
-                     regeneration = 2,
+
                      sanctuary    = 5,
                      haste        = 2,
-                     detectgood   = 2,
-                     detectevil   = 2,
-                     detecthidden = 2,
-                     detectinvis  = 2,
-                     detectmagic  = 0,    -- I don't care if we can detect magic
-                     shield       = 40,
-                     dualwield    = 0,    -- I don't care once I have dual wield skill
-                     irongrip     = 30,
-                     invis        = 1,
                      flying       = 1,
-                     maxint       = 20,
+                     invis        = 1,
+                     regeneration = 2, 
+                     detectinvis  = 2,
+                     detecthidden = 2,
+                     detectevil   = 2,
+                     detectgood   = 2,
+                     dualwield    = 0,
+                     irongrip     = 30,
+                     shield       = 30,
+
+                     maxint       = 40,
+                     maxwis       = 40,
                      maxluck      = 20,
-                     maxwis       = 20,
-                     maxstr       = 0,
-                     maxdex       = 0,
-                     maxcon       = 0
+
+                     allmagic     = 0.05,
+                     allphys      = 0.10
                    }
     }
   })
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.priority.addDefault: Failed to add priority \"psi-melee\": " ..
+              dbot.retval.getString(retval))
+  end -- if
+
+  ------------------------
+  -- Priority: psi-defense
+  ------------------------
+  -- This prioritizes defensive aspects of an equipment set
+  local psiDefensePriority = {
+                       str          = 0.6,  
+                       int          = 1.0,
+                       wis          = 1.0,
+                       dex          = 0.8, 
+                       con          = 0.8,  
+                       luck         = 1.0, 
+                       dam          = 0.5,
+                       hit          = 0.5,
+
+                       avedam       = 1.0,
+                       offhandDam   = 0.0, 
+
+                       hp           = 0.02,
+                       mana         = 0.01,
+
+                       sanctuary    = 10,
+                       haste        = 0,
+                       flying       = 0,
+                       invis        = 1,
+                       regeneration = 5, 
+                       detectinvis  = 0,
+                       detecthidden = 0,
+                       detectevil   = 0,
+                       detectgood   = 0,
+                       dualwield    = 0,
+                       irongrip     = 50,
+                       shield       = 50,
+
+                       maxint       = 40,
+                       maxwis       = 40,
+                       maxluck      = 20,
+
+                       allmagic     = 0.05,
+                       allphys      = 0.10
+                   }
+  psiDefensePriority["~second"] = 1 -- Minor hack since the "~" messes up table keys
+  retval = inv.priority.add(
+    "psi-defense", 
+    { 
+      { -- Priorities for levels 1 - 291
+        minLevel = 1, 
+        maxLevel = 291, 
+        priorities = psiDefensePriority
+      }
+    })
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"balance\": " ..
+              dbot.retval.getString(retval))
+  end -- if
+
+  ------------------------
+  -- Priority: psi-balance
+  ------------------------
+  -- This priority lowers wis as much as possible while boosting int.  This will give you the biggest
+  -- possible bonus to wis when you cast mental balance.  You can then wear your normal equipment while
+  -- retaining the wis bonus.
+  retval = inv.priority.add(
+    "psi-balance", -- Equipment priorities to maximize benefits from the mental balance spell
+    { 
+      { -- Priorities for levels 1 - 291
+        minLevel = 1, 
+        maxLevel = 291, 
+        priorities = { int = 1,
+                       wis = -1
+                     }
+      }
+    })
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.priority.addDefault: Failed to add priority \"balance\": " ..
               dbot.retval.getString(retval))
   end -- if
 
@@ -12509,72 +12378,15 @@ function inv.priority.addDefault()
       { -- Priorities for levels 1 - 291
         minLevel = 1, 
         maxLevel = 291, 
-        priorities = { int        = 1,
-                       luck       = 1,
-                       wis        = 1
+        priorities = { int  = 1,
+                       luck = 1,
+                       wis  = 1
                      }
       }
     })
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.priority.addDefault: Failed to add priority \"enchanter\": " ..
              dbot.retval.getString(retval))
-  end -- if
-
-  --------------------
-  -- Priority: balance
-  --------------------
-  -- Yeah, it's a little tasteless to game the system and take advantage of the mental balance
-  -- implementation.  This priority lowers wis as much as possible while boosting int.  This
-  -- will give you the biggest possible bonus to wis when you cast mental balance.  You can then
-  -- wear your normal equipment while retaining the wis bonus.
-  retval = inv.priority.add(
-    "balance", -- Equipment priorities to game the mental balance spell
-    { 
-      { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { int        = 1,
-                       wis        = -1
-                     }
-      }
-    })
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"balance\": " ..
-              dbot.retval.getString(retval))
-  end -- if
-
-  ------------------
-  -- Priority: debug
-  ------------------
-  -- Feel free to play around with this one :)  Look at the "psi-melee" priority for examples on
-  -- all of the options you have at your disposal.
-  retval = inv.priority.add(
-    "debug", -- Debug priorities: this is helpful when playing around with sets
-    { 
-      { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { int        = 1,    
-                       luck       = 1,    
-                       wis        = 1,    
-                       str        = 0.5,  
-                       dex        = 0.25, 
-                       con        = 0.2,  
-                       dam        = 0.5,  
-                       hit        = 0.33, 
-                       hp         = 0.01, 
-                       mana       = 0.005,
-                       allphys    = 0.05, 
-                       allmagic   = 0.03, 
-                       avedam     = 1,    
-                       offhandDam = 0.5,
-                       shield     = 10,
-                       sanctuary  = 50
-                     }
-      }
-    })
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"debug\": " .. dbot.retval.getString(retval))
   end -- if
 
   return retval
@@ -12602,7 +12414,6 @@ inv.priority.fieldTable = {
   { "moves"       , "Value of 1 movement point" },
 
   { "sanctuary"   , "Value placed on the sanctuary effect " },
-
   { "haste"       , "Value placed on the haste effect " },
   { "flying"      , "Value placed on the flying effect " },
   { "invis"       , "Value placed on the invisible effect " },
@@ -12612,13 +12423,9 @@ inv.priority.fieldTable = {
   { "detectevil"  , "Value placed on the detect evil effect " },
   { "detectgood"  , "Value placed on the detect good effect " },
   { "detectmagic" , "Value placed on the detect magic effect " },
-
   { "dualwield"   , "Value of an item's dual wield effect" },
   { "irongrip"    , "Value of an item's irongrip effect" },
   { "shield"      , "Value of a shield's damage reduction effect" },
-
-  { "allmagic"    , "Value of 1 point in each magical resist type" },
-  { "allphys"     , "Value of 1 point in each physical resist type" },
 
   { "maxstr"      , "Value of hitting a level's strength ceiling" },
   { "maxint"      , "Value of hitting a level's intelligence ceiling" },
@@ -12626,6 +12433,9 @@ inv.priority.fieldTable = {
   { "maxdex"      , "Value of hitting a level's dexterity ceiling" },
   { "maxcon"      , "Value of hitting a level's constitution ceiling" },
   { "maxluck"     , "Value of hitting a level's luck ceiling" },
+
+  { "allmagic"    , "Value of 1 point in each magical resist type" },
+  { "allphys"     , "Value of 1 point in each physical resist type" },
 
   { "bash"        , "Value of 1 point of bash physical resistance" },
   { "pierce"      , "Value of 1 point of pierce physical resistance" },
@@ -13307,13 +13117,22 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objLevel      = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
-    local objFlags      = inv.items.getStatField(objId, invStatFieldFlags) or ""
 
+    -- Strip out commas in the flags to make searching easier
+    local objFlags = inv.items.getStatField(objId, invStatFieldFlags) or ""
+    objFlags = string.gsub(objFlags, ",", "")
+
+    local isHeroOnly = dbot.isWordInString("heroonly", objFlags)
+    local baseLevel = level - dbot.gmcp.getTier() * 10
+
+    -- Consider using the object if it is at least partially identified and is at or below our
+    -- current level.  For "heroonly" items, we must also ensure that the user's base level (not
+    -- including the tier bonus) is at least 200.
     if ((objIdentified == invIdLevelPartial) or (objIdentified == invIdLevelFull)) and
-       (objLevel ~= nil) and (objLevel <= level) then
+       (objLevel ~= nil) and (objLevel <= level) and
+       ((not isHeroOnly) or (baseLevel >= 200)) then
 
-      -- Check the object alignment (we first strip out commas in the flags to make searching easier)
-      objFlags = string.gsub(objFlags, ",", "")
+      -- Check the object alignment
       if (dbot.isWordInString("anti-good",    objFlags) and isGood)      or
          (dbot.isWordInString("anti-neutral", objFlags) and isNeutral) or
          (dbot.isWordInString("anti-evil",    objFlags) and isEvil)    then
@@ -13328,7 +13147,8 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
         -- We keep track of all weapons so that we can evaluate the best combination after we
         -- see everything in our inventory
         if (objWearable == "wield") then
-          table.insert(weaponArray, { id = objId, score = score, offhand = offhandScore, weight = objWeight })
+          table.insert(weaponArray,
+                       { id = objId, score = score, offhand = offhandScore, weight = objWeight })
         end -- if
 
         for _,w in ipairs(inv.wearables[objWearable]) do
