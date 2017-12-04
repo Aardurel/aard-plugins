@@ -43,6 +43,7 @@ inv.cache     : Item cache management and access
 inv.priority  : How to prioritize / weight each stat for equipment sets
 inv.score     : Scoring items and sets based on an equipment set prioritization
 inv.set       : Equipment set management creation and management
+inv.weapon    : Weapon-only equipment sets, typically based on damage type(s)
 inv.snapshot  : Snapshots of specific equipment sets
 inv.statBonus : Calculation and storage of character bonuses due to spells and equipment
 inv.analyze   : Calculation and storage of a priority's "optimal" equipment sets at each level
@@ -124,7 +125,7 @@ Usage
   Inventory table access
     dinv build confirm
     dinv refresh [on | off | eager | all] <minutes>
-    dinv search [id | full] <query>
+    dinv search [objid | full] <query>
 
   Item management
     dinv get <query>
@@ -135,6 +136,7 @@ Usage
 
   Equipment sets
     dinv set [display | wear] <priority name> <level>
+    dinv weapon [next | <priority> <damType list>]
     dinv snapshot [create | delete | list | display | wear] <snapshot name>
     dinv priority [list | display | create | clone | delete | edit | copy | paste | compare] <name 1> <name 2>
 
@@ -274,7 +276,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.search.fn"
-   match="^[ ]*dinv[ ]+search[ ]*(basic|id|full|raw|)[ ]*(.*?)$"
+   match="^[ ]*dinv[ ]+search[ ]*(basic|objid|full|raw|)[ ]*(.*?)$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -285,6 +287,26 @@ Feature Wishlist
   <alias
    script="inv.cli.set.fn"
    match="^[ ]*dinv[ ]+set[ ]+(display|wear)[ ]+(.*?)[ ]*([0-9]*)?$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.weapon.fn"
+   match="^[ ]*dinv[ ]+weapon[ ]+(next)[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.weapon.fn"
+   match="^[ ]*dinv[ ]+weapon[ ]+([^ ]+)[ ]+(.*?)[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1436,6 +1458,9 @@ end -- inv.config.new
 --   inv.cli.set.fn(name, line, wildcards)
 --   inv.cli.set.usage()
 --   inv.cli.set.examples()
+--   inv.cli.weapon.fn(name, line, wildcards)
+--   inv.cli.weapon.usage()
+--   inv.cli.weapon.examples()
 --   inv.cli.priority.fn(name, line, wildcards)
 --   inv.cli.priority.fn2(name, line, wildcards)
 --   inv.cli.priority.usage()
@@ -1521,6 +1546,7 @@ function inv.cli.fullUsage()
 
   dbot.print("\n@C  Equipment sets@w")
   inv.cli.set.usage()
+  inv.cli.weapon.usage()
   inv.cli.snapshot.usage()
   inv.cli.priority.usage()
 
@@ -1791,7 +1817,7 @@ end -- inv.cli.search.fn
 
 
 function inv.cli.search.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " search @Y[id | full] @G<query>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " search @Y[objid | full] @G<query>@w")
 end -- inv.cli.search.usage
 
 
@@ -1842,8 +1868,8 @@ its name.  Also, queries will accept "key" instead of "keywords", "loc" instead 
 and "rloc" instead of "rlocation".  Yeah, I'm lazy sometimes...
 
 Performing a search will display relevant information about the items whose characteristics match
-the query.  There are three modes of searches: "@Cbasic@W", "@Cid@W", and "@Cfull@W".  A basic search displays
-just basic information about the items -- surprise!  An id search shows everything in the basic
+the query.  There are three modes of searches: "@Cbasic@W", "@Cobjid@W", and "@Cfull@W".  A basic search displays
+just basic information about the items -- surprise!  An objid search shows everything in the basic
 search in addition to the item's unique ID.  A full search shows lots of info for each item and is
 very verbose.
 
@@ -1860,7 +1886,7 @@ Examples:
 @W 40@w @YDagger of @RAardwolf@w       @Wdagger   @G100@W @G 10@W @G   5@W @G   5@W Mental   sharp      0   0   0   0   0   0
 @W
   2) Show unique IDs and info for all level 91 ear and neck items
-     "@Gdinv search id wearable ear level 91 || wearable neck level 91@W"
+     "@Gdinv search objid wearable ear level 91 || wearable neck level 91@W"
 
 @WLvl Name of Armor            Type       HR   DR Int Wis Lck Str Dex Con Res HitP Mana Move
 @W 91@w @c:@C:@W:@CSt@cerling @G(1851993170) @Wear         0 @G  12@W @G  4@W   0 @G  3@W   0   0   0 @G  9@W    0 @G  30@W @R -60
@@ -2436,6 +2462,105 @@ Examples:
 end -- inv.cli.set.examples
 
 
+inv.cli.weapon = {}
+function inv.cli.weapon.fn(name, line, wildcards)
+  local priority = wildcards[1] or ""
+  local damTypes = wildcards[2] or ""
+  local endTag = inv.tags.new(line)
+
+  if (not inv.init.initializedActive) then
+    dbot.info("Skipping weapon request: plugin is not yet initialized (are you AFK or sleeping?)")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_UNINITIALIZED)
+  elseif dbot.gmcp.statePreventsActions() then
+    dbot.info("Skipping weapon request: character's state does not allow actions")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_NOT_ACTIVE)
+  end -- if
+
+  if (priority == "next") then
+    inv.weapon.next(endTag)
+  else
+    inv.weapon.use(priority, damTypes, endTag)
+  end -- if
+
+end -- inv.cli.weapon.fn
+
+
+function inv.cli.weapon.usage()
+  dbot.print("@W    " .. pluginNameCmd .. " weapon @G[next | <priority name> <damType list>]@w")
+end -- inv.cli.weapon.usage()
+
+
+function inv.cli.weapon.examples()
+  dbot.print("@W\nUsage:\n")
+  inv.cli.weapon.usage()
+  dbot.print(
+[[@W
+Equipment sets can specify which damage types are allowed on weapons in the set.  However,
+it would be tedious to create multiple priorities to target specific damage types.  The
+"@Cweapon@W" mode provides a simple and convenient way to indicate which damage types you
+want to use (or do *not* want to use) as an extension to an existing priority.  See the
+helpfile at "@Gdinv help priority@W" for details on how to create and use a priority.
+
+The first step is to specify which damage types you want to allow within a particular
+priority by providing a list of specific damage types (e.g., "pierce" or "mental") and/or
+damage type groups (e.g., "all", "physical", or "magic").  The plugin will determine the
+optimal equipment set (including weapons) that matches the damage type requirements and
+then wear the items in that equipment set.
+
+Once the weapon damage types are specified, you may use the "@Gdinv weapon next@W" command
+to rotate through the types.  Each time the "next" command is given the plugin will remove
+one of the available damage types from the originally provided list and generate and wear
+the best possible equipment set that is compatible with the remaining damage types.  The
+plugin's algorithm starts with highest scoring equipment set and then removes the damage
+type of that set's primary weapon to find the next best equipment set.  
+
+In most cases, using the "@Cweapon@W" mode will just swap your weapons (and possibly your
+shield and/or held item if that's your priority's preference).  However, it is possible that
+the optimal equipment set for a particular weapon also involves changing a few other pieces
+of equipment.  Remember that this plugin always looks at an entire set's score to gauge how
+good a set is and the items in the "best" set will vary over time depending on your spellup.
+
+Examples!
+  1) Oh noes!  You are at The Demon's Flight and you need a weapon that does pierce damage.
+     You are using the psi-melee priority (because you are awesome enough to be a psi) and
+     you need to swap weapons -- quick!
+     @Gdinv weapon psi-melee pierce@W
+
+  2) You are pupping at the Earth Lords and run into one of those annoying void warriors
+     that are immune to all magical damage.  Let's tell the plugin to only use weapons with
+     physical damage types.  Because I'm lazy, and "physical" is such a long word *grin*
+     you can also abbreviate it to "phys" in the example below.
+     @Gdinv weapon psi-melee physical@W
+
+  3) Same as the above example, but you are fighting a mob immune to physical damage
+     @Gdinv weapon psi-melee magic@W
+
+  4) You are fighting a mob that seems to be immune to everything.  Let's try to find a
+     weapon that will work for you.
+     @Gdinv weapon psi-melee all@W
+
+     If the first weapon set works, great :)  If not, eliminate the damage type found on
+     your primary weapon, create a set with the remaining damage types, and try again.
+     @Gdinv weapon next@W
+
+     You can keep calling @Gdinv weapon next@W" until you run out of possible weapon set
+     combinations.  At that point, you may want to flee :p
+
+  5) You are a 1337 PK-er and are fighting your arch-enemy clan composed of vampires,
+     eldar, and giants.  You want to target their vulnerabilities so you turn to dinv.
+     @Gdinv weapon psi-melee light slash mental@W
+
+  6) You are fighting a mob that you think is vulnerable to shadow, poison, and all physical
+     damage types.  Ok, that isn't really a realistic scenario but I'm a little too tired to
+     make all these examples realistic tonight...
+     @Gdinv weapon psi-melee phys shadow poison@W
+     @Gdinv weapon next@W
+
+]])
+
+end -- inv.cli.weapon.examples
+
+
 inv.cli.priority = {}
 function inv.cli.priority.fn(name, line, wildcards)
   local command       = Trim(wildcards[1] or "")
@@ -2467,7 +2592,7 @@ function inv.cli.priority.fn(name, line, wildcards)
     inv.priority.delete(priorityName1, endTag)
 
   elseif (command == "clone") then
-    inv.priority.clone(priorityName1, priorityName2, endTag)
+    inv.priority.clone(priorityName1, priorityName2, true, endTag)
 
   elseif (command == "copy") then
     inv.priority.copy(priorityName1, endTag)
@@ -4242,7 +4367,7 @@ Examples:
      "@Gdinv consume add mana nachos@W"
 
   2) Remove "nachos" from the "mana" consumable type table
-     "@Gdinv consume remove mana nachos@W")
+     "@Gdinv consume remove mana nachos@W"
 
   3) Remove the consumable type "mana" and everything that is that type
      "@Gdinv consume remove mana@W"
@@ -7788,7 +7913,7 @@ end -- inv.items.convertSetupFn
 
 
 invDisplayVerbosityBasic       = "basic"      -- default mode
-invDisplayVerbosityId          = "id"
+invDisplayVerbosityId          = "objid"
 invDisplayVerbosityFull        = "full"
 invDisplayVerbosityDiffAdd     = "diffAdd"    -- internal only (shows diff format for replaced items)
 invDisplayVerbosityDiffRemove  = "diffRemove" -- internal only (shows diff format for replaced items)
@@ -10739,7 +10864,7 @@ end -- inv.cache.clearOld
 -- inv.priority.reset()
 --
 -- inv.priority.create(priorityName, endTag)
--- inv.priority.clone(origPriorityName, clonedPriorityName, endTag)
+-- inv.priority.clone(origPriorityName, clonedPriorityName, useVerbose, endTag)
 -- inv.priority.delete(priorityName, endTag) 
 --
 -- inv.priority.list(endTag)
@@ -10760,6 +10885,7 @@ end -- inv.cache.clearOld
 -- inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayColors, doDisplayDesc)
 -- inv.priority.stringToTable(priorityString)
 --
+-- inv.priority.damTypeIsAllowed(damType, priorityName, level)
 -- inv.priority.locIsAllowed(wearableLoc, priorityName, level)
 -- 
 -- inv.priority.addDefault() -- add some default priorities
@@ -10896,7 +11022,7 @@ function inv.priority.create(priorityName, endTag)
 end -- inv.priority.create
 
 
-function inv.priority.clone(origPriorityName, clonedPriorityName, endTag)
+function inv.priority.clone(origPriorityName, clonedPriorityName, useVerbose, endTag)
   local retval
 
   if (clonedPriorityName == nil) or (clonedPriorityName == "") then
@@ -10922,8 +11048,10 @@ function inv.priority.clone(origPriorityName, clonedPriorityName, endTag)
   -- Copy the priority into a new table entry
   inv.priority.table[clonedPriorityName] = dbot.table.getCopy(inv.priority.table[origPriorityName])
 
-  dbot.info("Cloned priority \"@C" .. clonedPriorityName .. "@W\" from priority \"@C" ..
-            origPriorityName .."@W\"")
+  if useVerbose then
+    dbot.info("Cloned priority \"@C" .. clonedPriorityName .. "@W\" from priority \"@C" ..
+              origPriorityName .."@W\"")
+  end -- if
 
   -- Save the table with the new priority.  We're done!  :)
   retval = inv.priority.save()
@@ -11590,6 +11718,44 @@ function inv.priority.stringToTable(priorityString)
 
   return priEntry, retval
 end -- inv.priority.stringToTable
+
+
+-- Priorities can have lines of the form "~pierce 1 0 0 1 1" to indicate that
+-- weapons with the "pierce" damtype should be ignored when creating the priority
+-- equipment sets
+function inv.priority.damTypeIsAllowed(damType, priorityName, level)
+  if (damType == nil) or (damType == "") then
+    dbot.warn("inv.priority.damTypeIsAllowed: Missing damType parameter")
+    return false
+  end -- if
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.priority.damTypeIsAllowed: Missing priority name parameter")
+    return false
+  end -- if
+
+  level = tonumber(level or "")
+  if (level == nil) or (level < 1) or (level > 291) then
+    dbot.warn("inv.priority.damTypeIsAllowed: Invalid level parameter")
+    return false
+  end -- if
+
+  -- Check if the specified priority exists for the specified level
+  local priorityTable, retval = inv.priority.get(priorityName, level)
+  if (priorityTable == nil) then
+    dbot.warn("inv.priority.damTypeIsAllowed: Priority \"" .. priorityName ..
+              "\" does not have a priority table " .. "for level " .. level)
+    return false
+  end -- if
+
+  local value = tonumber(priorityTable["~" .. (string.lower(damType) or "")] or "") or 0
+  if (value == 0) then
+    return true
+  else
+    return false
+  end -- if  
+
+end -- inv.priority.damTypeIsAllowed
 
 
 -- Priorities can have lines of the form "~hold 1 0 0 1 1" to indicate that the
@@ -12294,41 +12460,41 @@ function inv.priority.addDefault()
   ------------------------
   -- This prioritizes defensive aspects of an equipment set
   local psiDefensePriority = {
-                       str          = 0.6,  
-                       int          = 1.0,
-                       wis          = 1.0,
-                       dex          = 0.8, 
-                       con          = 0.8,  
-                       luck         = 1.0, 
-                       dam          = 0.5,
-                       hit          = 0.5,
+                               str          = 0.6,  
+                               int          = 1.0,
+                               wis          = 1.0,
+                               dex          = 0.8, 
+                               con          = 0.8,  
+                               luck         = 1.0, 
+                               dam          = 0.5,
+                               hit          = 0.5,
 
-                       avedam       = 1.0,
-                       offhandDam   = 0.0, 
+                               avedam       = 1.0,
+                               offhandDam   = 0.0, 
 
-                       hp           = 0.02,
-                       mana         = 0.01,
+                               hp           = 0.02,
+                               mana         = 0.01,
 
-                       sanctuary    = 10,
-                       haste        = 0,
-                       flying       = 0,
-                       invis        = 1,
-                       regeneration = 5, 
-                       detectinvis  = 0,
-                       detecthidden = 0,
-                       detectevil   = 0,
-                       detectgood   = 0,
-                       dualwield    = 0,
-                       irongrip     = 50,
-                       shield       = 50,
+                               sanctuary    = 10,
+                               haste        = 0,
+                               flying       = 0,
+                               invis        = 1,
+                               regeneration = 5, 
+                               detectinvis  = 0,
+                               detecthidden = 0,
+                               detectevil   = 0,
+                               detectgood   = 0,
+                               dualwield    = 0,
+                               irongrip     = 50,
+                               shield       = 50,
 
-                       maxint       = 40,
-                       maxwis       = 40,
-                       maxluck      = 20,
+                               maxint       = 40,
+                               maxwis       = 40,
+                               maxluck      = 20,
 
-                       allmagic     = 0.05,
-                       allphys      = 0.10
-                   }
+                               allmagic     = 0.05,
+                               allphys      = 0.10
+                             }
   psiDefensePriority["~second"] = 1 -- Minor hack since the "~" messes up table keys
   retval = inv.priority.add(
     "psi-defense", 
@@ -12459,7 +12625,8 @@ inv.priority.fieldTable = {
   { "sonic"       , "Value of 1 point of sonic magical resistance" },
   { "water"       , "Value of 1 point of water magical resistance" },
 
-  { "~light"      , "Set to 1 to disable the light location" },
+-- Note: We use "~light" to ignore the light damType not to ignore the light wearable location
+--  { "~light"      , "Set to 1 to disable the light location" },
   { "~head"       , "Set to 1 to disable the head location" },
   { "~eyes"       , "Set to 1 to disable the eyes location" },
   { "~lear"       , "Set to 1 to disable the left ear location" },
@@ -12489,7 +12656,30 @@ inv.priority.fieldTable = {
   { "~float"      , "Set to 1 to disable the float location" },
   { "~above"      , "Set to 1 to disable the above location" },
   { "~portal"     , "Set to 1 to disable the portal location" },
-  { "~sleeping"   , "Set to 1 to disable the sleeping location" }
+  { "~sleeping"   , "Set to 1 to disable the sleeping location" },
+
+  { "~bash"       , "Set to 1 to disable weapons with damtype bash" },
+  { "~pierce"     , "Set to 1 to disable weapons with damtype pierce" },
+  { "~slash"      , "Set to 1 to disable weapons with damtype slash" },
+
+  { "~acid"       , "Set to 1 to disable weapons with damtype acid" },
+  { "~air"        , "Set to 1 to disable weapons with damtype air" },
+  { "~cold"       , "Set to 1 to disable weapons with damtype cold" },
+  { "~disease"    , "Set to 1 to disable weapons with damtype disease" },
+  { "~earth"      , "Set to 1 to disable weapons with damtype earth" },
+  { "~electric"   , "Set to 1 to disable weapons with damtype electric" },
+  { "~energy"     , "Set to 1 to disable weapons with damtype energy" },
+  { "~fire"       , "Set to 1 to disable weapons with damtype fire" },
+  { "~holy"       , "Set to 1 to disable weapons with damtype holy" },
+  { "~light"      , "Set to 1 to disable weapons with damtype light" },
+  { "~magic"      , "Set to 1 to disable weapons with damtype magic" },
+  { "~mental"     , "Set to 1 to disable weapons with damtype mental" },
+  { "~negative"   , "Set to 1 to disable weapons with damtype negative" },
+  { "~poison"     , "Set to 1 to disable weapons with damtype poison" },
+  { "~shadow"     , "Set to 1 to disable weapons with damtype shadow" },
+  { "~sonic"      , "Set to 1 to disable weapons with damtype sonic" },
+  { "~water"      , "Set to 1 to disable weapons with damtype water" }
+
 }
 
 
@@ -13117,6 +13307,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objLevel      = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
+    local objDamType    = inv.items.getStatField(objId, invStatFieldDamType) or ""
 
     -- Strip out commas in the flags to make searching easier
     local objFlags = inv.items.getStatField(objId, invStatFieldFlags) or ""
@@ -13138,6 +13329,11 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
          (dbot.isWordInString("anti-evil",    objFlags) and isEvil)    then
         dbot.debug("Skipping item: align=" .. (dbot.gmcp.getAlign() or "nil") ..
                    ", flags=\"" .. (objFlags or "nil") .. "\"")
+
+      -- Check if the item is a weapon with a disallowed damage type
+      elseif (objDamType ~= nil) and (objDamType ~= "") and
+             (not inv.priority.damTypeIsAllowed(objDamType, priorityName, level)) then
+        -- Skip the current object because it is a weapon with a damtype we don't want
 
       -- The alignment is acceptable.  Check the other requirements...
       elseif (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
@@ -14270,6 +14466,114 @@ function inv.set.covetCR()
   inv.set.covetPkg = nil
   return inv.tags.stop(invTagsCovet, endTag, retval)
 end -- inv.set.covetCR
+
+
+----------------------------------------------------------------------------------------------------
+--
+-- Module to manage weapon-only equipment sets
+--
+-- dinv weapon [next | <priority> <damType list>]
+--
+-- inv.weapon.use(priorityName, damTypes, endTag)
+-- inv.weapon.next(endTag)
+--
+----------------------------------------------------------------------------------------------------
+
+inv.weapon = {}
+inv.weapon.priorityName = "weaponSet"
+
+function inv.weapon.use(priorityName, damTypes, endTag)
+  local retval = DRL_RET_SUCCESS
+  local weaponPriority = {}
+
+  if (priorityName == nil) or (priorityName == "") then
+    dbot.warn("inv.weapon.use: Missing priority name")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (damTypes == nil) or (damTypes == "") then
+    dbot.warn("inv.weapon.use: Missing list of requested damage types")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  -- Remove any previous (and stale) weapon priority
+  if (inv.priority.table[inv.weapon.priorityName] ~= nil) then
+    retval = inv.priority.remove(inv.weapon.priorityName)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.weapon.use: Failed to remove weapon priority: " .. dbot.retval.getString(retval))
+      return inv.tags.stop(invTagsSet, endTag, retval)
+    end -- if
+  end -- if
+
+  -- Clone the specified priority so that we can tweak the clone and add damage type preferences
+  retval = inv.priority.clone(priorityName, inv.weapon.priorityName, false, nil)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.weapon.use: Failed to clone priority \"" .. priorityName .. "\": " ..
+              dbot.retval.getString(retval))
+    return inv.tags.stop(invTagsSet, endTag, retval)
+  end -- if
+
+  local damTypesToUse = string.lower(damTypes)
+  local allDamTypes = dbot.arrayConcat(dbot.physicalTypes, dbot.magicalTypes)
+
+  -- For each priority block in the priority, specify if each possible damage type is allowed
+  for _, priBlock in ipairs(inv.priority.table[inv.weapon.priorityName] or {}) do
+    for _, damType in ipairs(allDamTypes) do
+      if dbot.isWordInString(damType, damTypesToUse)                                    or
+         dbot.isWordInString("all", damTypesToUse)                                      or
+         (dbot.isWordInString("phys", damTypesToUse) and dbot.isPhysical(damType))      or
+         (dbot.isWordInString("magic", damTypesToUse) and dbot.isMagical(damType))      or
+         (dbot.isWordInString("physical", damTypesToUse) and dbot.isPhysical(damType))  or
+         (dbot.isWordInString("magical", damTypesToUse) and dbot.isMagical(damType))    then
+        priBlock.priorities["~" .. damType] = 0
+      else
+        priBlock.priorities["~" .. damType] = 1
+      end -- if
+    end -- for
+  end -- for
+
+  -- Wear the set that matches the weapon priority
+  return inv.set.createAndWear(inv.weapon.priorityName, dbot.gmcp.getLevel(),
+                               inv.set.createIntensity, endTag)
+end -- inv.weapon.use
+
+
+function inv.weapon.next(endTag)
+  local retval
+  local level = dbot.gmcp.getLevel()
+
+  -- Check if the weapon priority exists and has an associated weapon set
+  if (inv.priority.table[inv.weapon.priorityName] == nil)   or
+     (inv.set.table[inv.weapon.priorityName] == nil)        or
+     (inv.set.table[inv.weapon.priorityName][level] == nil) then
+    dbot.info("Skipped weapon request: Use \"@Gdinv weapon <priority> <damage types>@W\" to specify types")
+    return DRL_RET_UNINITIALIZED
+  end -- if
+
+  local wielded = inv.set.table[inv.weapon.priorityName][level].wielded
+  local second  = inv.set.table[inv.weapon.priorityName][level].second
+  local currentDamType = ""
+
+  if (wielded ~= nil) then
+    currentDamType = inv.items.getStatField(wielded.id, invStatFieldDamType)
+  elseif (second ~= nil) then
+    currentDamType = inv.items.getStatField(second.id, invStatFieldDamType)
+  else
+    dbot.info("Skipping next weapon request: No allowable weapon sets remain")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_MISSING_ENTRY)
+  end -- if
+
+  dbot.debug("inv.weapon.next: Current dam type is: \"" .. currentDamType .. "\"")
+
+  -- Remove the current primary dam type for each priority block in the weapon set priority
+  for _, priBlock in ipairs(inv.priority.table[inv.weapon.priorityName] or {}) do
+    priBlock.priorities["~" .. string.lower(currentDamType)] = 1
+  end -- for
+
+  -- Wear the set that matches the updated weapon priority
+  return inv.set.createAndWear(inv.weapon.priorityName, level, inv.set.createIntensity, endTag)
+
+end -- inv.weapon.next
 
 
 ----------------------------------------------------------------------------------------------------
@@ -17337,6 +17641,61 @@ function dbot.mergeFields(field1, field2)
   return mergedField
 end -- dbot.mergeFields
     
+
+----------------------------------------------------------------------------------------------------
+-- dbot.arrayConcat: Returns an array generated by concatenating the two input arrays
+--
+-- For example: concatenating { "a", "b", "c" } and { "d", "e" } yields { "a", "b", "c", "d", "e" }
+----------------------------------------------------------------------------------------------------
+function dbot.arrayConcat(array1, array2)
+  local mergedArray = {}
+
+  for _, entry in ipairs(array1) do
+    table.insert(mergedArray, entry)
+  end -- for
+
+  for _, entry in ipairs(array2) do
+    table.insert(mergedArray, entry)
+  end -- for
+
+  return mergedArray
+end -- dbot.arrayConcat
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.isPhysical and dbot.isMagical return booleans indicating if the input parameter string is
+-- one of the known physical or magical damage types
+----------------------------------------------------------------------------------------------------
+--FIXME: use these throughout the plugin --v
+dbot.physicalTypes = { invStatFieldBash,    invStatFieldPierce,   invStatFieldSlash }
+dbot.magicalTypes =  { invStatFieldAcid,    invStatFieldCold,     invStatFieldEnergy,
+                       invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative, 
+                       invStatFieldShadow,  invStatFieldMagic,    invStatFieldAir,
+                       invStatFieldEarth,   invStatFieldFire,     invStatFieldLight, 
+                       invStatFieldMental,  invStatFieldSonic,    invStatFieldWater,
+                       invStatFieldDisease, invStatFieldPoison }
+
+function dbot.isPhysical(damType)
+  for _, physType in ipairs(dbot.physicalTypes) do
+    if (physType == damType) then
+      return true
+    end -- if
+  end -- for
+
+  return false
+end -- dbot.isPhysical
+
+
+function dbot.isMagical(damType)
+  for _, magType in ipairs(dbot.magicalTypes) do
+    if (magType == damType) then
+      return true
+    end -- if
+  end -- for
+
+  return false
+end -- dbot.isMagical
+
 
 ----------------------------------------------------------------------------------------------------
 -- dbot.deleteTrigger: Wrapper around DeleteTrigger that checks the mush error codes

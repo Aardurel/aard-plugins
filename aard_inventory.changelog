@@ -2,6 +2,24 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0019] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added "dinv weapon ..." mode that supports swapping weapons with specific damage types]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed bug that allowed heroonly items in non-hero equipment sets]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed conflict between searching in "id" mode and using an "id" query.  The search
+           mode that shows object IDs is now named "objid" to differentiate it from a query
+           searching for a specific ID.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Updated built-in priorities]]
+  }
+}
+
 dbot.changelog[2.0018] =
 {
   { change = drlDbotChangeLogTypeFix,
