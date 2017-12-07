@@ -2,6 +2,15 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0020] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug that prevented the "dinv portal ..." mode re-equip a dualed weapon if
+	   the character doesn't have the portal wish]]
+  }
+}
+
+
 dbot.changelog[2.0019] =
 {
   { change = drlDbotChangeLogTypeNew,

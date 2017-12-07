@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0019"
+   version="2.0020"
    >
 <description trim="y">
 <![CDATA[
@@ -4139,9 +4139,9 @@ syntax to automatically get a portal, hold it, enter it, restore anything at the
 portal's location, and then put the portal back from whence it came:
 "@Gdinv portal use [portal ID]@W".
 
-You can get a portal's unique ID by searching with the "id" query mode.  See the
+You can get a portal's unique ID by searching with the "objid" query mode.  See the
 "@Gdinv help search@W" helpfile for details.  As an example, you could see the IDs
-of all of your portals by typing "@Gdinv search id type portal@W".
+of all of your portals by typing "@Gdinv search objid type portal@W".
 
 The plugin's portal mode is particularly convenient when used in conjuction with the
 mapper's portal mode.  
@@ -17123,10 +17123,11 @@ function inv.portal.use(portalId)
   for objId, objInfo in pairs(inv.items.table) do
     local currentLoc = inv.items.getField(objId, invFieldObjLoc) or ""
 
-    -- Check if we are holding a portal in either the "held" slot or the "portal" slot.  If we
-    -- have the portal wish, we have the portal slot; otherwise portals are in the held slot.
-    if ((currentLoc == inv.wearLoc[invWearableLocPortal]) and (portalWish == true)) or
-       ((currentLoc == inv.wearLoc[invWearableLocHeld])   and (portalWish == false)) then
+    -- If we have the portal wish, check if something is already at the portal location.  Similarly,
+    -- if we do not have the portal wish, check if something is at the held or second locations.
+    if ((currentLoc == inv.wearLoc[invWearableLocPortal]) and (portalWish == true))  or
+       ((currentLoc == inv.wearLoc[invWearableLocHeld])   and (portalWish == false)) or
+       ((currentLoc == inv.wearLoc[invWearableLocSecond]) and (portalWish == false)) then
       origLoc = currentLoc
       origId = objId
       break
