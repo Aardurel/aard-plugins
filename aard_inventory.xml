@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0020"
+   version="2.0021"
    >
 <description trim="y">
 <![CDATA[
@@ -17126,7 +17126,7 @@ function inv.portal.use(portalId)
     -- If we have the portal wish, check if something is already at the portal location.  Similarly,
     -- if we do not have the portal wish, check if something is at the held or second locations.
     if ((currentLoc == inv.wearLoc[invWearableLocPortal]) and (portalWish == true))  or
-       ((currentLoc == inv.wearLoc[invWearableLocHeld])   and (portalWish == false)) or
+       ((currentLoc == inv.wearLoc[invWearableLocHold])   and (portalWish == false)) or
        ((currentLoc == inv.wearLoc[invWearableLocSecond]) and (portalWish == false)) then
       origLoc = currentLoc
       origId = objId

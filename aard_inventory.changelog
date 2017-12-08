@@ -2,6 +2,15 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0021] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed another bug in the "dinv portal use" code that mistakenly looked for the
+	   "held" location instead of the "hold" location.  Many thanks to Daak for finding
+	   this and submitting the fix!]]
+  }
+}
+
 dbot.changelog[2.0020] =
 {
   { change = drlDbotChangeLogTypeFix,
@@ -9,7 +18,6 @@ dbot.changelog[2.0020] =
 	   the character doesn't have the portal wish]]
   }
 }
-
 
 dbot.changelog[2.0019] =
 {
