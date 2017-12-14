@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0022"
+   version="2.0023"
    >
 <description trim="y">
 <![CDATA[
@@ -20643,7 +20643,7 @@ function dbot.execute.queue.fence()
   -- Spin until we have confirmation that the mud received the fence message or until we detect
   -- that we are in a state that will prevent the message from completing
   totTime = 0
-  timeout = 20 -- wait a while since we there might be a lot of stuff queued up on the server
+  timeout = 60 -- wait a while since we there might be a lot of stuff queued up on the server
   while (dbot.execute.fenceIsDetected == false) do
     local charState = dbot.gmcp.getState()
 
@@ -20766,7 +20766,7 @@ function dbot.execute.queue.dequeueCR()
 
       elseif dbot.execute.noteIsPending then
         dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
-                  "@W\": a request start a note is pending on the mud server")
+                  "@W\": a request to start a note is pending on the mud server")
         retval = DRL_RET_NOT_ACTIVE
 
       else
