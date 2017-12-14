@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0021"
+   version="2.0022"
    >
 <description trim="y">
 <![CDATA[
@@ -867,9 +867,10 @@ function setPending(msg)
 
     -- Add a trigger to clear the noteIsPending flag once the note starts
     AddTriggerEx("drlNoteWriteConfirmationTrigger",
-                 "^("                                                   ..
-                    "You are now creating a new post in the .* forum.|" ..
-                    "You cannot post notes in this forum."              ..
+                 "^("                                                     ..
+                    "You are now creating a new post in the .* forum.|"   ..
+                    "You are now continuing a new post in the .* forum.|" ..
+                    "You cannot post notes in this forum."                ..
                  ")$",
                  "dbot.execute.noteIsPending = false", 
                  drlTriggerFlagsBaseline + trigger_flag.OneShot,
@@ -13578,7 +13579,13 @@ function inv.set.displaySet(setName, level, equipSet)
       local score = equipSet[v].score
       local objId = equipSet[v].id
 
-      dbot.print("@Y  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
+      -- Highlight items that are currently worn
+      local locColor = "@y"
+      if inv.items.isWorn(objId) then
+        locColor = "@Y"
+      end -- if
+
+      dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
                  "): @GLevel " .. 
                  string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel or "Unknown")) ..
                  "@W \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. "\"")
@@ -17117,14 +17124,14 @@ function inv.portal.use(portalId)
   end -- if
 
   -- If we have the portal wish, the new portal will go into the "portal" slot.  If we do not
-  -- have the portal wish, we will use the "held" slot.  This checks if anything is already at
-  -- the target location.  If something is there, remember what it is so that we can put it
-  -- back when we are done.
+  -- have the portal wish, we will use the "hold" or "second" slot.  This checks if anything is
+  -- already at the target location.  If something is there, remember what it is so that we can
+  -- put it back when we are done.
   for objId, objInfo in pairs(inv.items.table) do
     local currentLoc = inv.items.getField(objId, invFieldObjLoc) or ""
 
     -- If we have the portal wish, check if something is already at the portal location.  Similarly,
-    -- if we do not have the portal wish, check if something is at the held or second locations.
+    -- if we do not have the portal wish, check if something is at the hold or second locations.
     if ((currentLoc == inv.wearLoc[invWearableLocPortal]) and (portalWish == true))  or
        ((currentLoc == inv.wearLoc[invWearableLocHold])   and (portalWish == false)) or
        ((currentLoc == inv.wearLoc[invWearableLocSecond]) and (portalWish == false)) then
