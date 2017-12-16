@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0023"
+   version="2.0024"
    >
 <description trim="y">
 <![CDATA[
@@ -4844,7 +4844,10 @@ function inv.items.init.atInstall()
 
   -- Trigger on one of the detail/stat lines of an item's id report (lore, identify, bid, etc.)
   check (AddTriggerEx(inv.items.trigger.itemIdStatsName,
-                      "^(\\| .*\\|| A full appraisal will reveal further information on this item.)$",
+                      "^(" ..
+                         "\\| .*\\||" ..
+                         ".*A full appraisal will reveal further information on this item.|" ..
+                      ")$",
                       "inv.items.trigger.itemIdStats(\"%1\")",
                       drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -4878,15 +4881,17 @@ function inv.items.init.atInstall()
   -- Trigger on an identify command to capture the item's object ID
   check (AddTriggerEx(inv.items.trigger.idItemName,
                       "^(" .. 
-                         ".------.*|"                                  ..
-                         "\\|.*|"                                      ..
-                         "You do not have that item.*|"                ..
-                         "You dream about being able to identify.*|"   ..
-                         ".*does not have that item for sale.*|"       ..
-                         "There is no auction item with that id.*|"    ..
-                         ".*currently holds no inventory.*|"           ..
-                         "There is no marketplace item with that id.*" ..
-                      "|)$", -- accept an empty capture on the last line
+                         ".------.*|"                                   ..
+                         "\\|.*|"                                       ..
+                         "You do not have that item.*|"                 ..
+                         "You dream about being able to identify.*|"    ..
+                         ".*does not have that item for sale.*|"        ..
+                         "There is no auction item with that id.*|"     ..
+                         ".*currently holds no inventory.*|"            ..
+                         "There is no marketplace item with that id.*|" ..
+                         inv.items.identifyFence                        ..
+                      "|)$", -- accept an empty capture on the last line if there is one there
+
                       "inv.items.trigger.idItem(\"%1\")",
                       drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -5615,7 +5620,7 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
         else
           numItemsIdentified = numItemsIdentified + 1        
           dbot.note("Identify (" .. numItemsIdentified .. " / " .. numItemsToIdentify ..
-                    ") \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE .. 
+                    "): \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE .. 
                     "\" (" .. objId .. ") from frequent cache")
         end -- if
       end -- if
@@ -5718,6 +5723,7 @@ end -- inv.items.identifyCR
 
 
 idCommandBasic = "identify"
+inv.items.identifyFence = "DINV identify fence"
 -- Asynchronous routine to identify an item
 function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
   local retval = DRL_RET_SUCCESS
@@ -5754,6 +5760,8 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
   inv.items.identifyPkg.objLoc  = objLoc
   inv.items.identifyPkg.command = idCommand
 
+  local tmpCommands = {}
+
   if (commandArray == nil) then
     -- Add a timeout timer to clear the identify request if we take too long.  For example,
     -- we may have tried to identify an item that isn't in our inventory table or we may have
@@ -5772,8 +5780,10 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
     if (commandArray ~= nil) then
       table.insert(commandArray, command)
     else
-      retval = dbot.execute.safe.command(command, inv.items.identifyItemSetupFn, nil,
-                                         dbot.callback.default, resultData)
+      table.insert(tmpCommands, command)
+      table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+      retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                          dbot.callback.default, resultData)
       if (retval == DRL_RET_SUCCESS) then
         retval = dbot.callback.wait(resultData, 10)
         if (retval ~= DRL_RET_SUCCESS) then
@@ -5790,8 +5800,10 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
       if (commandArray ~= nil) then
         table.insert(commandArray, command)
       else
-        retval = dbot.execute.safe.command(command, inv.items.identifyItemSetupFn, nil,
-                                           dbot.callback.default, resultData)
+        table.insert(tmpCommands, command)
+        table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+        retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                            dbot.callback.default, resultData)
         if (retval == DRL_RET_SUCCESS) then
           retval = dbot.callback.wait(resultData, 10)
           if (retval ~= DRL_RET_SUCCESS) then
@@ -5831,12 +5843,14 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
 
   -- Auction (we may temporarily add an auction item to examine it)
   elseif (objLoc == invItemLocAuction) then
-    command = idCommand .. " " .. objId
+    command = idCommand .. " " .. objId 
     if (commandArray ~= nil) then
       table.insert(commandArray, command)
     else
-      retval = dbot.execute.safe.command(command, inv.items.identifyItemSetupFn, nil,
-                                         dbot.callback.default, resultData)
+      table.insert(tmpCommands, command)
+      table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+      retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                          dbot.callback.default, resultData)
       if (retval == DRL_RET_SUCCESS) then
         retval = dbot.callback.wait(resultData, 10)
         if (retval ~= DRL_RET_SUCCESS) then
@@ -5850,8 +5864,10 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
     if (commandArray ~= nil) then
       table.insert(commandArray, idCommand)
     else
-      retval = dbot.execute.safe.command(idCommand, inv.items.identifyItemSetupFn, nil,
-                                         dbot.callback.default, resultData)
+      table.insert(tmpCommands, idCommand)
+      table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+      retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                          dbot.callback.default, resultData)
       if (retval == DRL_RET_SUCCESS) then
         retval = dbot.callback.wait(resultData, 10)
         if (retval ~= DRL_RET_SUCCESS) then
@@ -5871,8 +5887,10 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
         if (commandArray ~= nil) then
           table.insert(commandArray, command)
         else
-          retval = dbot.execute.safe.command(command, inv.items.identifyItemSetupFn, nil,
-                                             dbot.callback.default, resultData)
+          table.insert(tmpCommands, command)
+          table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+          retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                              dbot.callback.default, resultData)
           if (retval == DRL_RET_SUCCESS) then
             retval = dbot.callback.wait(resultData, 10)
             if (retval ~= DRL_RET_SUCCESS) then
@@ -5894,8 +5912,10 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
         if (commandArray ~= nil) then
           table.insert(commandArray, command)
         else
-          retval = dbot.execute.safe.command(command, inv.items.identifyItemSetupFn, nil,
-                                             dbot.callback.default, resultData)
+          table.insert(tmpCommands, command)
+          table.insert(tmpCommands, "echo " .. inv.items.identifyFence)
+          retval = dbot.execute.safe.commands(tmpCommands, inv.items.identifyItemSetupFn, nil,
+                                              dbot.callback.default, resultData)
           if (retval == DRL_RET_SUCCESS) then
             retval = dbot.callback.wait(resultData, 10)
             if (retval ~= DRL_RET_SUCCESS) then
@@ -5918,6 +5938,8 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
     if (retval ~= DRL_RET_SUCCESS) then
       inv.items.trigger.itemIdEnd()
     end -- if
+  else
+    table.insert(commandArray, "echo " .. inv.items.identifyFence)
   end -- if
 
   return retval
@@ -7874,8 +7896,12 @@ function inv.items.convertRelative(relativeName, value)
   inv.lastIdentifiedObjectId = nil
 
   local resultData = dbot.callback.new()
-  retval = dbot.execute.safe.command("identify " .. value, inv.items.convertSetupFn, nil,
-                                     dbot.callback.default, resultData)
+
+  local commandArray = {}
+  table.insert(commandArray, "identify " .. value)
+  table.insert(commandArray, "echo " .. inv.items.identifyFence)
+  retval = dbot.execute.safe.commands(commandArray, inv.items.convertSetupFn, nil,
+                                      dbot.callback.default, resultData) 
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.items.convertRelative: Failed to submit safe identification call: " ..
               dbot.retval.getString(retval))
@@ -8833,7 +8859,7 @@ function inv.items.trigger.itemIdStart(line)
 
   -- Watch for the end of the item description so that we can stop scanning
   AddTriggerEx(inv.items.trigger.itemIdEndName,
-               "^$",
+               inv.items.identifyFence,
                "inv.items.trigger.itemIdEnd()",
                drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput + trigger_flag.OneShot,
                custom_colour.Custom11,
@@ -9436,8 +9462,8 @@ end -- inv.items.trigger.itemIdEnd
 
 
 inv.items.trigger.idItemName = "drlInvItemsTriggerIdItem"
-inv.items.trigger.lastLineHyphens = false
 function inv.items.trigger.idItem(line)
+
   local _, _, id = string.find(line, "Id%s+:%s+(%d+)%s+")
   if (id ~= nil) then
     inv.lastIdentifiedObjectId = id
@@ -9446,15 +9472,8 @@ function inv.items.trigger.idItem(line)
   if (line == "You do not have that item.") then
     dbot.debug("You do not have the relative item.")
     inv.lastIdentifiedObjectId = 0
-  elseif (inv.items.trigger.lastLineHyphens == true) and ((line == nil) or (line == "")) then
+  elseif (line == inv.items.identifyFence) then
     EnableTrigger(inv.items.trigger.idItemName, false)
-    dbot.debug("Disabling ID trigger on line=\"" .. line .. "\"")
-  end -- if
-
-  if (string.find(line, "^[+][-]+[+]")) then
-    inv.items.trigger.lastLineHyphens = true
-  else
-    inv.items.trigger.lastLineHyphens = false
   end -- if
 
 end -- inv.items.trigger.idItem
@@ -9659,6 +9678,17 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
   if (action == nil) or (objId == nil) or (containerId == nil) or (wearLoc == nil) then
     dbot.debug("Detected malformed invmon trigger: parameters are not numbers")
     return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (inv.items.getEntry(objId) == nil) or
+     (containerId ~= -1) and (inv.items.getEntry(containerId) == nil) then
+    dbot.debug("Skipping invmon for unknown item and/or container")
+    return DRL_RET_MISSING_ENTRY
+  end -- if
+
+  if (not inv.config.table.isBuildExecuted) then
+    dbot.debug("Skipping invmon, build is not complete yet")
+    return DRL_RET_UNINITIALIZED
   end -- if
 
   -- Get the action
@@ -12172,33 +12202,6 @@ function inv.priority.addDefault()
               dbot.retval.getString(retval))
   end -- if
 
---[[FIXME: we probably shouldn't bundle this one
-  retval = inv.priority.add(
-    "cleric-tank", 
-    { 
-      { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.2,  
-                       int        = 1.2,
-                       wis        = 1.5,
-                       dex        = 1.3, 
-                       con        = 1.5,  
-                       luck       = 1.3,  
-                       hit        = 0.5,  
-                       dam        = 0.5,
-                       avedam     = 0.4,
-                       offhandDam = 0.4,
-                     }
-      }
-    })
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.addDefault: Failed to add priority \"cleric-tank\": " ..
-              dbot.retval.getString(retval))
-  end -- if
---]]
-
   ----------------------
   -- Priority: psi-melee
   ----------------------
@@ -14362,7 +14365,7 @@ function inv.set.covetCR()
 
   -- Attempt to identify the auction item and wait until we have confirmation that the ID completed
   local resultData = dbot.callback.new()
-  retval = inv.items.identifyItem(objId, auctionCmd, resultData)
+  retval = inv.items.identifyItem(objId, auctionCmd, resultData) 
   if (retval == DRL_RET_SUCCESS) then
     retval = dbot.callback.wait(resultData, inv.items.timer.idTimeoutThresholdSec)
     if (retval ~= DRL_RET_SUCCESS) then
@@ -19805,8 +19808,12 @@ function dbot.ability.isAvailable(ability, level)
 
     -- Kick off the command that will trigger the level availability info
     local resultData = dbot.callback.new()
-    retval = dbot.execute.safe.command("showskill " .. ability, dbot.ability.setupFn, nil,
-                                       dbot.callback.default, resultData)
+
+    local commandArray = {}
+    table.insert(commandArray, "showskill " .. ability)
+    table.insert(commandArray, "echo " .. dbot.ability.trigger.levelMsg)
+    retval = dbot.execute.safe.commands(commandArray, dbot.ability.setupFn, nil,
+                                        dbot.callback.default, resultData)
     if (retval == DRL_RET_SUCCESS) then
       -- Wait for the callback to confirm that the showskill safe command completed
       retval = dbot.callback.wait(resultData, 10)
@@ -19868,17 +19875,18 @@ function drlHaveAbilityStartTriggerFn(line)
   end -- if
 
   -- Enable a trigger to watch for the output of the ability availability output.  The trigger
-  -- will disable itself when it sees an empty line that indicates the output is done.
+  -- will disable itself when it sees a fence message that indicates the output is done.
   EnableTrigger(dbot.ability.trigger.levelName, true)
 end -- drlHaveAbilityStartTriggerFn
 
 
+dbot.ability.trigger.levelMsg = "DINV showskill fence"
 function dbot.ability.trigger.levelFn(line)
   local useLevel
   _, _, useLevel = string.find(line, "Your Level%s+:%s+(%d+)")
 
-  -- If we hit an empty line, we know that the output is done and we can disable this trigger
-  if (line == "") then
+  -- If we our fence echo message, we know that the output is done and we can disable this trigger
+  if (line == dbot.ability.trigger.levelMsg) then
     EnableTrigger(dbot.ability.trigger.levelName, false)
 
   -- If we can't use the skill, set the useLevel out of reach
@@ -19887,7 +19895,7 @@ function dbot.ability.trigger.levelFn(line)
 
   -- Check if we found our level in a line like: "Your Level   : 22                    Learned:  95% "
   elseif (useLevel ~= nil) and (tonumber(useLevel) ~= nil) then
-    dbot.abilityPkg.useLevel = tonumber(useLevel)
+    dbot.abilityPkg.useLevel = tonumber(useLevel) or 300
   
   end -- if
 end -- dbot.ability.trigger.levelFn
@@ -19952,7 +19960,7 @@ function dbot.wish.init.atActive()
     dbot.warn("dbot.wish.init.atActive: Failed to load wish data: " .. dbot.retval.getString(retval))
   end -- if
 
-  -- Trigger on the output of "wish list" and watch for an empty line indicating that we are done
+  -- Trigger on the output of "wish list" and watch for a fence message to tell us we are done
   check (AddTriggerEx(dbot.wish.trigger.itemName,
                       "^(.*)$",
                       "dbot.wish.trigger.fn(\"%1\")",
@@ -20053,6 +20061,7 @@ function dbot.wish.get()
 end -- dbot.wish.get
 
 
+dbot.wish.fenceMsg = "DINV wish list fence"
 function dbot.wish.getCR()
   local retval = DRL_RET_SUCCESS
   local charState = dbot.gmcp.getState()
@@ -20076,9 +20085,11 @@ function dbot.wish.getCR()
 
     if (pageLines == 0) then
       table.insert(commandArray, "wish list")
+      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg) 
     else
       table.insert(commandArray, "pagesize 0")
       table.insert(commandArray, "wish list")
+      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg) 
       table.insert(commandArray, "pagesize " .. pageLines)
     end -- if
 
@@ -20137,7 +20148,8 @@ end -- dbot.wish.getCR
 function dbot.wish.trigger.fn(line)
   local wishName = string.match(line, ".*[-][-] ([^ -]+)[ ]*$")
 
-  if (line == nil) or (line == "") then
+  -- We send a fence after checking with wishes to confirm that the wishes are done
+  if (line == dbot.wish.fenceMsg) then
     EnableTrigger(dbot.wish.trigger.itemName, false)
     dbot.wish.inProgress = false
   end -- if
@@ -20216,7 +20228,7 @@ dbot.pagesize.trigger.suppressName = "drlDbotPageSizeSuppressTrigger"
 function dbot.pagesize.init.atActive()
   local retval = DRL_RET_SUCCESS
 
-  -- Trigger on the output of "pagesize" and watch for an empty line indicating that we are done
+  -- Trigger on the output of "pagesize"
   check (AddTriggerEx(dbot.pagesize.trigger.getName,
                       "^("                                              ..
                         "|You currently display [0-9]+ lines per page." ..
@@ -20643,7 +20655,7 @@ function dbot.execute.queue.fence()
   -- Spin until we have confirmation that the mud received the fence message or until we detect
   -- that we are in a state that will prevent the message from completing
   totTime = 0
-  timeout = 60 -- wait a while since we there might be a lot of stuff queued up on the server
+  timeout = 30 -- wait a while since we there might be a lot of stuff queued up on the server
   while (dbot.execute.fenceIsDetected == false) do
     local charState = dbot.gmcp.getState()
 

@@ -2,6 +2,19 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0024] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed triggers that did not handle when the mud was in compact mode.  This could
+           result in timeouts because triggers that depended on hitting an empty line would
+           not match the compacted output.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed case where a user accessed containers before a build was complete.  The
+           previous code could assert errors if invmon tried to access unidentified items.]]
+  }
+}
+
 dbot.changelog[2.0023] =
 {
   { change = drlDbotChangeLogTypeMisc,
