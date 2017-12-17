@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0024"
+   version="2.0025"
    >
 <description trim="y">
 <![CDATA[
@@ -4310,31 +4310,34 @@ as "@Cmana@W" and "@Cheal@W" include multiple instances for different levels.  T
 become important later on in this walk-through.
 "@Gdinv consume display@W"
 
-@WDINV Consumable Type "move"
-@W  Level  90 (@CRoom 23160@W) "@Gmoonshine@W"
-@WDINV Consumable Type "mana"
-@W  Level   1 (@CRoom 32476@W) "@Glotus rush@W"
-@W  Level  20 (@CRoom 30525@W) "@Gnachos@W"
-@W  Level  30 (@CRoom 14141@W) "@Glotus seed@W"
-@W  Level  50 (@CRoom 23160@W) "@Gtequila@W"
-@W  Level  60 (@CRoom 14141@W) "@Glotus stem@W"
-@W  Level  81 (@CRoom 47106@W) "@Gwaterspirit@W"
-@W  Level  91 (@CRoom 49373@W) "@Gblood@W"
-@W  Level 100 (@CRoom 14141@W) "@Glotus bud@W"
-@W  Level 130 (@CRoom 30525@W) "@Gpopcorn@W"
-@W  Level 150 (@CRoom 14141@W) "@Glotus bloom@W"
-@W  Level 200 (@CRoom 23160@W) "@Gdaniel@W"
-@W  Level 201 (@CRoom 14141@W) "@Glotus flower@W"
-@WDINV Consumable Type "sight"
-@W  Level   1 (@CRoom 32476@W) "@Gwolf@W"
-@WDINV Consumable Type "heal"
-@W  Level   1 (@CRoom 32476@W) "@Glight relief@W"
-@W  Level  20 (@CRoom 32476@W) "@Gserious relief@W"
-@W  Level  30 (@CRoom 14141@W) "@Gminor healing@W"
-@W  Level  60 (@CRoom 14141@W) "@Gseekers60heal@W"
-@W  Level 201 (@CRoom 50209@W) "@Gfrank@W"
-@WDINV Consumable Type "fly"
-@W  Level   1 (@CRoom 32476@W) "@Ggriff@W"@W
+@Cfly       @W Level   Room  # Avail  Name
+@w               1  32476     @M   3@w  griff
+@w
+@Cheal      @W Level   Room  # Avail  Name
+@w               1  32476        0  light relief
+@w              20  32476        0  serious relief
+@w              30  14141        0  minor healing
+@w              60  14141        0  seekers60heal
+@w             201  50209     @M 136@w  frank
+@w
+@Cmana      @W Level   Room  # Avail  Name
+@w               1  32476        0  lotus rush
+@w              20  30525        0  nachos
+@w              30  14141        0  lotus seed
+@w              50  23160        0  tequila
+@w              60  14141        0  lotus stem
+@w              85  28359        0  alabaster
+@w             100  14141        0  lotus bud
+@w             130  30525        0  popcorn
+@w             150  14141        0  lotus bloom
+@w             175  28359        0  diamond
+@w             201  14141     @M 154@w  lotus flower
+@w
+@Cmove      @W Level   Room  # Avail  Name
+@w              90  23160     @M   2@w  moonshine
+@w
+@Csight     @W Level   Room  # Avail  Name
+@w               1  32476        0  wolf
 
 Now we want to buy one item of type "@Cheal@W".  Note that this doesn't necessarily
 mean that it has the "heal" spell.  It could be any type of potion or pill that
@@ -7989,7 +7992,7 @@ function inv.items.displayCR()
 
   -- Let the user know if no items matched their query
   elseif (idArray == nil) or (#idArray == 0) then
-    dbot.info("No items matched query: \"" .. inv.items.displayPkg.queryString .. "\"")
+    dbot.info("@Y0@W items matched query \"@c" .. inv.items.displayPkg.queryString .. "@W\"")
 
   else
     -- Sort and display the results
@@ -7998,6 +8001,14 @@ function inv.items.displayCR()
     for _, objId in ipairs(idArray) do
       inv.items.displayItem(objId, inv.items.displayPkg.verbosity)
     end -- for
+
+    local suffix = "s"
+    if (#idArray == 1) then
+      suffix = ""
+    end -- if
+    print("")
+    dbot.info("@Y" .. #idArray .. "@W item" .. suffix .. " matched query \"@c" ..
+              inv.items.displayPkg.queryString .. "@W\"")
   end -- if
 
   inv.items.displayPkg = nil
@@ -16732,7 +16743,13 @@ function inv.consume.display(typeName)
   if (typeName ~= nil) and (typeName ~= "") then
     numEntries = inv.consume.displayType(typeName)
   else
+    local sortedTypes = {}
     for itemType,_ in pairs(inv.consume.table) do
+      table.insert(sortedTypes, itemType)
+    end -- for
+    table.sort(sortedTypes, function (v1, v2) return v1 < v2 end)
+
+    for _, itemType in ipairs(sortedTypes) do
       numEntries = numEntries + inv.consume.displayType(itemType)
     end -- for
   end -- if
@@ -16756,12 +16773,27 @@ function inv.consume.displayType(typeName)
     return numEntries, DRL_RET_MISSING_ENTRY
   end -- if
 
-  dbot.print("@W" .. pluginNameAbbr .. " Consumable Type \"" .. typeName .. "\"@w")
+  dbot.print(string.format("\n@W@C%-10s@W Level   Room  # Avail  Name", (typeName or "nil")))
   if (inv.consume.table[typeName] ~= nil) then
     for _, entry in ipairs(inv.consume.table[typeName]) do
-      dbot.print("@W  Level " .. string.format("%3d", (entry.level or "")) .. 
-                 " (@CRoom " .. string.format("%3d", (entry.room or 0)) .. "@W)" ..
-                 " \"@G" .. (entry.name or "") .. "@W\"@w")
+      local count = 0
+
+      for objId, itemEntry in pairs(inv.items.table) do
+        local itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
+        local itemName  = inv.items.getStatField(objId, invStatFieldName) or ""
+
+        if (entry.level == itemLevel) and (entry.fullName == itemName) then
+          count = count + 1
+        end -- if
+      end -- for
+
+      local countColor = ""
+      if (count > 0) then
+        countColor = "@M" 
+      end -- if
+
+      dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
+                 (entry.level or 0), (entry.room or 0), countColor, count, (entry.name or "nil")))
       numEntries = numEntries + 1
     end -- for
   end -- if
@@ -16916,30 +16948,49 @@ function inv.consume.get(typeName, size, containerId)
     if (entry.level <= curLevel) then
       -- If we have one of these items available, return the ID for it.  Otherwise, try the next entry
       -- in the consumable table
-      local objInContainerId = nil
       local finalId = nil
+      local preferredId = nil
+      local count = 0
 
       for objId, itemEntry in pairs(inv.items.table) do
         local itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
         local itemName  = inv.items.getStatField(objId, invStatFieldName) or ""
 
         if (entry.level == itemLevel) and (entry.fullName == itemName) then
+          count = count + 1
+
           -- We try to use items from the preferred location first (e.g., a user-specified container or
           -- the main inventory if no container is specified).  If we find an item instance at the
           -- preferred location, break immediately and use it.  Otherwise, remember the item and keep
           -- searching for something at the preferred location.
-          finalId = objId
-          if (inv.items.getField(objId, invFieldObjLoc) == preferredLocation) then
-            break
+          if (preferredId == nil) and (inv.items.getField(objId, invFieldObjLoc) == preferredLocation) then
+            preferredId = objId
+          else
+            finalId = objId
           end -- if
         end -- if
       end -- for
 
+      if (preferredId ~= nil) then
+        finalId = preferredId
+      end -- if
+
+      local countColor
+      if (count > 50) then
+        countColor = "@G"
+      elseif (count > 20) then
+        countColor = "@Y"
+      else
+        countColor = "@R"
+      end -- if
+
       -- If we found a matching item instance, return it!
       if (finalId ~= nil) then
-        dbot.note("@WFound \"@C" .. typeName .. "@W\"@G L" .. entry.level .. " @W\"@Y" ..
-                  (inv.items.getStatField(finalId, invStatFieldName) or "") ..
-                  "@W\" @@ \"@R" .. (inv.items.getField(finalId, invFieldObjLoc) or "") .. "@W\"")
+        dbot.info("(" .. countColor .. count .. " available@W) " ..
+                  "Consuming L" .. entry.level .. " \"@C" .. typeName .. "@W\" @Y" ..
+                  (inv.items.getStatField(finalId, invStatFieldName) or "") .. "@W")
+
+
         return finalId, DRL_RET_SUCCESS
       end -- if
 
