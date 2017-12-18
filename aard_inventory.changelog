@@ -2,6 +2,21 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0025] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added count of items matching a query when displaying query results]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added reporting for how many instances of a consumable are in your inventory
+	   when you use "dinv consume ..." to consume an item]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Improved "dinv consume display" output format and added the remaining quantity
+	   of each item to the display]]
+  }
+}
+
 dbot.changelog[2.0024] =
 {
   { change = drlDbotChangeLogTypeFix,
