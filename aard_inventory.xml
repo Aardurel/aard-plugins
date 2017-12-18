@@ -717,7 +717,7 @@ function OnPluginSaveState()
   for module in inv.modules:gmatch("%S+") do
     if (inv[module].save ~= nil) then
       retval = inv[module].save()
-      if (retval ~= DRL_RET_SUCCESS) then
+      if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
         dbot.warn("OnPluginSaveState: Failed to save state for inv." .. module .. " module: " ..
                   dbot.retval.getString(retval))
       end -- if
@@ -728,7 +728,7 @@ function OnPluginSaveState()
   for module in dbot.modules:gmatch("%S+") do
     if (dbot[module].save ~= nil) then
       retval = dbot[module].save()
-      if (retval ~= DRL_RET_SUCCESS) then
+      if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
         dbot.warn("OnPluginSaveState: Failed to save state for dbot." .. module .. " module: " ..
                   dbot.retval.getString(retval))
       end -- if
@@ -1125,14 +1125,15 @@ function inv.fini(doSaveState)
   if dbot.gmcp.isInitialized then
     -- Update any automatic backups for the saved plugin state
     retval = dbot.backup.current()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.fini: Failed to backup plugin state: " .. dbot.retval.getString(retval))
     end -- if
 
     -- Loop through all of the inv modules and call their de-init functions
     for module in inv.modules:gmatch("%S+") do
       local initVal = inv[module].fini(doSaveState)
-      if (initVal ~= DRL_RET_SUCCESS) then
+
+      if (initVal ~= DRL_RET_SUCCESS) and (initVal ~= DRL_RET_UNINITIALIZED) then
         dbot.warn("inv.fini: Failed to de-initialize inv." .. module .. " module: " .. 
                   dbot.retval.getString(initVal))
         retval = initVal
@@ -1143,7 +1144,7 @@ function inv.fini(doSaveState)
 
     -- De-init all of the dbot modules (common framework code for multiple plugins)
     retval = dbot.fini(doSaveState)
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("init.fini: De-initialization of dbot module failed: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -1352,7 +1353,7 @@ function inv.config.fini(doSaveState)
   -- Save our current data
   if (doSaveState) then
     retval = inv.config.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.config.fini: Failed to save inv.config module data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -1365,7 +1366,7 @@ function inv.config.save()
 
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.config.stateName,
                                         "inv.config.table", inv.config.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.config.save: Failed to save config table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -1398,7 +1399,7 @@ function inv.config.reset()
   inv.config.table = inv.config.new()
 
   retval = inv.config.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.config.reset: Failed to save configuration data: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -5132,7 +5133,7 @@ function inv.items.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.items.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.items.fini: Failed to save inv.items module data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -5146,7 +5147,7 @@ end -- inv.items.fini
 function inv.items.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.items.stateName,
                                         "inv.items.table", inv.items.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.items.save: Failed to save items table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -10568,7 +10569,7 @@ function inv.cache.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.cache.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.cache.fini: Failed to save inv.cache module data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -10641,7 +10642,7 @@ function inv.cache.saveRecent()
   if (inv.cache.recent.table ~= nil) then
     retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
                                     "inv.cache.recent.table", inv.cache.recent.table)
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.cache.saveRecent: Failed to save cache.recent table: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -10657,7 +10658,7 @@ function inv.cache.saveFrequent()
   if (inv.cache.frequent.table ~= nil) then
     retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
                                     "inv.cache.frequent.table", inv.cache.frequent.table)
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.cache.saveFrequent: Failed to save cache.frequent table: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -10673,7 +10674,7 @@ function inv.cache.saveCustom()
   if (inv.cache.custom.table ~= nil) then
     retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.cache.custom.stateName,
                                     "inv.cache.custom.table", inv.cache.custom.table)
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.cache.saveCustom: Failed to save cache.custom table: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -11139,7 +11140,7 @@ function inv.priority.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.priority.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.priority.fini: Failed to save inv.priority module data: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -11152,7 +11153,7 @@ end -- inv.priority.fini
 function inv.priority.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.priority.stateName,
                                         "inv.priority.table", inv.priority.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.priority.save: Failed to save priority table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -11198,7 +11199,7 @@ function inv.priority.reset()
   end -- if
 
   retval = inv.priority.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.priority.reset: Failed to save priorities: " .. dbot.retval.getString(retval))
     return retval
   end -- if
@@ -11614,7 +11615,7 @@ function inv.priority.add(priorityName, priorityTable)
   inv.priority.table[priorityName] = priorityTable
 
   local retval = inv.priority.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.priority.add: Failed to save priorities: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -11639,7 +11640,7 @@ function inv.priority.remove(priorityName)
   inv.priority.table[priorityName] = nil
 
   retval = inv.priority.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.priority.remove: Failed to save priorities: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -13193,7 +13194,7 @@ function inv.set.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.set.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.set.fini: Failed to save inv.set module data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -13205,7 +13206,7 @@ end -- inv.set.fini
 function inv.set.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.set.stateName,
                                         "inv.set.table", inv.set.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.set.save: Failed to save set table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -14835,7 +14836,7 @@ function inv.snapshot.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.snapshot.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.snapshot.fini: Failed to save inv.snapshot module data: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -14848,7 +14849,7 @@ end -- inv.snapshot.fini
 function inv.snapshot.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.snapshot.stateName,
                                         "inv.snapshot.table", inv.snapshot.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.snapshot.save: Failed to save snapshot table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -14907,7 +14908,7 @@ function inv.snapshot.add(snapshotName, endTag)
     dbot.info("Created \"@C" .. snapshotName .. "@W\" snapshot with " .. numItemsInSnap .. " item" .. suffix)
 
     retval = inv.snapshot.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.snapshot.remove: Failed to save snapshot table: " .. dbot.retval.getString(retval))
     end -- if
   else
@@ -14936,7 +14937,7 @@ function inv.snapshot.remove(snapshotName, endTag)
   -- Remove the snapshot
   inv.snapshot.table[snapshotName] = nil
   retval = inv.snapshot.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.snapshot.remove: Failed to save snapshot table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -15141,7 +15142,7 @@ function inv.statBonus.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.statBonus.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.statBonus.fini: Failed to save inv.statBonus module data: " ..
                 dbot.retval.getString(retval))
     end -- if
@@ -15156,13 +15157,13 @@ end -- inv.statBonus.fini
 function inv.statBonus.save()
   local spellRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.statBonus.stateNameSpells,
                                              "inv.statBonus.spellBonus", inv.statBonus.spellBonus)
-  if (spellRetval ~= DRL_RET_SUCCESS) then
+  if (spellRetval ~= DRL_RET_SUCCESS) and (spellRetval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.statBonus.save: Failed to save spellBonus table: " .. dbot.retval.getString(spellRetval))
   end -- if
 
   local equipRetval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.statBonus.stateNameEquip,
                                              "inv.statBonus.equipBonus", inv.statBonus.equipBonus)
-  if (equipRetval ~= DRL_RET_SUCCESS) then
+  if (equipRetval ~= DRL_RET_SUCCESS) and (equipRetval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.statBonus.save: Failed to save equipBonus table: " .. dbot.retval.getString(equipRetval))
   end -- if
 
@@ -16356,7 +16357,7 @@ function inv.tags.fini(doSaveState)
   if (doSaveState) then
     -- Save our current tags data
     retval = inv.tags.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.tags.fini: Failed to save tags data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -16368,7 +16369,7 @@ end -- inv.tags.fini
 function inv.tags.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.tags.stateName,
                                         "inv.tags.table", inv.tags.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.tags.save: Failed to save tags table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -16398,7 +16399,7 @@ function inv.tags.reset()
   inv.tags.table["tags"] = drlInvTagOn
 
   local retval = inv.tags.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.tags.reset: Failed to save tags persistent data: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -16487,7 +16488,7 @@ function inv.tags.set(tagNames, tagValue)
   end -- for
 
   local saveRetval = inv.tags.save()
-  if (saveRetval ~= DRL_RET_SUCCESS) then
+  if (saveRetval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.tags.set: Failed to save tags persistent data: " .. dbot.retval.getString(saveRetval))
   end -- if
 
@@ -16699,7 +16700,7 @@ function inv.consume.fini(doSaveState)
   if (doSaveState) then
     -- Save our current data
     retval = inv.consume.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("inv.consume.fini: Failed to save inv.consume module data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -16711,7 +16712,7 @@ end -- inv.consume.fini
 function inv.consume.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. inv.consume.stateName,
                                         "inv.consume.table", inv.consume.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.consume.save: Failed to save consume table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -16742,7 +16743,7 @@ function inv.consume.reset()
     }
 
   retval = inv.consume.save()
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("inv.consume.reset: Failed to save consumable data: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -17585,7 +17586,7 @@ function dbot.fini(doSaveState)
   for module in dbot.modules:gmatch("%S+") do
     if (dbot[module].fini ~= nil) then
       local initVal = dbot[module].fini(doSaveState)
-      if (initVal ~= DRL_RET_SUCCESS) then
+      if (initVal ~= DRL_RET_SUCCESS) and (initVal ~= DRL_RET_UNINITIALIZED) then
         dbot.warn("dbot.fini: Failed to de-initialize dbot." .. module .. " module: " .. 
                   dbot.retval.getString(initVal))
         retval = initVal
@@ -18269,7 +18270,7 @@ function dbot.notify.fini(doSaveState)
 
   if (doSaveState) then
     retval = dbot.notify.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("dbot.notify.fini: Failed to save notify data to storage: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -18285,7 +18286,7 @@ function dbot.notify.save()
 
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. dbot.notify.name,
                                         "dbot.notify.table", dbot.notify.table, true)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("dbot.notify.save: Failed to save notify table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -18314,7 +18315,7 @@ function dbot.notify.reset()
   -- reset.  We don't use that parameter on a normal dbot.notify.save() call.
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. dbot.notify.name,
                                         "dbot.notify.table", dbot.notify.table, true)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("dbot.notify.reset: Failed to save notification data: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -18794,8 +18795,7 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
   local retval = DRL_RET_SUCCESS
 
   if (not dbot.init.initializedActive) and (not doForceSave) then
-    dbot.info("Skipping save for \"" .. (tableName or "Unknown") .. "\" table: plugin is not initialized")
-    dbot.info("Are you AFK?  You must be in the active state to complete initialization.")
+    dbot.note("Skipping save for \"" .. (tableName or "Unknown") .. "\" table: plugin is not initialized")
     return DRL_RET_UNINITIALIZED
   end -- if
 
@@ -19048,6 +19048,11 @@ function dbot.backup.current()
     return DRL_RET_UNINITIALIZED
   end -- if
 
+  if (not dbot.init.initializedActive) or (not inv.init.initializedActive) then
+    dbot.note("Skipping backup: Plugin is not yet initialized.  Have you been AFK or sleeping this entire login?")
+    return DRL_RET_UNINITIALIZED
+  end -- if
+
   if (not inv.config.table.isBackupEnabled) then
     dbot.debug("Automatic backups are disabled")
     return DRL_RET_SUCCESS
@@ -19146,9 +19151,9 @@ end -- dbot.backup.current
 function dbot.backup.atAFK()
   local retval = DRL_RET_SUCCESS
 
-  if dbot.gmcp.isInitialized and (dbot.gmcp.getState() == dbot.stateAFK) then
+  if dbot.gmcp.isInitialized and (dbot.gmcp.getState() == dbot.stateAFK) and dbot.init.initializedActive then
     retval = dbot.backup.current()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("dbot.backup.atAFK: Failed to backup plugin state: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -20229,7 +20234,7 @@ function dbot.wish.fini(doSaveState)
   if (doSaveState) then
     -- Save our current wish data
     retval = dbot.wish.save()
-    if (retval ~= DRL_RET_SUCCESS) then
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
       dbot.warn("dbot.wish.fini: Failed to save wish data: " .. dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -20241,7 +20246,7 @@ end -- dbot.wish.fini
 function dbot.wish.save()
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. dbot.wish.name,
                                         "dbot.wish.table", dbot.wish.table)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("dbot.wish.save: Failed to save wish table: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -20270,7 +20275,7 @@ function dbot.wish.reset()
   -- reset.  We don't use that parameter on a normal dbot.wish.save() call.
   local retval = dbot.storage.saveTable(dbot.backup.getCurrentDir() .. dbot.wish.name,
                                         "dbot.wish.table", dbot.wish.table, true)
-  if (retval ~= DRL_RET_SUCCESS) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
     dbot.warn("dbot.wish.reset: Failed to save wish persistent data: " .. dbot.retval.getString(retval))
   end -- if
 
