@@ -2,6 +2,19 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0026] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added @Cignore@W mode.  See "dinv help ignore" for details explaining how to mark a
+           container so that dinv will ignore the contents of that container when searching,
+           getting, putting, storing, organizing, and creating or wearing equipment sets.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Cleaned up misleading and/or scary messages if you log out before the plugin finishes
+           initializing.  You must be awake and not AFK for a few seconds to initialize.]]
+  }
+}
+
 dbot.changelog[2.0025] =
 {
   { change = drlDbotChangeLogTypeNew,
