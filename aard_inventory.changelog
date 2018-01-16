@@ -2,6 +2,29 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0027] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added option to ignore the keyring: @Gdinv ignore [on | off] keyring@W]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed broken support for items of type "Raw material:[whatever]".  You can now use
+           "type Raw material:Ore" in queries.  If you previously had any ore you will want to
+           run "dinv forget type Raw" and then run "dinv refresh all" to properly identify it.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[In some situations, a full refresh ("dinv refresh all") was required to pick up
+           changes after enchanting an item.  That is no longer the case and a basic refresh will
+           now detect changes due to solidify/illuminate/resonate.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Increased I/O access timeouts slightly to compensate for very slow systems]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Tweaked default psi-melee priority to de-emphasize primary and offhand damage.]]
+  }
+}
+
 dbot.changelog[2.0026] =
 {
   { change = drlDbotChangeLogTypeNew,
