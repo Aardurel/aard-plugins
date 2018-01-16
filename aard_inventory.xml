@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0026"
+   version="2.0027"
    >
 <description trim="y">
 <![CDATA[
@@ -150,7 +150,7 @@ Usage
     dinv backup [list | create | delete | restore] <backup name>
     dinv reset [list | confirm] <module names | all>
     dinv forget <query>
-    dinv ignore [on | off] <container relative name>
+    dinv ignore [on | off] <keyring | container relative name>
     dinv notify [none | light | standard | all]
     dinv cache [reset | size] [recent | frequent | custom | all] <# entries>
     dinv tags <names | all> [on | off]
@@ -909,7 +909,6 @@ function OnPluginSend(msg)
   _, _, baseCommand = string.find(msg, dbot.execute.bypassPrefix .. "(.*)")
   if (baseCommand ~= nil) then
     --dbot.note("@mBypass command = @W\"@G" .. (baseCommand or "nil") .. "@W\"")
-
     -- It is helpful in some scenarios for us to know that something special is pending.  For
     -- example, we might be sending a command to the mud to go AFK, or quit, or write a note.
     setPending(baseCommand)
@@ -1388,6 +1387,11 @@ function inv.config.load()
     return DRL_RET_INTERNAL_ERROR
   end -- if
 
+  -- The following fields were added after dinv was released so we set default values if necessary
+  if (inv.config.table.doIgnoreKeyring == nil) then
+    inv.config.table.doIgnoreKeyring = false -- default value
+  end -- if
+
   return retval
 
 end -- inv.config.load
@@ -1421,6 +1425,7 @@ function inv.config.new()
            isPromptEnabled = true,
            isBackupEnabled = true,
            isBuildExecuted = false,
+           doIgnoreKeyring = false,
            refreshPeriod   = 0,
            refreshEagerSec = 0
          }
@@ -3669,7 +3674,7 @@ end -- inv.cli.ignore.fn
 
 
 function inv.cli.ignore.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " ignore @G[on | off] <container relative name>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " ignore @G[on | off] <keyring | container relative name>@w")
 end -- inv.cli.ignore.usage
 
 
@@ -3681,7 +3686,9 @@ function inv.cli.ignore.examples()
 [[@W
 The @Cignore@W mode allows you to specify one or more containers that the plugin should ignore.
 Any ignored container and any items in an ignored container are not included when the plugin is
-searching, getting, putting, storing, organizing, and creating or wearing equipment sets.  
+searching, getting, putting, storing, organizing, and creating or wearing equipment sets.
+
+You may also use "keyring" as a container name to indicate ignoring everything on your keyring.  
 
 Examples:
   1) Ignore "3.bag" in your main inventory
@@ -3690,7 +3697,11 @@ Examples:
   2) Stop ignoring "3.bag"
      @Gdinv ignore off 3.bag@W
 
-  3) Do you really need another example? :p
+  3) Ignore everything on your keyring
+     @Gdinv ignore on keyring@W
+
+  4) Stop ignoring your keyring contents
+     @Gdinv ignore off keyring@W
 ]])
 
 end -- inv.cli.ignore.examples
@@ -5457,6 +5468,7 @@ end -- inv.items.ignore
 
 
 function inv.items.ignoreCR()
+  local retval = DRL_RET_SUCCESS
 
   if (inv.items.ignorePkg == nil) then
     dbot.error("inv.items.ignoreCR: Aborting ignore request -- ignore package is nil!")
@@ -5465,47 +5477,71 @@ function inv.items.ignoreCR()
 
   local endTag = inv.items.ignorePkg.endTag
 
-  local idArray, retval = inv.items.searchCR("rname " .. inv.items.ignorePkg.container, true)
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.items.ignoreCR: failed to search inventory table: " .. dbot.retval.getString(retval))
-
-  -- Let the user know if no items matched their container relative name
-  elseif (idArray == nil) or (#idArray == 0) then
-    dbot.info("No match found for ignore container: \"" .. inv.items.ignorePkg.container .. "\"")
-    retval = DRL_MISSING_ENTRY
-
-  elseif (#idArray > 1) then
-    dbot.warn("inv.items.ignoreCR: More than one item matched container \"" ..
-              inv.items.ignorePkg.container .. "\"")
-    retval = DRL_INTERNAL_ERROR
-
-  -- Set or clear the ignore flag for the specified container
+  -- Check that the ignore mode is valid
+  local modeStr
+  local lowerMode = string.lower(inv.items.ignorePkg.mode or "")
+  if (lowerMode == "on") then
+      modeStr = "@GON@W"
+  elseif (lowerMode == "off") then
+      modeStr = "@ROFF@W"
   else
-    local mode
-    local objId = idArray[1]
+    dbot.warn("inv.items.ignoreCR: Invalid ignore mode \"" .. (inv.items.ignorePkg.mode or "nil") .. "\"")
+    inv.items.ignorePkg = nil
+    return inv.tags.stop(invTagsIgnore, endTag, DRL_INVALID_PARAM)
+  end -- if
 
-    dbot.debug("Setting ignore to \"" .. inv.items.ignorePkg.mode .. "\" for item " .. objId)
- 
-    if (inv.items.getStatField(objId, invStatFieldType) ~= invmon.typeStr[invmonTypeContainer]) then
-      mode = "@MINVALID@W"
-      dbot.warn("inv.items.ignoreCR: item \"" .. inv.items.ignorePkg.container .. "\" is not a container")
-      retval = DRL_INVALID_PARAM
-
-    elseif (inv.items.ignorePkg.mode == "on") then
-      mode = "@GON@W"
-      retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpAdd, "id " .. objId, true, nil)
-
-    elseif (inv.items.ignorePkg.mode == "off") then
-      mode = "@ROFF@W"
-      retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpRemove, "id " .. objId, true, nil)
-
+  if (invItemLocKeyring == string.lower(inv.items.ignorePkg.container)) then
+    if (lowerMode == "on") then
+      inv.config.table.doIgnoreKeyring = true
     else
-      mode = "@MINVALID@W"
-      dbot.warn("inv.items.ignoreCR: Invalid ignore mode \"" .. inv.items.ignorePkg.mode .. "\"")
-      retval = DRL_INVALID_PARAM
+      inv.config.table.doIgnoreKeyring = false
     end -- if
 
-    dbot.info("Ignore mode for container \"" .. inv.items.ignorePkg.container .. "\" is " .. mode)
+    -- Save the config change that indicates if we are ignoring the keyring
+    retval = inv.config.save()
+    if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_UNINITIALIZED) then
+      dbot.warn("inv.items.ignoreCR: Failed to save inv.config module data: " ..
+                dbot.retval.getString(retval))
+    else
+      dbot.info("Ignore mode for keyring \"" .. inv.items.ignorePkg.container .. "\" is " .. modeStr)    
+    end -- if
+
+  -- We are targeting a container, not the keyring
+  else
+    local idArray, retval = inv.items.searchCR("rname " .. inv.items.ignorePkg.container, true)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.items.ignoreCR: failed to search inventory table: " .. dbot.retval.getString(retval))
+
+    -- Let the user know if no items matched their container relative name
+    elseif (idArray == nil) or (#idArray == 0) then
+      dbot.info("No match found for ignore container: \"" .. inv.items.ignorePkg.container .. "\"")
+      retval = DRL_MISSING_ENTRY
+
+    elseif (#idArray > 1) then
+      dbot.warn("inv.items.ignoreCR: More than one item matched container \"" ..
+                inv.items.ignorePkg.container .. "\"")
+      retval = DRL_INTERNAL_ERROR
+
+    -- Set or clear the ignore flag for the specified container
+    else
+      local objId = idArray[1]
+      dbot.debug("Setting ignore to \"" .. modeStr .. "\" for item " .. objId)
+
+      if (inv.items.getStatField(objId, invStatFieldType) ~= invmon.typeStr[invmonTypeContainer]) then
+        dbot.warn("inv.items.ignoreCR: item \"" .. inv.items.ignorePkg.container .. "\" is not a container")
+        retval = DRL_INVALID_PARAM
+
+      elseif (lowerMode == "on") then
+        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpAdd, "id " .. objId, true, nil)
+
+      elseif (lowerMode == "off") then
+        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpRemove, "id " .. objId, true, nil)
+
+      end -- if
+
+      dbot.info("Ignore mode for container \"" .. inv.items.ignorePkg.container .. "\" is " .. modeStr)
+    end -- if
+
   end -- if
 
   -- Save our changes so that they don't get picked up again accidentally if we reload the plugin
@@ -5518,21 +5554,26 @@ end -- inv.items.ignoreCR
 
 
 -- An item is "ignored" if it has the inv.items.ignoreFlag or if it is in a container that has
--- the inv.items.ignoreFlag
+-- the inv.items.ignoreFlag.  We can also mark the keyring as ignored.
 function inv.items.isIgnored(objId)
   if (objId == nil) or (tonumber(objId or "") == nil) then
     return false
   end -- if
 
   local keywords = inv.items.getStatField(objId, invStatFieldKeywords) or ""
+  local objLoc   = inv.items.getField(objId, invFieldObjLoc)
 
   if dbot.isWordInString(inv.items.ignoreFlag, keywords) then
     -- If the the item has the ignore flag, it is ignored
     return true
 
+  elseif (objLoc == invItemLocKeyring) then
+    -- If the item is on the keyring, we ignore the item if the keyring is ignored
+    return inv.config.table.doIgnoreKeyring
+
   else
     -- Check if the object is in a container and, if so, if that container is ignored
-    return inv.items.isIgnored(tonumber(inv.items.getField(objId, invFieldObjLoc) or ""))
+    return inv.items.isIgnored(tonumber(objLoc) or "")
 
   end -- if
 
@@ -8240,8 +8281,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   local highlightOn = ""
   local highlightOff = ""
   local isCurrentlyWorn = false
-  if (type(objLoc) ~= "number") and (inv.items.getField(objId, invFieldObjLoc) ~= invItemLocInventory)
-     and (inv.items.getField(objId, invFieldColorName) ~= "") then
+  if inv.items.isWorn(objId) and (inv.items.getField(objId, invFieldColorName) ~= "") then
     isCurrentlyWorn = true
     highlightOn = "@W"
     highlightOff = "@w"
@@ -12411,7 +12451,7 @@ function inv.priority.addDefault()
                      dam          = 0.9,
                      hit          = 0.4,
 
-                     avedam       = 1,
+                     avedam       = 0.9,
                      offhandDam   = 0.3, 
 
                      hp           = 0.02,
@@ -12449,7 +12489,7 @@ function inv.priority.addDefault()
                      dam          = 0.9,
                      hit          = 0.5,
 
-                     avedam       = 1,
+                     avedam       = 0.9,
                      offhandDam   = 0.4, 
 
                      hp           = 0.01,
@@ -12494,8 +12534,8 @@ function inv.priority.addDefault()
                      dam          = 0.8,
                      hit          = 0.6,
 
-                     avedam       = 1,
-                     offhandDam   = 0.5, 
+                     avedam       = 0.8,
+                     offhandDam   = 0.4, 
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12532,8 +12572,8 @@ function inv.priority.addDefault()
                      dam          = 0.7,
                      hit          = 0.6,
 
-                     avedam       = 1.0,
-                     offhandDam   = 0.6, 
+                     avedam       = 0.7,
+                     offhandDam   = 0.4, 
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12570,8 +12610,8 @@ function inv.priority.addDefault()
                      dam          = 0.6,
                      hit          = 0.6,
 
-                     avedam       = 1.0,
-                     offhandDam   = 0.7, 
+                     avedam       = 0.6,
+                     offhandDam   = 0.4, 
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12610,10 +12650,10 @@ function inv.priority.addDefault()
                      con          = 0.5,  
                      luck         = 1.0, 
                      dam          = 0.5,
-                     hit          = 0.5,
+                     hit          = 0.4,
 
-                     avedam       = 1.0,
-                     offhandDam   = 0.85, 
+                     avedam       = 0.5,
+                     offhandDam   = 0.4, 
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -19127,7 +19167,7 @@ function dbot.backup.current()
       -- Shell commands running in the background aren't guaranteed to complete in the order
       -- they were made.  As a result, we spin here until we know that the backup was actually
       -- renamed before we move on to the next backup.
-      dbot.spinUntilExistsBusy(backupDir .. fullOlderBackup, 2)
+      dbot.spinUntilExistsBusy(backupDir .. fullOlderBackup, 5)
 
     end -- if
   end -- for
@@ -19252,7 +19292,7 @@ function dbot.backup.delete(name, endTag, isQuiet)
     if (backupName.baseName == name) then
       dbot.debug("dbot.backup.delete: Executing \"rmdir /s /q \"" .. backupName.dirName .. "\"\"")
       dbot.shell("rmdir /s /q \"" .. backupName.dirName .. "\" > nul")
-      retval = dbot.spinWhileExistsBusy(backupName.dirName, 2)
+      retval = dbot.spinWhileExistsBusy(backupName.dirName, 5)
       if (retval ~= DRL_RET_SUCCESS) then
         dbot.warn("dbot.backup.delete: Failed to delete backup \"@G" .. name .. "@W\": " ..
                   dbot.retval.getString(retval))
