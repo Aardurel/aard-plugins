@@ -9810,6 +9810,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
   -- possibly changed so that we can re-identify it to see what changed
   if (isInvItem == true) then
     if (item ~= nil) then
+      inv.items.mainState = invItemsRefreshDirty -- we want to rescan main inventory now
       retval = inv.items.setField(objId, invFieldIdentifyLevel, invIdLevelNone)
     else
       -- Check if the item is in the frequent item cache.  If it is, there's no need to identify it :)
