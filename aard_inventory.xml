@@ -7921,7 +7921,7 @@ end -- inv.items.search
 --   name bob
 --   keyword shardblade
 -- Note: This must be called from within a co-routine because inv.items.convertRelative() can block
-function inv.items.searchCR(queryString, allowIgnored) 
+function inv.items.searchCR(rawQueryString, allowIgnored) 
   local retval = DRL_RET_SUCCESS
   local arrayOfKvArrays = {}
   local kvArray = {}
@@ -7931,10 +7931,14 @@ function inv.items.searchCR(queryString, allowIgnored)
   local element
   local numWordsInQuery = 0
 
-  if (queryString == nil) then
+  if (rawQueryString == nil) then
     dbot.warn("inv.items.searchCR: Missing query string parameter")
     return DRL_RET_INVALID_PARAM
   end -- if
+
+  -- Raw materials are the one type that has a space in the name (e.g., "Raw material:Ore").
+  -- Internally, we treat the type as "RawMaterial:[whatever]".
+  local queryString = string.gsub(rawQueryString, "type[ ]+[rR]aw[ ]+[mM]aterial", "type RawMaterial")
 
   -- Count the number of words in the query string.  We use an obscure form of gsub() for this.
   -- The gsub function's 2nd return value is the number of substitutions made.  If we do a dummy
@@ -8409,6 +8413,8 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
     typeExtended = weaponType
   elseif (typeField == invmon.typeStr[invmonTypeContainer]) then
     typeExtended = "Contain"
+  elseif (typeField == "RawMaterial:Ore") then
+    typeExtended = "Ore"
   elseif (wearable == "")  or (wearable == invmon.typeStr[invmonTypeHold]) then
     typeExtended = typeField
   else
@@ -9100,7 +9106,7 @@ function inv.items.trigger.itemIdStats(line)
   dbot.debug("stats for item " .. inv.items.identifyPkg.objId .. ":\"" .. line .. "\"")
 
   local isPartialId, id, name, level, weight, wearable, score, keywords, itemType, worth, flags,
-        affectMods, continuation, material, foundAt, ownedBy, clan
+        affectMods, continuation, material, foundAt, ownedBy, clan, rawMaterial
 
   isPartialId = string.find(line, "A full appraisal will reveal further information on this item")
 
@@ -9112,6 +9118,8 @@ function inv.items.trigger.itemIdStats(line)
   _, _, score = string.find(line, "Score%s+:%s([0-9,]+)%s+")
   _, _, keywords = string.find(line, "Keywords%s+:%s+(.-)%s+|")
   _, _, itemType = string.find(line, "| Type%s+:%s+(%a+)%s+")
+  _, _, rawMaterial = string.find(line, "| Type%s+:%s+(Raw material:%a+)")
+
   _, _, worth = string.find(line, "Worth%s+:%s+([0-9,]+)%s+")
   _, _, flags = string.find(line, "Flags%s+:%s+(.-)%s+|")
   _, _, affectMods = string.find(line, "Affect Mods:%s+(.-)%s+|")
@@ -9244,7 +9252,13 @@ function inv.items.trigger.itemIdStats(line)
     dbot.debug("Keywords = \"" .. mergedKeywords .. "\"")
   end -- if
 
-  if (itemType ~= nil) then
+  if (itemType ~= nil) or (rawMaterial ~= nil) then
+    -- All item types, with the exception of "Raw material:[whatever]" are a single word.  As a
+    -- result, we treat "Raw material" as a one-off and strip out the space for our internal use.
+    if (rawMaterial ~= nil) then
+      itemType = string.gsub(rawMaterial, "Raw material", "RawMaterial")
+    end -- if
+
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldType, itemType)
     dbot.debug("Type = \"" .. itemType .. "\"")
   end -- if
@@ -19974,17 +19988,17 @@ invmon.typeStr[invmonTypePotion]         = "Potion"
 invmon.typeStr[invmonTypeFurniture]      = "Furniture"
 invmon.typeStr[invmonTypeTrash]          = "Trash"
 invmon.typeStr[invmonTypeContainer]      = "Container"
-invmon.typeStr[invmonTypeDrinkContainer] = "Drink container"
+invmon.typeStr[invmonTypeDrinkContainer] = "Drink"
 invmon.typeStr[invmonTypeKey]            = "Key"
 invmon.typeStr[invmonTypeFood]           = "Food"
 invmon.typeStr[invmonTypeBoat]           = "Boat"
-invmon.typeStr[invmonTypeMobCorpse]      = "Mob corpse"
-invmon.typeStr[invmonTypePlayerCorpse]   = "Player corpse"
+invmon.typeStr[invmonTypeMobCorpse]      = "Mobcorpse"
+invmon.typeStr[invmonTypePlayerCorpse]   = "Playercorpse"
 invmon.typeStr[invmonTypeFountain]       = "Fountain"
 invmon.typeStr[invmonTypePill]           = "Pill"
 invmon.typeStr[invmonTypePortal]         = "Portal"
 invmon.typeStr[invmonTypeBeacon]         = "Beacon"
-invmon.typeStr[invmonTypeGiftCard]       = "Gift card"
+invmon.typeStr[invmonTypeGiftCard]       = "Giftcard"
 invmon.typeStr[invmonTypeUnused]         = "Unused"
 invmon.typeStr[invmonTypeRawMaterial]    = "Raw material"
 invmon.typeStr[invmonTypeCampfire]       = "Campfire"
