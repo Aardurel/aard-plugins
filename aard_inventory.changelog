@@ -10,7 +10,7 @@ dbot.changelog[2.0027] =
   { change = drlDbotChangeLogTypeFix,
     desc   = [[Fixed support for queries using @Ctype Raw material:[whatever]@W.  For example, you
 	   can now use @Gdinv search type Raw material:Ore@W to find your ore.  If you previously had
-	   any ore you will want to run "dinv forget type Raw" and then run "dinv refresh all" to
+	   any ore you will want to run @Gdinv forget type Raw@W and then run @Gdinv refresh all@W to
 	   properly identify it.]]
   },
   { change = drlDbotChangeLogTypeFix,
