@@ -8,12 +8,13 @@ dbot.changelog[2.0027] =
     desc   = [[Added option to ignore the keyring: @Gdinv ignore [on | off] keyring@W]]
   },
   { change = drlDbotChangeLogTypeFix,
-    desc   = [[Fixed broken support for items of type "Raw material:[whatever]".  You can now use
-           "type Raw material:Ore" in queries.  If you previously had any ore you will want to
-           run "dinv forget type Raw" and then run "dinv refresh all" to properly identify it.]]
+    desc   = [[Fixed support for queries using @Ctype Raw material:[whatever]@W.  For example, you
+	   can now use @Gdinv search type Raw material:Ore@W to find your ore.  If you previously had
+	   any ore you will want to run "dinv forget type Raw" and then run "dinv refresh all" to
+	   properly identify it.]]
   },
   { change = drlDbotChangeLogTypeFix,
-    desc   = [[In some situations, a full refresh ("dinv refresh all") was required to pick up
+    desc   = [[In some situations, a full refresh (@Gdinv refresh all@W) was required to pick up
            changes after enchanting an item.  That is no longer the case and a basic refresh will
            now detect changes due to solidify/illuminate/resonate.]]
   },
@@ -28,7 +29,7 @@ dbot.changelog[2.0027] =
 dbot.changelog[2.0026] =
 {
   { change = drlDbotChangeLogTypeNew,
-    desc   = [[Added @Cignore@W mode.  See "dinv help ignore" for details explaining how to mark a
+    desc   = [[Added @Cignore@W mode.  See @Gdinv help ignore@W for details explaining how to mark a
            container so that dinv will ignore the contents of that container when searching,
            getting, putting, storing, organizing, and creating or wearing equipment sets.]]
   },
