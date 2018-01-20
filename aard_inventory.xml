@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0027"
+   version="2.0028"
    >
 <description trim="y">
 <![CDATA[
@@ -142,7 +142,7 @@ Usage
 
   Equipment analysis
     dinv analyze [list | create | delete | display] <priority name> <positions>
-    dinv usage <priority name | all> <query>
+    dinv usage <priority name | all | allUsed> <query>
     dinv compare <priority name> <relative name>
     dinv covet <priority name> <auction #>
 
@@ -357,7 +357,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.usage.fn"
-   match="^[ ]*dinv[ ]+usage[ ]+(all|[^ ]+)[ ]*(.*?)?$"
+   match="^[ ]*dinv[ ]+usage[ ]+(allUsed|all|[^ ]+)[ ]*(.*?)?$"
    enabled="y"
    expand_variables="y"
    regexp="y"
@@ -3265,7 +3265,7 @@ end -- inv.cli.usage.fn
 
 
 function inv.cli.usage.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " usage @G<priority name | all> <query>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " usage @G<priority name | all | allUsed> <query>@w")
 end -- inv.cli.usage.usage
 
 
@@ -3342,9 +3342,9 @@ Examples:
 @R100@W a protective cloak skinned from @G(1695078138) @YArmor@W psi-melee @RUnused
 @G100@W a protective cloak skinned from @G(1672257124) @YArmor@W psi-melee @G100-170@W
 
-  3) You can even use the empty search string to find the usage for all of your items.  I'm
+  3) You can even use the "all" search string to find the usage for all of your items.  I'm
      not copying that output into this helpfile though :)
-     "@Gdinv usage psi-melee@W"
+     "@Gdinv usage psi-melee all@W"
 ]])
 
 end -- inv.cli.usage.examples
@@ -14821,6 +14821,11 @@ function inv.weapon.next(endTag)
     return inv.tags.stop(invTagsSet, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
+  if (currentDamType == nil) then
+    dbot.info("Skipping next weapon request: Unknown damage type -- You may need an inventory refresh")
+    return inv.tags.stop(invTagsSet, endTag, DRL_RET_UNINITIALIZED)
+  end -- if
+
   dbot.debug("inv.weapon.next: Current dam type is: \"" .. currentDamType .. "\"")
 
   -- Remove the current primary dam type for each priority block in the weapon set priority
@@ -16075,7 +16080,7 @@ end -- inv.analyze.display
 --
 -- inv.usage.display(priorityName, query, endTag)
 -- inv.usage.displayCR()
--- inv.usage.displayItem(priorityName, objId)
+-- inv.usage.displayItem(priorityName, objId, doDisplayUnused)
 -- inv.usage.get(priorityName, objId)
 --
 ----------------------------------------------------------------------------------------------------
@@ -16151,10 +16156,14 @@ function inv.usage.displayCR()
 
         if (priorityName == "all") then
           for priority, _ in pairs(inv.priority.table) do
-            inv.usage.displayItem(priority, id)
+            inv.usage.displayItem(priority, id, true)
+          end -- for
+        elseif (priorityName == "allUsed") then
+          for priority, _ in pairs(inv.priority.table) do
+            inv.usage.displayItem(priority, id, false)
           end -- for
         else
-          inv.usage.displayItem(priorityName, id)
+          inv.usage.displayItem(priorityName, id, true)
         end -- if
       end -- if
     end -- for
@@ -16167,9 +16176,9 @@ function inv.usage.displayCR()
 end -- inv.usage.displayCR
 
 
-function inv.usage.displayItem(priorityName, objId)
+function inv.usage.displayItem(priorityName, objId, doDisplayUnused)
 
-  -- TODO: this is very similar to code in displayItem: consolidate it into a helper function
+  -- TODO: this is very similar to code in inv.items.displayItem: consolidate it into a helper function
 
   local colorName = inv.items.getField(objId, invFieldColorName) or "Unknown"
   local maxNameLen = 44
@@ -16257,8 +16266,11 @@ function inv.usage.displayItem(priorityName, objId)
     end -- for
   end -- if
 
-  dbot.print(string.format("%s%3d%s " .. formattedName .. itemType .. " " .. priorityName ..
-                           " " .. levelStr, levelPrefix, itemLevel, levelSuffix))
+  -- Display the result for this item/priority if it is used or if the user wants to display unused items
+  if ((levelUsage ~= nil) and (#levelUsage > 0)) or doDisplayUnused then
+    dbot.print(string.format("%s%3d%s " .. formattedName .. itemType .. " " .. priorityName ..
+                             " " .. levelStr, levelPrefix, itemLevel, levelSuffix))
+  end -- if
 end -- inv.usage.displayItem
 
 
