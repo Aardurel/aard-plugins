@@ -1,6 +1,16 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0028] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed potential nil access when using "dinv weapon next" for an unidentified weapon]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added "dinv usage allUsed [query]" mode to show level usage of items that are used
+           by at least one analyzed priority (priorities without an analysis aren't included)]]
+  }
+}
 
 dbot.changelog[2.0027] =
 {
