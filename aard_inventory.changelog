@@ -1,6 +1,21 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0029] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added support for wands and staves in the frequent item cache.  If you are buying 100 staves,
+           you really don't want to identify each one individually.  The tradeoff is that dinv will not
+           track # charges for wands and staves.  If you need to ID each staff instance to see # charges
+           there's not much point in adding it to a cache.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Switched to higher contrast font to distinguish items that are currently worn when the
+             "dinv set display <priority>" mode is used.  It could be difficult to see the difference
+             between two shades of yellow in the previous release.]]
+  }
+}
+
 dbot.changelog[2.0028] =
 {
   { change = drlDbotChangeLogTypeFix,
