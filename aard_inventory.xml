@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0028"
+   version="2.0029"
    >
 <description trim="y">
 <![CDATA[
@@ -5880,14 +5880,18 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     if (name ~= nil) then
       local cacheEntry = inv.cache.get(inv.cache.frequent.table, name)
       if (cacheEntry == nil) then
-        -- TODO: It would be nice if we could keep wands and staves in the frequent cache, but wands
-        -- and staves can have variable levels and they aren't necessarily identical.  Also, they
-        -- can have varying numbers of charges which means that they can't be considered identical.
 
+        -- NOTE: Wands and staves may not be completely identical.  The # charges can vary.  Also,
+        --       in some game-load cases, they can vary in level.  Nevertheless, the advantages of
+        --       treating wands/staves as being identical so that they can be in the frequent cache
+        --       outweigh the disadvantages.  If you buy 100 starburst staves, you really don't want
+        --       to manually identify each one :p
         itemType = inv.items.getStatField(objId, invStatFieldType)
         if (itemType == invmon.typeStr[invmonTypePotion]) or 
            (itemType == invmon.typeStr[invmonTypePill]) or 
            (itemType == invmon.typeStr[invmonTypeFood]) or 
+           (itemType == invmon.typeStr[invmonTypeWand]) or 
+           (itemType == invmon.typeStr[invmonTypeStaff]) or 
            (itemType == invmon.typeStr[invmonTypeScroll]) then
 
           colorName = inv.items.getField(objId, invFieldColorName)
@@ -8437,13 +8441,29 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   local statLine
   if (typeField == invmon.typeStr[invmonTypePotion]) or 
      (typeField == invmon.typeStr[invmonTypePill]) or 
-     (typeField == invmon.typeStr[invmonTypeScroll]) or 
-     (typeField == invmon.typeStr[invmonTypeWand]) or 
-     (typeField == invmon.typeStr[invmonTypeStaff]) then
+     (typeField == invmon.typeStr[invmonTypeScroll]) then
     header = "@WLvl Name of " .. formattedType .. "Type    Lvl  # Spell name@w"
     local spellDetails = ""
     for i,v in ipairs(spells) do
       spellDetails = string.format("%s%3d x%1d %s ", spellDetails, v.level, v.count, v.name)
+    end -- for
+    statLine = string.format("@W%3d@w %s%s%s", level, formattedName, typeExtended, spellDetails)
+
+  -- We don't display # of charges for wands and staves.  First, invitem isn't triggered when you
+  -- use a staff or wand so it would be a bit of a pain to try to trigger on each brandish/zap, find
+  -- the staff/wand used and update the charges.  It's do-able, but just not implemented yet.  The
+  -- bigger reason to ignore charges for wands and staves is the frequent item cache.  If we use #
+  -- of charges to distinguish wands and staves, we can't put them in the frequent item cache since
+  -- one instance of a wand/staff may not be identical to other instances.  Since they aren't identical,
+  -- we'd need to ID each item -- which defeats the purpose of caching the info in the first place.
+  -- Trust me, if you buy 100 starburst staves, you'd rather have them in the frequent cache even if
+  -- it means your inventory table doesn't know how many charges are on each instance.
+  elseif (typeField == invmon.typeStr[invmonTypeWand]) or 
+         (typeField == invmon.typeStr[invmonTypeStaff]) then
+    header = "@WLvl Name of " .. formattedType .. "Type    Lvl  Spell name@w"
+    local spellDetails = ""
+    for i,v in ipairs(spells) do
+      spellDetails = string.format("%s%3d  %s ", spellDetails, v.level, v.name)
     end -- for
     statLine = string.format("@W%3d@w %s%s%s", level, formattedName, typeExtended, spellDetails)
 
@@ -13831,7 +13851,7 @@ function inv.set.displaySet(setName, level, equipSet)
       local objId = equipSet[v].id
 
       -- Highlight items that are currently worn
-      local locColor = "@y"
+      local locColor = "@W"
       if inv.items.isWorn(objId) then
         locColor = "@Y"
       end -- if
