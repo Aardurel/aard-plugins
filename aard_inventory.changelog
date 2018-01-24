@@ -11,8 +11,8 @@ dbot.changelog[2.0029] =
   },
   { change = drlDbotChangeLogTypeMisc,
     desc   = [[Switched to higher contrast font to distinguish items that are currently worn when the
-             "dinv set display <priority>" mode is used.  It could be difficult to see the difference
-             between two shades of yellow in the previous release.]]
+           "dinv set display <priority>" mode is used.  It could be difficult to see the difference
+           between two shades of yellow in the previous release.]]
   }
 }
 
