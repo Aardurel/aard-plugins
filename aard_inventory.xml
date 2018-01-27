@@ -2751,8 +2751,8 @@ Examples:
 
 @WPriority: "@Cpsi-melee@W"
 
-@W       Field  L001-  L051-  L071-  L131-  L171-  L201-
-        Name  L050   L070   L130   L170   L200   L291 
+@W    MinLevel      1     51    101    131    171    201
+    MaxLevel    @W 50    100    130    170    200    291
 @C
 @C         str@w   1.00   1.00   0.80@y   0.70   0.70   0.50@W  : @cValue of 1 point of the strength stat
 @C         int@w   0.80   1.00   1.00   1.00   1.00   1.00@W  : @cValue of 1 point of the intelligence stat
@@ -4425,7 +4425,7 @@ the Level 60 "seekers60heal" potion instead.
 
 What's with the "small" and "big" options?  If you are in combat and need to
 use a healing potion, you probably want to quaff the biggest and baddest potion
-that you have available: "@Gdinv consume use heal big@W".  However, if you aren't
+that you have available: "@Gdinv consume heal big@W".  However, if you aren't
 in the middle of combat and want to use up some lower-level healing pots that are
 just taking up space, you could use the "small" option instead.  That will use up
 the lowest-level "@Cheal@W" consumables in your inventory first before moving on to
@@ -4434,8 +4434,6 @@ use this: "@Gdinv consume small heal 3@W".
 
 The plugin will always choose to consume items that are in your main inventory
 before using an equivalent item from a container unless you specify a container.
-That makes it more efficient in combat because you don't need to waste an 
-action removing the item from a container.
 
 Examples:
   1) Add a consumable item ("nachos") that gives something of type "mana".  Nachos
@@ -15667,7 +15665,7 @@ function inv.statBonus.setCR()
         wait.time(drlSpinnerPeriodDefault)
         totTime = totTime + drlSpinnerPeriodDefault
         if (totTime > timeout) then
-          dbot.warn("inv.statBonus.setCR: Failed to get spell stat bonus information: timed out")
+          dbot.debug("inv.statBonus.setCR: Failed to get spell stat bonus information: timed out")
           dbot.deleteTrigger(inv.statBonus.trigger.startName)
           retval = DRL_RET_TIMEOUT
           break
