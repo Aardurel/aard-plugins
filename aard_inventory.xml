@@ -88,7 +88,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0029"
+   version="2.0030"
    >
 <description trim="y">
 <![CDATA[
@@ -2766,7 +2766,7 @@ Examples:
 @C  offhandDam@r   0.33   0.40@y   0.50   0.60   0.70@w   0.85@W  : @cValue of 1 point of offhand weapon ave damage
 @C          hp@r   0.02   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 hit point
 @C        mana@r   0.01   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 mana point
-@C   sanctuary@G  50.00  10.00  10.00  10.00  20.00   5.00@W  : @cValue placed on the sanctuary effect 
+@C   sanctuary@G  50.00  10.00  10.00  10.00  10.00   5.00@W  : @cValue placed on the sanctuary effect 
 @C       haste@G  20.00   5.00@g   2.00   2.00   2.00   2.00@W  : @cValue placed on the haste effect 
 @C      flying@G   5.00@g   4.00   2.00@w   1.00   1.00   1.00@W  : @cValue placed on the flying effect 
 @C       invis@G  10.00   5.00@g   3.00@w   1.00   1.00   1.00@W  : @cValue placed on the invisible effect 
@@ -19867,6 +19867,8 @@ end -- dbot.invmon.fini
 function dbot.invmon.getStatusCR()
   local retval = DRL_RET_SUCCESS
 
+
+--FIXME POSSIBLY OBSOLETE: use gmcpconfig instead --v
   dbot.invmon.foundEnable = false
   dbot.invmon.foundDisable = false
 
@@ -19910,6 +19912,27 @@ function dbot.invmon.getStatusCR()
     dbot.invmon.statusEnables = 0
     dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it.")
   end -- if
+--FIXME POSSIBLY OBSOLETE: use gmcpconfig instead --^
+
+
+
+--[[FIXME: we'd really like to use gmcpconfig, but it doesn't behave as expected on the mud side.
+           I need to investigate...
+
+  local isInvmonEnabled = gmcp("config invmon")
+
+  if (isInvmonEnabled == "YES") then
+    dbot.note("FIXME DEBUG: invmon ENABLED")
+    dbot.invmon.statusEnables = 1
+  elseif (isInvmonEnabled == "NO") then
+    dbot.note("FIXME DEBUG: invmon DISABLED")
+    dbot.invmon.statusEnables = 0
+    dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it.")
+  else
+    dbot.warn("Unknown gmcp response to \"config invmon\" = \"" .. (isInvmonEnabled or "nil") .. "\"")
+  end -- if
+--]]
+
 
   -- Once we know the current state, we monitor when the user manually toggles invmon so
   -- that we can keep our state up-to-date
