@@ -1,6 +1,20 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0030] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added @Cregen@W mode to auto-wear a regeneration ring when you are asleep. See the
+	   helpfile at "dinv help regen" for more details.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Corrected obsolete data in priority and consume helpfiles]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Removed overly aggressive stat timeout warning when there wasn't actually a problem]]
+  }
+}
+
 dbot.changelog[2.0029] =
 {
   { change = drlDbotChangeLogTypeNew,
