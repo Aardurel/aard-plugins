@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0030"
+   version="2.0031"
    >
 <description trim="y">
 <![CDATA[
@@ -611,8 +611,8 @@ Feature Wishlist
   </alias>
 
   <alias
-   script="inv.regen.onSleep"
-   match="^[ ]*(sl|sle|slee|sleep)[ ]*"
+   script="inv.cli.regen.fn2"
+   match="^[ ]*(sleep|slee|sle|sl)([ ]+[^ ]+)?[ ]*"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -3647,6 +3647,16 @@ function inv.cli.regen.fn(name, line, wildcards)
   return inv.config.save()
 
 end -- inv.cli.regen.fn
+
+
+function inv.cli.regen.fn2(name, line, wildcards)
+  local sleepMode = wildcards[1] or ""
+  local sleepLoc  = wildcards[2] or ""
+
+  dbot.debug("sleepLoc is \"" .. sleepLoc .. "\"")
+  return inv.regen.onSleep(sleepLoc)
+
+end -- inv.cli.regen.fn2
 
 
 function inv.cli.regen.usage()
@@ -17656,7 +17666,7 @@ end -- inv.pass.use
 --
 -- dinv regen [on | off]
 --
--- inv.regen.onSleep
+-- inv.regen.onSleep(sleepLoc)
 -- inv.regen.onSleepCR
 --
 -- inv.regen.onWake
@@ -17671,18 +17681,38 @@ inv.regen = {}
 inv.regen.wearableLoc = "lfinger"
 
 
-function inv.regen.onSleep()
+inv.regen.pkg = nil
+function inv.regen.onSleep(sleepLoc)
+
+  local retval = DRL_RET_SUCCESS
+
   if (inv.config.table.isRegenEnabled) then
-    wait.make(inv.regen.onSleepCR)
+
+    if (inv.regen.pkg ~= nil) then
+      dbot.info("Skipping regen sleep request: another request is in progress")
+      retval = DRL_RET_BUSY
+    else
+      inv.regen.pkg = {}
+      inv.regen.pkg.sleepLoc = sleepLoc
+      wait.make(inv.regen.onSleepCR)
+    end -- if
+
   else
-    check (Send("sleep"))
+    check (Send("sleep " .. (sleepLoc or "")))
   end -- if
 
-  return DRL_RET_SUCCESS
+  return retval
 end -- inv.regen.onSleep
 
 
 function inv.regen.onSleepCR()
+
+  if (inv.regen.pkg == nil) then
+    dbot.error("inv.regen.onSleepCR: regen package is nil!?!")
+    return DRL_RET_INTERNAL_ERROR
+  end -- if
+
+  local sleepCmd = "sleep " .. inv.regen.pkg.sleepLoc
 
   -- First look if the user has at least one item providing the regeneration effect.  Get an ID array
   -- for all regen items (currently just regen rings have this effect.)
@@ -17690,14 +17720,16 @@ function inv.regen.onSleepCR()
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.regen.onSleep: Failed to find items with regeneration effect: " ..
               dbot.retval.getString(retval))
-    check (Send("sleep"))
+    check (Send(sleepCmd))
+    inv.regen.pkg = nil
     return retval
   end -- if
 
   -- If the user doesn't have a regen ring, we are done.  Go to sleep as normal and return.
   if (#regenIdArray == 0) then
     dbot.info("Skipping regen auto-wear when sleeping: no items with regeneration effect found")
-    check (Send("sleep"))
+    check (Send(sleepCmd))
+    inv.regen.pkg = nil
     return DRL_RET_MISSING_ENTRY
   end -- if
 
@@ -17706,7 +17738,8 @@ function inv.regen.onSleepCR()
   for _, objId in ipairs(regenIdArray) do
     if inv.items.isWorn(objId) then
       dbot.debug("Skipping regen auto-wear when sleeping: You are already wearing a regen item")
-      check (Send("sleep"))
+      check (Send(sleepCmd))
+      inv.regen.pkg = nil
       return DRL_RET_SUCCESS
     end -- if
   end -- if
@@ -17770,8 +17803,9 @@ function inv.regen.onSleepCR()
 
   -- Don't forget to actually go to sleep now...We use Send() instead of one of the execute functions
   -- because we don't want our alias to catch this sleep and translate it into another onSleep() call.
-  check (Send("sleep"))
+  check (Send(sleepCmd))
 
+  inv.regen.pkg = nil
   return retval
 
 end -- inv.regen.onSleepCR

@@ -1,6 +1,13 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0031] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed @Cregen@W mode bug that prevented you from sleeping on a piece of furniture]]
+  }
+}
+
 dbot.changelog[2.0030] =
 {
   { change = drlDbotChangeLogTypeNew,
