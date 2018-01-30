@@ -1,6 +1,13 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0032] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed @Cregen@W mode bug that mistook leaving combat for waking up.  Oops.]]
+  }
+}
+
 dbot.changelog[2.0031] =
 {
   { change = drlDbotChangeLogTypeFix,

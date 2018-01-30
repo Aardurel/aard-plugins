@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0031"
+   version="2.0032"
    >
 <description trim="y">
 <![CDATA[
@@ -17820,6 +17820,11 @@ end -- inv.regen.onWake
 
 function inv.regen.onWakeCR()
 
+  -- If the regen mode isn't enabled or if there is nothing to swap back, don't do anything here
+  if (inv.config.table.isRegenEnabled == false) or (inv.config.table.regenOrigObjId == 0) then
+    return DRL_RET_SUCCESS
+  end -- if
+
   -- Spin until either we time out or we detect the dinv is initialized
   local totTime = 0
   local timeout = 5
@@ -17844,7 +17849,8 @@ function inv.regen.onWakeCR()
   timeout = 5
   local retval = DRL_RET_TIMEOUT
   while (totTime <= timeout) do
-    if dbot.gmcp.stateIsActive() then
+    local state = dbot.gmcp.getState()
+    if (state == dbot.stateActive) or (state == dbot.stateCombat) then
       retval = DRL_RET_SUCCESS
       break
     end -- if
@@ -17853,7 +17859,7 @@ function inv.regen.onWakeCR()
   end -- while
 
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.regen.onWakeCR: timed out waiting for GMCP to detect that we are awake")
+    dbot.debug("inv.regen.onWakeCR: timed out waiting for GMCP to detect that we are awake")
     return retval
   end -- if
 
