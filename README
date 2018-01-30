@@ -63,9 +63,10 @@ Usage
 
   Advanced options
     dinv backup [list | create | delete | restore] <backup name>
-    dinv reset [list | confirm] <module names | all>
     dinv forget <query>
     dinv notify [none | light | standard | all]
+    dinv regen [on | off]
+    dinv reset [list | confirm] <module names | all>
     dinv cache [reset | size] [recent | frequent | custom | all] <# entries>
     dinv tags <names | all> [on | off]
     dinv reload

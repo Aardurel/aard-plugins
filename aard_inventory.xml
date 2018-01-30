@@ -52,6 +52,7 @@ inv.tags      : Module to manage displaying terminating tags when a command comp
 inv.consume   : Module to manage buying, storing, and using consumable items (e.g., potions, pills)
 inv.portal    : Module to manage using portals from your inventory
 inv.pass      : Module to use area passes (not keys)
+inv.regen     : Module to auto-wear a regen ring (if possible) when sleeping
 
 
 Durel's Bag-of-Tricks (dbot) Layout
@@ -148,10 +149,11 @@ Usage
 
   Advanced options
     dinv backup [list | create | delete | restore] <backup name>
-    dinv reset [list | confirm] <module names | all>
     dinv forget <query>
     dinv ignore [on | off] <keyring | container relative name>
     dinv notify [none | light | standard | all]
+    dinv regen [on | off]
+    dinv reset [list | confirm] <module names | all>
     dinv cache [reset | size] [recent | frequent | custom | all] <# entries>
     dinv tags <names | all> [on | off]
     dinv reload
@@ -599,6 +601,26 @@ Feature Wishlist
   </alias>
 
   <alias
+   script="inv.cli.regen.fn"
+   match="^[ ]*dinv[ ]+regen[ ]+(on|off)[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.regen.onSleep"
+   match="^[ ]*(sl|sle|slee|sleep)[ ]*"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
    script="inv.cli.debug.fn"
    match="^[ ]*dinv[ ]+debug(.*)$"
    enabled="y"
@@ -803,6 +825,9 @@ function OnPluginTelnetOption(msg)
                   dbot.retval.getString(retval))
       end -- if
     end -- if
+
+    -- Kick off a co-routine to handle any post-wakeup operations (e.g., put regen ring away, etc.)
+    inv.regen.onWake()
 
   elseif (msg == string.char(100, 4)) then
     dbot.debug("Player is AFK!")
@@ -1391,6 +1416,15 @@ function inv.config.load()
   if (inv.config.table.doIgnoreKeyring == nil) then
     inv.config.table.doIgnoreKeyring = false -- default value
   end -- if
+  if (inv.config.table.isRegenEnabled == nil) then
+    inv.config.table.isRegenEnabled = false -- default value
+  end -- if
+  if (inv.config.table.regenOrigObjId == nil) then
+    inv.config.table.regenOrigObjId = 0
+  end -- if
+  if (inv.config.table.regenNewObjId == nil) then
+    inv.config.table.regenNewObjId = 0
+  end -- if
 
   return retval
 
@@ -1426,6 +1460,9 @@ function inv.config.new()
            isBackupEnabled = true,
            isBuildExecuted = false,
            doIgnoreKeyring = false,
+           isRegenEnabled  = false,
+           regenOrigObjId  = 0,
+           regenNewObjId   = 0,
            refreshPeriod   = 0,
            refreshEagerSec = 0
          }
@@ -1579,10 +1616,11 @@ function inv.cli.fullUsage()
 
   dbot.print("\n@C  Advanced options@w")
   inv.cli.backup.usage()
-  inv.cli.reset.usage()
   inv.cli.forget.usage()
   inv.cli.ignore.usage()
   inv.cli.notify.usage()
+  inv.cli.regen.usage()
+  inv.cli.reset.usage()
   inv.cli.cache.usage()
   inv.cli.tags.usage()
   inv.cli.reload.usage()
@@ -3590,6 +3628,61 @@ Examples:
 ]])
 
 end -- inv.cli.notify.examples
+
+
+inv.cli.regen = {}
+function inv.cli.regen.fn(name, line, wildcards)
+  local regenMode = wildcards[1] or ""
+
+  if (regenMode == "on") then
+    dbot.info("Regen mode is @GENABLED@W")
+    inv.config.table.isRegenEnabled = true
+  elseif (regenMode == "off") then
+    dbot.info("Regen mode is @RDISABLED@W")
+    inv.config.table.isRegenEnabled = false
+  else
+    dbot.warn("inv.cli.regen.fn: Invalid regen mode \"" .. (regenMode or "nil") .. "\"")
+  end -- if
+
+  return inv.config.save()
+
+end -- inv.cli.regen.fn
+
+
+function inv.cli.regen.usage()
+  dbot.print("@W    " .. pluginNameCmd .. " regen @G[on | off]@w")
+end -- inv.cli.regen.usage
+
+
+function inv.cli.regen.examples()
+  dbot.print("@W\nUsage:\n")
+  inv.cli.regen.usage()
+
+  dbot.print(
+[[@W
+The regeneration effect while sleeping is very helpful for your recovery.  This mode checks if
+you currently are wearing a regeneration ring and if you have one available to you.  If you have
+one available and you are not yet wearing anything providing the regeneration effect, the @Cregen@W
+mode will auto-wear your regeneration ring for you when you sleep.  When you wake, dinv will
+automatically swap back your previous ring and store the regeneration ring.
+
+If you do not have any items providing regeneration, this mode will not do anything.  Similarly,
+if you have multiple regeneration rings, this mode will only attempt to wear one of them when you
+sleep.  Your regeneration ring(s) can be in your main inventory or in any open container.  Dinv 
+will find them and put them back when it is done.
+
+Note: This mode will not detect when you sleep if you use an alias to sleep.  In other words, if
+you alias sleep to "goNightNight" and then type "goNightNight" you won't auto-wear your regen ring.
+
+Example:
+  1) Enable regen mode
+     "@Gdinv regen on@W"
+
+  2) Disable regen mode
+     "@Gdinv regen off@W"
+]])
+
+end -- inv.cli.regen.examples
 
 
 inv.cli.forget = {}
@@ -17555,6 +17648,222 @@ function inv.pass.use(passNameOrId, useTimeSec)
   return retval
 end -- inv.pass.use
 
+
+----------------------------------------------------------------------------------------------------
+--
+-- Module to manage sleep/wake behaviors such as auto-wearing a regen ring when sleeping
+-- Note: Thanks to Moradin for suggesting this mode
+--
+-- dinv regen [on | off]
+--
+-- inv.regen.onSleep
+-- inv.regen.onSleepCR
+--
+-- inv.regen.onWake
+-- inv.regen.onWakeCR
+----------------------------------------------------------------------------------------------------
+
+inv.regen = {}
+
+-- Pick the lfinger location by default (yes, we should technically look at the regen item's wearable
+-- location and derive it from there...but currently only regen rings are available and we can add
+-- that later if necessary).
+inv.regen.wearableLoc = "lfinger"
+
+
+function inv.regen.onSleep()
+  if (inv.config.table.isRegenEnabled) then
+    wait.make(inv.regen.onSleepCR)
+  else
+    check (Send("sleep"))
+  end -- if
+
+  return DRL_RET_SUCCESS
+end -- inv.regen.onSleep
+
+
+function inv.regen.onSleepCR()
+
+  -- First look if the user has at least one item providing the regeneration effect.  Get an ID array
+  -- for all regen items (currently just regen rings have this effect.)
+  local regenIdArray, retval = inv.items.searchCR("affectmods regeneration")
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.regen.onSleep: Failed to find items with regeneration effect: " ..
+              dbot.retval.getString(retval))
+    check (Send("sleep"))
+    return retval
+  end -- if
+
+  -- If the user doesn't have a regen ring, we are done.  Go to sleep as normal and return.
+  if (#regenIdArray == 0) then
+    dbot.info("Skipping regen auto-wear when sleeping: no items with regeneration effect found")
+    check (Send("sleep"))
+    return DRL_RET_MISSING_ENTRY
+  end -- if
+
+  -- Check worn equipment to see if we are wearing any of the items that provide the regen effect.  If
+  -- we are already wearing an item providing regeneration, there's nothing we need to do here.
+  for _, objId in ipairs(regenIdArray) do
+    if inv.items.isWorn(objId) then
+      dbot.debug("Skipping regen auto-wear when sleeping: You are already wearing a regen item")
+      check (Send("sleep"))
+      return DRL_RET_SUCCESS
+    end -- if
+  end -- if
+
+  -- We aren't already wearing a regen item and at least one is available.  Grab the first one in
+  -- the array.  It's as good as any other :)
+  local regenId = regenIdArray[1]
+  local regenName = inv.items.getField(regenId, invFieldColorName) or "Unknown"
+
+  -- Find what item (if any) is at the target location
+  local origObjName = "Uninitialized"
+  local origObjId
+  for objId, _ in pairs(inv.items.table) do
+    local objLoc = inv.items.getField(objId, invFieldObjLoc) or ""
+    if (objLoc == inv.regen.wearableLoc) then
+      origObjId = objId
+      origObjName = inv.items.getField(objId, invFieldColorName) or "Unknown"
+
+      -- Remember what item was removed so that we can put it back in inv.regen.onWake()
+      inv.config.table.regenOrigObjId = objId
+      inv.config.table.regenNewObjId  = regenId
+      inv.config.save()
+    end -- if
+  end -- for
+  if (origObjId == nil) then
+    dbot.debug("No item is at the target regen location")
+  else
+    dbot.debug("Replacing \"" .. origObjName .. "@W\" with \"" .. regenName .. "@W\"")
+  end -- if
+
+  -- Create a list of commands to store the old item, get the regen item, and then wear the regen item
+  local commandArray = dbot.execute.new()
+
+  -- Store the old item if it exists (do nothing if there is nothing at that slot)
+  if (origObjId ~= nil) then
+    retval = inv.items.storeItem(origObjId, commandArray)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("Failed to store item \"" .. origObjName .. "@W\": " .. dbot.retval.getString(retval))
+      commandArray = dbot.execute.new()
+    end -- if
+  end -- if
+
+  -- Get and wear the regen item
+  retval = inv.items.getItem(regenId, commandArray)
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.regen.onSleepCR: Failed to get item \"" .. regenName .. "@W\": " ..
+              dbot.retval.getString(retval))
+  else
+    retval = inv.items.wearItem(regenId, inv.regen.wearableLoc, commandArray)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.regen.onSleepCR: Failed to wear item \"" .. regenName .. "@W\": " ..
+                dbot.retval.getString(retval))
+    else
+      -- Flush the commands to the mud and wait for confirmation they are complete
+      retval = dbot.execute.safe.blocking(commandArray, nil, nil, dbot.callback.default, 10)
+      if (retval ~= DRL_RET_SUCCESS) then
+        dbot.warn("inv.regen.onSleepCR: Failed to auto-wear regen item: " .. dbot.retval.getString(retval))
+      end -- if
+    end -- if
+  end -- if
+
+  -- Don't forget to actually go to sleep now...We use Send() instead of one of the execute functions
+  -- because we don't want our alias to catch this sleep and translate it into another onSleep() call.
+  check (Send("sleep"))
+
+  return retval
+
+end -- inv.regen.onSleepCR
+
+
+function inv.regen.onWake()
+  wait.make(inv.regen.onWakeCR)
+
+  return DRL_RET_SUCCESS
+end -- inv.regen.onWake
+
+
+function inv.regen.onWakeCR()
+
+  -- Spin until either we time out or we detect the dinv is initialized
+  local totTime = 0
+  local timeout = 5
+  local retval = DRL_RET_TIMEOUT
+  while (totTime <= timeout) do
+    if (inv.init.initializedActive) then
+      retval = DRL_RET_SUCCESS
+      break
+    end -- if
+    wait.time(drlSpinnerPeriodDefault)
+    totTime = totTime + drlSpinnerPeriodDefault
+  end -- while
+
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.regen.onWakeCR: timed out waiting for dinv initialization")
+    return retval
+  end -- if
+
+  -- Spin until GMCP knows that we are out of sleeping mode.  It can take a little time for GMCP
+  -- to notice and update its state.
+  totTime = 0
+  timeout = 5
+  local retval = DRL_RET_TIMEOUT
+  while (totTime <= timeout) do
+    if dbot.gmcp.stateIsActive() then
+      retval = DRL_RET_SUCCESS
+      break
+    end -- if
+    wait.time(drlSpinnerPeriodDefault)
+    totTime = totTime + drlSpinnerPeriodDefault
+  end -- while
+
+  if (retval ~= DRL_RET_SUCCESS) then
+    dbot.warn("inv.regen.onWakeCR: timed out waiting for GMCP to detect that we are awake")
+    return retval
+  end -- if
+
+  -- If regen mode is enabled and we have a regen ring to swap out, do it!
+  if (inv.config.table.isRegenEnabled) and (inv.config.table.regenOrigObjId ~= 0) then
+
+    -- Create a list of commands to store the regen item and get + wear the original item
+    local commandArray = dbot.execute.new()
+    local regenId = inv.config.table.regenNewObjId
+    local origId  = inv.config.table.regenOrigObjId
+
+    -- Store the regen item
+    retval = inv.items.storeItem(regenId, commandArray)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.regen.onWakeCR: Failed to store regen item: " .. dbot.retval.getString(retval))
+      commandArray = dbot.execute.new()
+    end -- if
+
+    -- Get and wear the original item
+    retval = inv.items.getItem(origId, commandArray)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.regen.onWakeCR: Failed to get original item: " .. dbot.retval.getString(retval))
+    else
+      retval = inv.items.wearItem(origId, inv.regen.wearableLoc, commandArray)
+      if (retval ~= DRL_RET_SUCCESS) then
+        dbot.warn("inv.regen.onWakeCR: Failed to wear original item: " .. dbot.retval.getString(retval))
+      else
+        -- Flush the commands to the mud and wait for confirmation they are complete
+        retval = dbot.execute.safe.blocking(commandArray, nil, nil, dbot.callback.default, 10)
+        if (retval ~= DRL_RET_SUCCESS) then
+          dbot.warn("inv.regen.onWakeCR: Failed to auto-wear item: " .. dbot.retval.getString(retval))
+        end -- if
+      end -- if
+    end -- if
+    
+  end -- if
+
+  -- We are done with this sleep/wake phase.  Clear out which items to swap.
+  inv.config.table.regenOrigObjId = 0
+  inv.config.table.regenNewObjId  = 0
+  inv.config.save()
+
+  return retval
+end -- inv.regen.onWakeCR
 
 
 --[[
