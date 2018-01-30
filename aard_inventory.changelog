@@ -1,6 +1,13 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0033] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Eliminated conflict between @Cregen@W mode and custom exits that require sleeping]]
+  }
+}
+
 dbot.changelog[2.0032] =
 {
   { change = drlDbotChangeLogTypeFix,
