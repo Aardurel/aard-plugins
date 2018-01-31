@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0033"
+   version="2.0034"
    >
 <description trim="y">
 <![CDATA[
@@ -612,7 +612,17 @@ Feature Wishlist
 
   <alias
    script="inv.cli.regen.fn2"
-   match="^[ ]*(sleep|slee|sle|sl)([ ]+[^ ]+)?[ ]*"
+   match="^[ ]*(sleep[ ]*$|slee[ ]*$|sle[ ]*$|sl[ ]*$)"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.regen.fn2"
+   match="^[ ]*^[ ]*(sleep|slee|sle|sl)([ ]+[^ ]+)[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -17686,11 +17696,9 @@ function inv.regen.onSleep(sleepLoc)
 
   local retval = DRL_RET_SUCCESS
 
-  local sleepCmd
-  if (sleepLoc == nil) or (sleepLoc == "") then
-    sleepCmd = "sleep"
-  else
-    sleepCmd = "sleep " .. sleepLoc
+  local sleepCmd = "sleep"
+  if (sleepLoc ~= nil) and (sleepLoc ~= "") then
+    sleepCmd = sleepCmd .. sleepLoc
   end -- if
 
   if (inv.config.table.isRegenEnabled) then
@@ -17705,7 +17713,6 @@ function inv.regen.onSleep(sleepLoc)
     end -- if
 
   else
-dbot.info("FIXME DEBUG: sending sleep command \"" .. sleepCmd .. "\"")
     check (Send(sleepCmd))
   end -- if
 

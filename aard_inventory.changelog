@@ -1,6 +1,14 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0034] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed yet another conflict between @Cregen@W mode and cexits.  This is starting
+	   to get embarassing...]]
+  }
+}
+
 dbot.changelog[2.0033] =
 {
   { change = drlDbotChangeLogTypeFix,
