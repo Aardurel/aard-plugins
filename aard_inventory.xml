@@ -13320,6 +13320,8 @@ end -- inv.score.set
 -- inv.set.getStats(set, level)
 -- inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZero)
 --
+-- inv.set.isItemInSet(objId, set)
+--
 -- inv.set.compare(priorityName, rname, endTag)
 -- inv.set.compareCR()
 --
@@ -14466,6 +14468,23 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
 end -- inv.set.setDisplay
 
 
+function inv.set.isItemInSet(objId, set)
+  if (objId == nil) or (set == nil) then
+    return false
+  end -- if
+
+  -- Run through all wearable locations to see if the object is at that location.  TODO: it would
+  -- be a tiny bit faster to check only locations an item could be at.
+  for wearLoc, wearInfo in pairs(set) do
+    if (wearInfo ~= nil) and (objId == wearInfo.id) then
+      return true
+    end -- if
+  end -- for
+
+  return false
+end -- inv.set.isItemInSet
+
+
 inv.set.comparePkg = nil
 function inv.set.compare(priorityName, relativeName, endTag)
   if (priorityName == nil) or (priorityName == "") then
@@ -14602,7 +14621,9 @@ function inv.set.compareCR()
         local s1 = inv.set.table[inv.set.comparePkg.priorityName][level]
         local s2 = tmpAnalysis[level]
 
-        if (s1 ~= nil) and (s2 ~= nil) then
+        -- If both analyses exist and the compared item is used at this level in the set, then display
+        -- the analysis differences at this level
+        if (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
           didFindStat = inv.set.displayDiff(s1, s2, level, string.format("Level %3d: ", level), doDisplayHeader)
           if (didFindStat) then
             doDisplayHeader = false
@@ -14808,7 +14829,9 @@ function inv.set.covetCR()
       local s1 = tmpAnalysis[level]
       local s2 = inv.set.table[inv.set.covetPkg.priorityName][level]
 
-      if (s1 ~= nil) and (s2 ~= nil) then
+      -- If both analyses exist and the coveted item is used at this level in the set, then display
+      -- the analysis differences at this level
+      if (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
         didFindStat = inv.set.displayDiff(s1, s2, level, string.format("Level %3d: ", level), doDisplayHeader)
         if (didFindStat) then
           doDisplayHeader = false
