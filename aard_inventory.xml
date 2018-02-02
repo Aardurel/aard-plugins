@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0034"
+   version="2.0035"
    >
 <description trim="y">
 <![CDATA[
@@ -17785,14 +17785,14 @@ function inv.regen.onSleepCR()
     dbot.debug("Replacing \"" .. origObjName .. "@W\" with \"" .. regenName .. "@W\"")
   end -- if
 
-  -- Create a list of commands to store the old item, get the regen item, and then wear the regen item
+  -- Create a list of commands to remove the old item, get the regen item, and then wear the regen item
   local commandArray = dbot.execute.new()
 
-  -- Store the old item if it exists (do nothing if there is nothing at that slot)
+  -- Remove the old item if it exists (do nothing if there is nothing at that slot)
   if (origObjId ~= nil) then
-    retval = inv.items.storeItem(origObjId, commandArray)
+    retval = inv.items.getItem(origObjId, commandArray)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("Failed to store item \"" .. origObjName .. "@W\": " .. dbot.retval.getString(retval))
+      dbot.warn("Failed to get item \"" .. origObjName .. "@W\": " .. dbot.retval.getString(retval))
       commandArray = dbot.execute.new()
     end -- if
   end -- if
