@@ -926,6 +926,9 @@ function setPending(msg)
 end -- setPending
 
 
+drlLastCmdTime = os.time()
+drlIdleTime = 60 * 15 -- 15 minutes of no commands --> we are idle
+drlIsIdle = false
 function OnPluginSend(msg)
 
   local baseCommand
@@ -950,6 +953,18 @@ function OnPluginSend(msg)
 
     check (SendNoEcho(baseCommand))
     return false
+  end -- if
+
+  -- We have a valid command entered by the user and not something that the plugin is running
+  -- in the background.  If we were in the idle state, drop out of idle and restart the statBonus
+  -- background thread.
+  drlLastCmdTime = dbot.getTime()
+  if drlIsIdle then
+    check (AddTimer(inv.statBonus.timer.name, 0, inv.statBonus.timer.min, inv.statBonus.timer.sec, "",
+                    timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
+                    "inv.statBonus.set"))
+    dbot.debug("Restarting stat bonus thread.  We are out of idle!")
+    drlIsIdle = false
   end -- if
 
   -- If we are at this point, then we know that we don't have a "bypass" command.  This means
@@ -15875,7 +15890,7 @@ end -- inv.statBonus.setSetupFn
 inv.statBonus.timer      = {}
 inv.statBonus.timer.name = "drlInvStatBonusTimer"
 inv.statBonus.timer.min  = 5
-inv.statBonus.timer.sec  = 30
+inv.statBonus.timer.sec  = 0
 
 function inv.statBonus.timer.update(min, sec)
   min = tonumber(min or "")
@@ -15887,9 +15902,18 @@ function inv.statBonus.timer.update(min, sec)
 
   dbot.debug("Scheduling stat bonus timer in " .. min .. " minutes, " .. sec .. " seconds")
 
-  check (AddTimer(inv.statBonus.timer.name, 0, min, sec, "",
-                  timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
-                  "inv.statBonus.set"))
+  -- If we are idle, don't keep scanning the spellup stats.  They most likely aren't accurate at this
+  -- point and running the stats could keep someone logged in when they'd prefer to idle out.
+  local currentTime = dbot.getTime()
+  if (currentTime - drlLastCmdTime > drlIdleTime) then
+    dbot.debug("Halting statBonus thread.  We are idle!")
+    drlIsIdle = true
+  else
+    check (AddTimer(inv.statBonus.timer.name, 0, min, sec, "",
+                    timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
+                    "inv.statBonus.set"))
+  end -- if
+
 end -- inv.statBonus.timer.update
 
 
