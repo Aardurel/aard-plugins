@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0035"
+   version="2.0036"
    >
 <description trim="y">
 <![CDATA[
@@ -5047,6 +5047,21 @@ function inv.items.init.atInstall()
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
   check (EnableTrigger(inv.items.trigger.itemIdStartName, false)) -- default to off
 
+  -- Trigger on an identification of "A Fantasy Series Card Collector Case", a Winds of Fate epic item.
+  -- This is a unique item that claims to be a container but it actually isn't.  It can even be placed
+  -- inside other containers.  It also has varying output when identified based on what cards the user
+  -- has assigned to it as part of the Winds' epic.
+  check (AddTriggerEx(inv.items.trigger.suppressWindsName,
+                      "^(" ..
+                         "You have the following cards stored:.*|"     ..
+                         ".*Fantasy Series Collector\'s Card.*|"       ..
+                         "Total: [0-9]+.*"                             ..
+                      ")$",
+                      "",
+                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
+                      custom_colour.Custom11, 0, "", "", sendto.script, 0))
+  check (EnableTrigger(inv.items.trigger.suppressWindsName, false)) -- default to off
+
   -- Trigger on one of the detail/stat lines of an item's id report (lore, identify, bid, etc.)
   check (AddTriggerEx(inv.items.trigger.itemIdStatsName,
                       "^(" ..
@@ -5251,6 +5266,7 @@ function inv.items.fini(doSaveState)
   dbot.deleteTrigger(inv.items.trigger.invmonName)
   dbot.deleteTrigger(inv.items.trigger.invitemName)
   dbot.deleteTrigger(inv.items.trigger.itemIdStartName)
+  dbot.deleteTrigger(inv.items.trigger.suppressWindsName)
   dbot.deleteTrigger(inv.items.trigger.itemIdStatsName)
   dbot.deleteTrigger(inv.items.trigger.suppressIdMsgName)
   dbot.deleteTrigger(inv.items.trigger.itemDataStartName)
@@ -5419,6 +5435,7 @@ end -- inv.items.getStatField
 
 
 function inv.items.setStatField(objId, field, value) 
+
   assert(objId ~= nil, "inv.items.setStatField: nil objId parameter")
   assert(field ~= nil, "inv.items.setStatField: nil field parameter for item " .. objId)
   assert(value ~= nil, "inv.items.setStatField: nil value parameter for item " .. objId)
@@ -6289,19 +6306,21 @@ end -- inv.items.identifyItem
 
 
 function inv.items.identifyItemSetupFn()
-  EnableTrigger(inv.items.trigger.itemIdStartName, true)
+  EnableTrigger(inv.items.trigger.suppressWindsName, true)
+  EnableTrigger(inv.items.trigger.itemIdStartName,   true)
 end -- inv.items.identifyItemSetupFn
 
 
 function inv.items.identifyAtomicSetup()
-  EnableTrigger(inv.items.trigger.wearName,        true)
-  EnableTrigger(inv.items.trigger.removeName,      true)
-  EnableTrigger(inv.items.trigger.getName,         true)
-  EnableTrigger(inv.items.trigger.putName,         true)
-  EnableTrigger(inv.items.trigger.getKeyringName,  true)
-  EnableTrigger(inv.items.trigger.putKeyringName,  true)
-  EnableTrigger(inv.items.trigger.wearSpecialName, true)
-  EnableTrigger(inv.items.trigger.itemIdStartName, true)
+  EnableTrigger(inv.items.trigger.wearName,          true)
+  EnableTrigger(inv.items.trigger.removeName,        true)
+  EnableTrigger(inv.items.trigger.getName,           true)
+  EnableTrigger(inv.items.trigger.putName,           true)
+  EnableTrigger(inv.items.trigger.getKeyringName,    true)
+  EnableTrigger(inv.items.trigger.putKeyringName,    true)
+  EnableTrigger(inv.items.trigger.wearSpecialName,   true)
+  EnableTrigger(inv.items.trigger.itemIdStartName,   true)
+  EnableTrigger(inv.items.trigger.suppressWindsName, true)
 end -- inv.items.identifyAtomicSetup
 
 
@@ -9142,6 +9161,8 @@ inv.items.trigger.itemIdStartName = "drlInvItemsTriggerIdStart"
 inv.items.trigger.itemIdStatsName = "drlInvItemsTriggerIdStats"
 inv.items.trigger.itemIdEndName   = "drlInvItemsTriggerIdEnd"
 
+inv.items.trigger.suppressWindsName = "drlInvItemsTriggerSuppressWindsCase" -- Winds of Fate epic container
+
 inv.items.trigger.suppressIdMsgName = "drlInvItemsTriggerSuppressIdMsg" -- suppress output for lore, etc.
 
 
@@ -9763,8 +9784,9 @@ function inv.items.trigger.itemIdEnd()
   dbot.deleteTimer(inv.items.timer.idTimeoutName)
 
   -- We are done id'ing this item so disable the item's trigger
-  EnableTrigger(inv.items.trigger.itemIdStartName, false)
-  EnableTrigger(inv.items.trigger.itemIdStatsName, false)
+  EnableTrigger(inv.items.trigger.itemIdStartName,   false)
+  EnableTrigger(inv.items.trigger.itemIdStatsName,   false)
+  EnableTrigger(inv.items.trigger.suppressWindsName, false)
 
   -- Because I'm paranoid...
   if (inv.items.identifyPkg == nil) then
@@ -10241,10 +10263,11 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
   -- will be re-read and updated automatically the next time the plugin is loaded.  There's no 
   -- reason to pay for the overhead of writing out the inventory table state right now.
   if ((action == invmonActionTakenOutOfContainer) or (action == invmonActionPutIntoContainer)) and
+     (inv.items.getField(containerId, invFieldIdentifyLevel) ~= nil) and
      (inv.items.getField(containerId, invFieldIdentifyLevel) ~= invIdLevelNone) then
-    inv.items.setStatField(containerId, invStatFieldHolding, holding)
-    inv.items.setStatField(containerId, invStatFieldItemsInside, itemsInside)
-    inv.items.setStatField(containerId, invStatFieldTotWeight, totWeight)
+    inv.items.setStatField(containerId, invStatFieldHolding, (holding or 0))
+    inv.items.setStatField(containerId, invStatFieldItemsInside, (itemsInside or 0))
+    inv.items.setStatField(containerId, invStatFieldTotWeight, (totWeight or 0))
   end -- if
 
   return retval
@@ -18940,6 +18963,8 @@ end -- dbot.error
 --  dbot.gmcp.stateIsInCombat
 --  dbot.gmcp.stateIsActive
 --
+--  dbot.gmcp.getConfig
+--
 ----------------------------------------------------------------------------------------------------
 
 dbot.gmcp      = {}
@@ -19202,6 +19227,91 @@ end -- dbot.gmcp.stateIsInCombat()
 function dbot.gmcp.stateIsActive()
   return (dbot.gmcp.getState() == dbot.stateActive)
 end -- dbot.gmcp.stateIsActive()
+
+
+--[[ Available gmcpconfig modes
+   Autoexit,
+   Autoloot,
+   Autorecall,
+   Autosac,
+   Autosave,
+   Autotick,
+   Bprompt,
+   Catchtells,
+   Color,
+   Compact,
+   Deaf,
+   Echocommands,
+   Invmon,
+   Maprun,
+   Noexp,
+   Nomap,
+   Noobjlevels, 
+   Nopagerepeat,
+   Noprefix,
+   Nopretitles,
+   Noweather,
+   Prompt,
+   Promptflags,
+   Quiet,
+   Rawcolors,
+   Savetells,
+   Shortflags,
+   Shortmap,
+   Statmon,
+   Strictpager,
+   Strictsocials,
+   Tickinfo,
+   Xterm
+--]]
+-- Returns boolean representing "YES" or "NO" values from the mud for the specified mode
+function dbot.gmcp.getConfig(configMode)
+  local retval = DRL_RET_SUCCESS
+  local configVal = false
+
+  if (configMode == nil) or (configMode == "") then
+    dbot.warn("dbot.gmcp.getConfig: Missing configMode")
+    return configVal, DRL_RET_INVALID_PARAM
+  end -- if
+
+  check (Execute("sendgmcp config " .. configMode))
+
+  -- TODO
+  -- Ok, this is really awkward.  It takes some (unknown?) amount of time for gmcp to update once
+  -- we send the config request.  If we immediately read gmcp we always get the previous value for
+  -- the specified config mode.  So...how long do we need to wait?!?  Maybe gmcp notifies us through
+  -- a gmcp broadcast?  For now we use this incredibly ugly kludge and just stall for half of a second
+  -- and assume gmcp is ready after that.  
+  wait.time(.5)
+
+  -- Spin until gmcp gives us the value
+  local totTime = 0
+  local timeout = 5
+  retval = DRL_RET_TIMEOUT
+  while (totTime <= timeout) do
+    local gmcpValue = gmcp("config " .. configMode)
+    if (gmcpValue == "YES") then 
+      configVal = true
+      retval = DRL_RET_SUCCESS
+      break
+    elseif (gmcpValue == "NO") then
+      configVal = false
+      retval = DRL_RET_SUCCESS
+      break
+    end -- if
+
+    wait.time(drlSpinnerPeriodDefault)
+    totTime = totTime + drlSpinnerPeriodDefault
+  end -- while
+
+  if (retval == DRL_RET_TIMEOUT) then
+    dbot.warn("dbot.gmcp.getConfig: Timed out waiting for response from gmcp for config mode \"" ..
+              configMode .. "\"")
+  end -- if
+
+  return configVal, retval
+
+end -- dbot.gmcp.getConfig
 
 
 ----------------------------------------------------------------------------------------------------
@@ -19964,8 +20074,6 @@ end -- dbot.emptyLine.enable
 -- dbot.prompt.show() -- enables both the prompt and empty lines
 -- dbot.prompt.getStatusCR()
 --
--- dbot.prompt.trigger.onEnable()
--- dbot.prompt.trigger.onDisable()
 -- dbot.prompt.trigger.onToggle(msg)
 --
 ----------------------------------------------------------------------------------------------------
@@ -19974,8 +20082,6 @@ dbot.prompt         = {}
 dbot.prompt.init    = {}
 dbot.prompt.trigger = {}
 
-dbot.prompt.trigger.onEnableName      = "drlDbotPromptTriggerOnEnable"
-dbot.prompt.trigger.onDisableName     = "drlDbotPromptTriggerOnDisable"
 dbot.prompt.trigger.onToggleName      = "drlDbotPromptTriggerOnToggle"
 
 dbot.prompt.isEnabled = true -- by default, assume the prompt is enabled if we can't get the real status
@@ -19984,31 +20090,6 @@ dbot.prompt.isEnabled = true -- by default, assume the prompt is enabled if we c
 function dbot.prompt.init.atActive()
   local retval = DRL_RET_SUCCESS
 
-  -- Detect when the prompt is enabled
-  check (AddTriggerEx(dbot.prompt.trigger.onEnableName,
-                      "^You will now see prompts.$",
-                      "dbot.prompt.trigger.onEnable()",
-                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11, 0, "", "", sendto.script, 0))
-  check (EnableTrigger(dbot.prompt.trigger.onEnableName, false)) -- default to off
-
-  -- Detect when the prompt is disabled
-  check (AddTriggerEx(dbot.prompt.trigger.onDisableName,
-                      "^You will no longer see prompts.$",
-                      "dbot.prompt.trigger.onDisable()",
-                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11, 0, "", "", sendto.script, 0))
-  check (EnableTrigger(dbot.prompt.trigger.onDisableName, false)) -- default to off
-
-  -- Detect when the prompt is toggled.  This is very similar to the onEnableName and the
-  -- onDisableName triggers above, but we don't suppress the output in this trigger like we
-  -- do with those triggers.  That is because it tracks when the user manually toggles the
-  -- prompt and we don't want to hide that from the user.
-  --
-  -- The prompt code runs in two stages.  First, we toggle the prompt twice in the background
-  -- and suppress the output so that we can detect if the prompt is enabled without the user
-  -- knowing that we did anything.  Once we complete that, then we enable the onToggle trigger.
-  -- The onToggle trigger is never active at the same time as the onEnable or onDisable triggers.
   check (AddTriggerEx(dbot.prompt.trigger.onToggleName,
                       "^(You will no longer see prompts|You will now see prompts).*$",
                       "dbot.prompt.trigger.onToggle(\"%1\")",
@@ -20016,9 +20097,7 @@ function dbot.prompt.init.atActive()
                       custom_colour.NoChange, 0, "", "", sendto.script, 0))
   check (EnableTrigger(dbot.prompt.trigger.onToggleName, false)) -- default to off
 
-  -- We will fill this in when we call dbot.prompt.isEnabledCR.  We need to manually toggle "prompt"
-  -- two times and see what the output is in order to determine what the actual status of the prompt
-  -- is.  We can't do that synchronously here so we kick off a co-routine to get that info.
+  -- We will fill this in when we call dbot.prompt.isEnabledCR
   dbot.prompt.statusEnables = 1
 
   -- The *.init.atActive code runs in a co-routine so we don't need to explicitly kick off another CR here
@@ -20029,8 +20108,6 @@ end -- dbot.prompt.init.atActive
 
 
 function dbot.prompt.fini(doSaveState)
-  dbot.deleteTrigger(dbot.prompt.trigger.onEnableName)
-  dbot.deleteTrigger(dbot.prompt.trigger.onDisableName)
   dbot.deleteTrigger(dbot.prompt.trigger.onToggleName)
 
   dbot.prompt.isEnabled = true
@@ -20088,50 +20165,19 @@ end -- dbot.prompt.show
 
 
 function dbot.prompt.getStatusCR()
-  local retval = DRL_RET_SUCCESS
+  local retval
 
-  dbot.prompt.foundEnable = false
-  dbot.prompt.foundDisable = false
-
-  -- Enable the prompt triggers so that we can catch what happens when we run "prompt"
-  EnableTrigger(dbot.prompt.trigger.onEnableName,  true)
-  EnableTrigger(dbot.prompt.trigger.onDisableName, true)
-
-  -- Disable empty lines while we toggle the prompt so that we don't spew empty lines in the background
-  dbot.emptyLine.disable()
-
-  -- Run "prompt" and see what happens.  Note that we can't run dbot.execute.safe.command() here because
-  -- that could potentially toggle the prompt status and we want to know what is going on right now.
-  check (Send("prompt"))
-  check (Send("prompt"))
-
-  -- Spin until both the enable trigger and disable trigger are detected (both "prompt" commands complete)
-  local totTime = 0
-  local timeout = 60
-  retval = DRL_RET_TIMEOUT
-  while (totTime <= timeout) do
-    if (dbot.prompt.foundEnable == true) and (dbot.prompt.foundDisable == true) then
-      retval = DRL_RET_SUCCESS
-      break
+  dbot.prompt.isEnabled, retval = dbot.gmcp.getConfig("prompt")
+  if (retval == DRL_RET_SUCCESS) then
+    if dbot.prompt.isEnabled then
+      dbot.debug("prompt is @GENABLED@W")
+      dbot.prompt.statusEnables = 1
+    else
+      dbot.debug("prompt is @RDISABLED@W")
+      dbot.prompt.statusEnables = 0
     end -- if
-    wait.time(drlSpinnerPeriodDefault)
-    totTime = totTime + drlSpinnerPeriodDefault
-  end -- while
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("dbot.prompt.getStatusCR: Failed to detect prompt enable/disable: " .. 
-              dbot.retval.getString(retval))
-  end -- if
-
-  EnableTrigger(dbot.prompt.trigger.onEnableName,  false)
-  EnableTrigger(dbot.prompt.trigger.onDisableName, false)
-
-  -- Re-enable empty lines again if we disabled them during the prompt toggling test
-  dbot.emptyLine.enable()
-
-  if dbot.prompt.isEnabled then
-    dbot.prompt.statusEnables = 1
   else
-    dbot.prompt.statusEnables = 0
+    dbot.warn("dbot.prompt.getStatusCR: Failed to get gmcpconfig response")
   end -- if
 
   -- Once we know the current state, we monitor when the user manually toggles the prompt so
@@ -20140,18 +20186,6 @@ function dbot.prompt.getStatusCR()
 
   return retval
 end -- dbot.prompt.getStatusCR
-
-
-function dbot.prompt.trigger.onEnable()
-  dbot.prompt.isEnabled = true
-  dbot.prompt.foundEnable = true
-end -- dbot.prompt.trigger.onEnable
-
-
-function dbot.prompt.trigger.onDisable()
-  dbot.prompt.isEnabled = false
-  dbot.prompt.foundDisable = true
-end -- dbot.prompt.trigger.onDisable
 
 
 function dbot.prompt.trigger.onToggle(msg)
@@ -20187,8 +20221,6 @@ end -- dbot.prompt.trigger.onToggle
 --
 -- dbot.invmon.getStatusCR()
 --
--- dbot.invmon.trigger.onEnable()
--- dbot.invmon.trigger.onDisable()
 -- dbot.invmon.trigger.onToggle(msg)
 --
 ----------------------------------------------------------------------------------------------------
@@ -20199,39 +20231,12 @@ dbot.invmon.trigger = {}
 
 dbot.invmon.isEnabled = true -- by default, assume the invmon is enabled
 
-dbot.invmon.trigger.onEnableName      = "drlDbotInvmonTriggerOnEnable"
-dbot.invmon.trigger.onDisableName     = "drlDbotInvmonTriggerOnDisable"
 dbot.invmon.trigger.onToggleName      = "drlDbotInvmonTriggerOnToggle"
 
 
 function dbot.invmon.init.atInstall()
   local retval = DRL_RET_SUCCESS
 
-  -- Detect when the invmon is enabled
-  check (AddTriggerEx(dbot.invmon.trigger.onEnableName,
-                      "^You will now see inventory update tags.$",
-                      "dbot.invmon.trigger.onEnable()",
-                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11, 0, "", "", sendto.script, 0))
-  check (EnableTrigger(dbot.invmon.trigger.onEnableName, false)) -- default to off
-
-  -- Detect when the invmon is disabled
-  check (AddTriggerEx(dbot.invmon.trigger.onDisableName,
-                      "^You will no longer see inventory update tags.$",
-                      "dbot.invmon.trigger.onDisable()",
-                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11, 0, "", "", sendto.script, 0))
-  check (EnableTrigger(dbot.invmon.trigger.onDisableName, false)) -- default to off
-
-  -- Detect when the invmon is toggled.  This is very similar to the onEnableName and the
-  -- onDisableName triggers above, but we don't suppress the output in this trigger like we
-  -- do with those triggers.  That is because it tracks when the user manually toggles the
-  -- invmon and we don't want to hide that from the user.
-  --
-  -- The invmon code runs in two stages.  First, we toggle the invmon twice in the background
-  -- and suppress the output so that we can detect if the invmon is enabled without the user
-  -- knowing that we did anything.  Once we complete that, then we enable the onToggle trigger.
-  -- The onToggle trigger is never active at the same time as the onEnable or onDisable triggers.
   check (AddTriggerEx(dbot.invmon.trigger.onToggleName,
                       "^(" ..
                          "You will no longer see inventory update tags." ..
@@ -20262,8 +20267,7 @@ end -- dbot.invmon.init.atActive
 
 
 function dbot.invmon.fini(doSaveState)
-  dbot.deleteTrigger(dbot.invmon.trigger.onEnableName)
-  dbot.deleteTrigger(dbot.invmon.trigger.onDisableName)
+
   dbot.deleteTrigger(dbot.invmon.trigger.onToggleName)
 
   dbot.invmon.isEnabled = true
@@ -20276,74 +20280,20 @@ end -- dbot.invmon.fini
 
 
 function dbot.invmon.getStatusCR()
-  local retval = DRL_RET_SUCCESS
 
-
---FIXME POSSIBLY OBSOLETE: use gmcpconfig instead --v
-  dbot.invmon.foundEnable = false
-  dbot.invmon.foundDisable = false
-
-  -- Enable the invmon triggers so that we can catch what happens when we run "invmon"
-  EnableTrigger(dbot.invmon.trigger.onEnableName,  true)
-  EnableTrigger(dbot.invmon.trigger.onDisableName, true)
-
-  -- Disable the prompt while we toggle invmon so that we don't output lines
-  dbot.prompt.hide()
-
-  -- Run "invmon" and see what happens
-  dbot.execute.fast.command("invmon")
-  dbot.execute.fast.command("invmon")
-
-  -- Spin until both the enable trigger and disable trigger are detected (both "invmon" commands complete)
-  local totTime = 0
-  local timeout = 60
-  retval = DRL_RET_TIMEOUT
-  while (totTime <= timeout) do
-    if (dbot.invmon.foundEnable == true) and (dbot.invmon.foundDisable == true) then
-      retval = DRL_RET_SUCCESS
-      break
+  local isInvmonEnabled, retval = dbot.gmcp.getConfig("invmon")
+  if (retval == DRL_RET_SUCCESS) then
+    if isInvmonEnabled then
+      dbot.debug("invmon is @GENABLED@W")
+      dbot.invmon.statusEnables = 1
+    else
+      dbot.debug("invmon is @RDISABLED@W")
+      dbot.invmon.statusEnables = 0
+      dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it.")
     end -- if
-    wait.time(drlSpinnerPeriodDefault)
-    totTime = totTime + drlSpinnerPeriodDefault
-  end -- while
-  if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("dbot.invmon.getStatusCR: Failed to detect invmon enable/disable: " .. 
-              dbot.retval.getString(retval))
-  end -- if
-
-  EnableTrigger(dbot.invmon.trigger.onEnableName,  false)
-  EnableTrigger(dbot.invmon.trigger.onDisableName, false)
-
-  -- Re-enable the prompt (we disabled it before running invmon twice)
-  dbot.prompt.show()
-
-  if dbot.invmon.isEnabled then
-    dbot.invmon.statusEnables = 1
   else
-    dbot.invmon.statusEnables = 0
-    dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it.")
+    dbot.warn("dbot.invmon.getStatusCR: Failed to get gmcpconfig response")
   end -- if
---FIXME POSSIBLY OBSOLETE: use gmcpconfig instead --^
-
-
-
---[[FIXME: we'd really like to use gmcpconfig, but it doesn't behave as expected on the mud side.
-           I need to investigate...
-
-  local isInvmonEnabled = gmcp("config invmon")
-
-  if (isInvmonEnabled == "YES") then
-    dbot.note("FIXME DEBUG: invmon ENABLED")
-    dbot.invmon.statusEnables = 1
-  elseif (isInvmonEnabled == "NO") then
-    dbot.note("FIXME DEBUG: invmon DISABLED")
-    dbot.invmon.statusEnables = 0
-    dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it.")
-  else
-    dbot.warn("Unknown gmcp response to \"config invmon\" = \"" .. (isInvmonEnabled or "nil") .. "\"")
-  end -- if
---]]
-
 
   -- Once we know the current state, we monitor when the user manually toggles invmon so
   -- that we can keep our state up-to-date
@@ -20353,24 +20303,12 @@ function dbot.invmon.getStatusCR()
 end -- dbot.invmon.getStatusCR
 
 
-function dbot.invmon.trigger.onEnable()
-  dbot.invmon.isEnabled = true
-  dbot.invmon.foundEnable = true
-end -- dbot.invmon.trigger.onEnable
-
-
-function dbot.invmon.trigger.onDisable()
-  dbot.invmon.isEnabled = false
-  dbot.invmon.foundDisable = true
-end -- dbot.invmon.trigger.onDisable
-
-
 function dbot.invmon.trigger.onToggle(msg)
   if (msg == "You will no longer see inventory update tags.") then
     dbot.debug("dbot.invmon.trigger.onToggle: user manually turned invmon off")
     dbot.invmon.statusEnables = dbot.invmon.statusEnables - 1
     dbot.warn("You just disabled invmon!")
-    dbot.warn("The " .. pluginNameAbbr .. " plugin requires invmon.  Please type \"invmon\" to enable it again.")
+    dbot.warn("The dinv plugin requires invmon.  Please type \"invmon\" to enable it again.")
   elseif (msg == "You will now see inventory update tags.") then
     dbot.debug("dbot.invmon.trigger.onToggle: user manually turned invmon on")
     dbot.invmon.statusEnables = dbot.invmon.statusEnables + 1
