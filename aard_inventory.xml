@@ -7756,7 +7756,14 @@ function inv.items.keywordCR()
 
   -- Let the user know if no items matched their query
   elseif (idArray == nil) or (#idArray == 0) then
-    dbot.info("No match found for keyword query: \"" .. inv.items.keywordPkg.queryString .. "\"")
+    -- If we can't find a container for a refresh update, that container probably is just not identified
+    -- yet.  We don't want to spam the user with messages about not finding the keyword query in that
+    -- case.
+    if (inv.items.keywordPkg.keyword == invItemsRefreshClean) then
+      dbot.debug("Failed to find container for clean/dirty update.  You probably need a \"dinv refresh\"")
+    else
+      dbot.info("No match found for keyword query: \"" .. inv.items.keywordPkg.queryString .. "\"")
+    end -- if
 
   else
     numQueryItems = #idArray
