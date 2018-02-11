@@ -1,6 +1,24 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0036] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added support for aard's new gmcpconfig capability.  This greatly simplifies the plugin
+           initialization and no longer requires us to manually toggle prompt and invmon at startup.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added support for Winds of Fate collector case.  That case is a bit wonky.  It's a container
+           that can be placed in other containers and it has unique and variable output when it is ID'ed.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Improved error handling when accessing an unknown container by avoiding unnecessary asserts]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Removed unhelpful warning when accessing an unidentified container]]
+  }
+}
+
 dbot.changelog[2.0035] =
 {
   { change = drlDbotChangeLogTypeNew,
