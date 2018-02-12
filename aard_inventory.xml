@@ -2175,6 +2175,9 @@ container or on your keyring and it will still move automagically into your main
 A "get" request takes a query argument as a parameter.  See "@Gdinv help search@W" for more
 details on how queries work and to see several examples of queries.
 
+You may mark containers as "ignored" to prevent dinv from accessing items in those containers.
+See the "@Gdinv help ignore@W" helpfile for instructions and examples.
+
 Examples:
   1) Move all level 42 items into your main inventory
      "@Gdinv get level 42@W"
@@ -2241,6 +2244,9 @@ A "put" request takes a relative location name for the target container and a qu
 specifies which items should move into the container.  See "@Gdinv help search@W" for examples
 on how queries work and how relative names and locations work.
 
+You may mark containers as "ignored" to prevent dinv from accessing items in those containers.
+See the "@Gdinv help ignore@W" helpfile for instructions and examples.
+
 Examples:
   1) Put all aardwolf quest weapons into container 3.bag
      "@Gdinv put 3.bag type weapon keyword aardwolf@W"
@@ -2296,6 +2302,9 @@ will put it in your main inventory.
 
 The query parameter specifies which items will be stored.  See the helpfile at
 "@Gdinv help search@W" for examples and more details on using queries.
+
+You may mark containers as "ignored" to prevent dinv from accessing items in those containers.
+See the "@Gdinv help ignore@W" helpfile for instructions and examples.
 
 Examples:
   1) Store all items that are level 71
@@ -4703,6 +4712,9 @@ up in one, but there are no guarantees as to which of the containers it will be.
 if you assign all quest items to one container and all portals to another container, the
 aardwolf amulet will match both the quest container and the portal container in an organize
 request and it could end up in either container.
+
+You may flag containers as "ignored" to prevent dinv from accessing items in those containers.
+See the "@Gdinv help ignore@W" helpfile for instructions and examples.
 
 Let's get to some examples!
 
