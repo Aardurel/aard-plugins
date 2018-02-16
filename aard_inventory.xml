@@ -824,6 +824,29 @@ function OnPluginDisable()
 end -- OnPluginDisable
 
 
+-- We use the telnet subnegotiation protocol to monitor GMCP config status.  Yes, this duplicates
+-- some functionality of the gmcphelper plugin, but it provides backwards compatibility (mush r1825
+-- doesn't support GMCP config) and it also eliminates synchronization issues with the gmcphelper plugin.
+local drlTelnetTypeGMCP = 201
+function OnPluginTelnetSubnegotiation (msgType, data)
+  if msgType ~= drlTelnetTypeGMCP then
+    return
+  end -- if
+
+  if (data ~= nil) then
+    local mode, params = string.match (data, "([%a.]+)%s+(.*)")
+
+    if (mode == "config") then
+      local configKey, configValue = string.match(params, "{ \"(%a+)\" : \"(%a+)\" }")
+
+      dbot.debug("GMCP config: key=\"" .. configKey .. "\", value=\"" .. configValue .. "\"")
+      dbot.gmcp.currentState[configKey] = configValue
+    end -- if
+  end -- if
+
+end -- OnPluginTelnetSubnegotiation
+
+
 function OnPluginTelnetOption(msg)
   if (msg == string.char(100, 1)) then
     dbot.debug("Player is at login screen")
@@ -19378,6 +19401,7 @@ end -- dbot.gmcp.stateIsActive()
    Tickinfo,
    Xterm
 --]]
+dbot.gmcp.currentState = {}
 -- Returns boolean representing "YES" or "NO" values from the mud for the specified mode
 function dbot.gmcp.getConfig(configMode)
   local retval = DRL_RET_SUCCESS
@@ -19388,22 +19412,17 @@ function dbot.gmcp.getConfig(configMode)
     return configVal, DRL_RET_INVALID_PARAM
   end -- if
 
+  -- Clear out the current state and wait for a new value to arrive
+  dbot.gmcp.currentState.configMode = nil  
   check (Execute("sendgmcp config " .. configMode))
-
-  -- TODO
-  -- Ok, this is really awkward.  It takes some (unknown?) amount of time for gmcp to update once
-  -- we send the config request.  If we immediately read gmcp we always get the previous value for
-  -- the specified config mode.  So...how long do we need to wait?!?  Maybe gmcp notifies us through
-  -- a gmcp broadcast?  For now we use this incredibly ugly kludge and just stall for half of a second
-  -- and assume gmcp is ready after that.  
-  wait.time(.5)
 
   -- Spin until gmcp gives us the value
   local totTime = 0
   local timeout = 5
   retval = DRL_RET_TIMEOUT
   while (totTime <= timeout) do
-    local gmcpValue = gmcp("config " .. configMode)
+
+    local gmcpValue = dbot.gmcp.currentState[configMode]
     if (gmcpValue == "YES") then 
       configVal = true
       retval = DRL_RET_SUCCESS
