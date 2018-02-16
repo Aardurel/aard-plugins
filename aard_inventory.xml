@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0036"
+   version="2.0037"
    >
 <description trim="y">
 <![CDATA[
@@ -150,7 +150,7 @@ Usage
   Advanced options
     dinv backup [list | create | delete | restore] <backup name>
     dinv forget <query>
-    dinv ignore [on | off] <keyring | container relative name>
+    dinv ignore [on | off | list] <keyring | container relative name>
     dinv notify [none | light | standard | all]
     dinv regen [on | off]
     dinv reset [list | confirm] <module names | all>
@@ -320,6 +320,16 @@ Feature Wishlist
   <alias
    script="inv.cli.ignore.fn"
    match="^[ ]*dinv[ ]+ignore[ ]+(on|off)[ ]*([^ ]+)[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.ignore.fn"
+   match="^[ ]*dinv[ ]+ignore[ ]+(list)[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -3806,12 +3816,16 @@ function inv.cli.ignore.fn(name, line, wildcards)
     return inv.tags.stop(invTagsIgnore, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
-  inv.items.ignore(mode, container, endTag)
+  if (string.lower(mode) == "list") then
+    return inv.tags.stop(invTagsIgnore, endTag, inv.items.listIgnored())
+  else
+    inv.items.ignore(mode, container, endTag)
+  end -- if
 end -- inv.cli.ignore.fn
 
 
 function inv.cli.ignore.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " ignore @G[on | off] <keyring | container relative name>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " ignore @G[on | off | list] <keyring | container relative name>@w")
 end -- inv.cli.ignore.usage
 
 
@@ -3825,7 +3839,9 @@ The @Cignore@W mode allows you to specify one or more containers that the plugin
 Any ignored container and any items in an ignored container are not included when the plugin is
 searching, getting, putting, storing, organizing, and creating or wearing equipment sets.
 
-You may also use "keyring" as a container name to indicate ignoring everything on your keyring.  
+You may also use "keyring" as a container name to indicate ignoring everything on your keyring.
+
+The @Clist@W option reports which (if any) locations are currently ignored.
 
 Examples:
   1) Ignore "3.bag" in your main inventory
@@ -3839,6 +3855,9 @@ Examples:
 
   4) Stop ignoring your keyring contents
      @Gdinv ignore off keyring@W
+
+  5) Report which locations (keyring or containers) are currently ignored
+     @Gdinv ignore list@W
 ]])
 
 end -- inv.cli.ignore.examples
@@ -4919,6 +4938,7 @@ end -- inv.cli.debug.fn
 --   inv.items.forgetCR
 --   inv.items.ignore
 --   inv.items.ignoreCR
+--   inv.items.listIgnored()
 --   inv.items.isIgnored(objId)
 --
 --   inv.items.discoverCR(maxNumItems, refreshLocations)
@@ -5706,6 +5726,37 @@ function inv.items.ignoreCR()
 
   return inv.tags.stop(invTagsIgnore, endTag, retval)
 end -- inv.items.ignoreCR
+
+
+function inv.items.listIgnored()
+
+  local numIgnored = 0
+
+  dbot.print("@WIgnored Locations:@w")
+
+  if inv.config.table.doIgnoreKeyring then
+    dbot.print("    @WKeyring@w")
+    numIgnored = numIgnored + 1
+  end -- if
+
+  for objId, itemEntry in pairs(inv.items.table) do
+    if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) and
+       inv.items.isIgnored(objId) then
+      dbot.print("    " .. inv.items.getField(objId, invFieldColorName))
+      numIgnored = numIgnored + 1
+    end -- if
+  end -- for
+
+  if (numIgnored == 0) then
+    dbot.print("    None")
+  end -- if
+
+  dbot.print("")
+  dbot.info("Currently ignoring " .. numIgnored .. " locations")
+
+  return DRL_RET_SUCCESS
+
+end -- inv.items.listIgnored
 
 
 -- An item is "ignored" if it has the inv.items.ignoreFlag or if it is in a container that has
@@ -14485,11 +14536,11 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   setStats.totResists = totResists
 
   local statSizes = { { avedam = 4 }, { offhandDam = 4 }, { hit = 3 }, { dam = 3 },
-                      { int = 3 }, { wis = 3 }, { luck = 3 }, { str = 3 }, { dex = 3 }, { con = 3 },
+                      { str = 3 }, { int = 3 }, { wis = 3 }, { dex = 3 }, { con = 3 }, { luck = 3 },
                       { totResists = 3 }, { hp = 4 }, { mana = 4 }, { moves = 4 } } 
 
   local basicHeader = "@W" .. string.rep(" ", #msgString) ..
-                      " Ave  Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects"
+                      " Ave  Sec  HR  DR Str Int Wis Dex Con Lck Res HitP Mana Move Effects"
 
   for i, statTable in ipairs(statSizes) do
     for statName, statDigits in pairs(statTable) do
@@ -14503,16 +14554,54 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   -- Effects (these are known on aard as affectMods)
   local effectList = "haste regeneration sanctuary invis flying dualwield irongrip shield " ..
                      "detectgood detectevil detecthidden detectinvis detectmagic"
+  local effectStr = ""
   for effect in effectList:gmatch("%S+") do
     local effectVal = tonumber(setStats[effect] or "")
     if (effectVal ~= nil) then
       if (effectVal > 0) then
-        setStr = setStr .. "@G" .. DRL_ANSI_GREEN .. effect .. "@W" .. DRL_ANSI_WHITE .. " "
+        effectStr = effectStr .. "@G" .. DRL_ANSI_GREEN .. effect .. "@W" .. DRL_ANSI_WHITE .. " "
       elseif (effectVal < 0) then
-        setStr = setStr .. "@R" .. DRL_ANSI_RED .. effect .. "@W" .. DRL_ANSI_WHITE .. " "
+        effectStr = effectStr .. "@R" .. DRL_ANSI_RED .. effect .. "@W" .. DRL_ANSI_WHITE .. " "
       end -- if
     end -- if
   end -- for
+
+  setStr = setStr .. effectStr
+  
+  local colorScheme = { { light = "@x010", dark = "@x002" }, { light = "@x190", dark = "@x220" } }
+  local colorIndex = 1
+
+  local reportFormat = { { avedam     = "Ave" },
+                         { offhandDam = "Sec" },
+                         { dam        = "DR"  },
+                         { hit        = "HR"  },
+                         { str        = "Str" },
+                         { int        = "Int" },
+                         { wis        = "Wis" },
+                         { dex        = "Dex" },
+                         { con        = "Con" },
+                         { luck       = "Lck" },
+                         { totResists = "Res" },
+                         { hp         = "HP"  },
+                         { mana       = "MN"  },
+                         { moves      = "MV"  } }
+
+  local reportStr = (msgString or "") .. "@WCapped EQ: "
+
+  for i, statTable in ipairs(reportFormat) do
+    for statName, statHdr in pairs(statTable) do
+      local currentColors = colorScheme[colorIndex]
+      reportStr = reportStr .. currentColors.dark .. statHdr .. currentColors.light ..
+                  math.floor(tonumber(setStats[statName] or "") or 0) .. " "
+
+      if (colorIndex == 1) then
+        colorIndex = 2
+      else
+        colorIndex = 1
+      end -- if
+    end -- for
+  end -- for
+  reportStr = reportStr .. effectStr
 
   if (doDisplayIfZero == true) or (didFindAStat == true) then
     if (doPrintHeader == true) then
@@ -14520,6 +14609,9 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
     end -- if
     dbot.print(setStr)
   end -- if
+
+--FIXME TODO: allow user to request report to a channel?
+--  check (Execute("gtell " .. reportStr))
 
   return didFindAStat, DRL_RET_SUCCESS
 end -- inv.set.setDisplay
@@ -17251,7 +17343,8 @@ function inv.consume.displayType(typeName)
         local itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
         local itemName  = inv.items.getStatField(objId, invStatFieldName) or ""
 
-        if (entry.level == itemLevel) and (entry.fullName == itemName) then
+        if (entry.level == itemLevel) and (entry.fullName == itemName) and 
+           (not inv.items.isIgnored(objId)) then
           count = count + 1
         end -- if
       end -- for
@@ -17425,7 +17518,8 @@ function inv.consume.get(typeName, size, containerId)
         local itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
         local itemName  = inv.items.getStatField(objId, invStatFieldName) or ""
 
-        if (entry.level == itemLevel) and (entry.fullName == itemName) then
+        if (entry.level == itemLevel) and (entry.fullName == itemName) and
+           (not inv.items.isIgnored(objId)) then
           count = count + 1
 
           -- We try to use items from the preferred location first (e.g., a user-specified container or
@@ -17590,8 +17684,9 @@ function inv.consume.useItem(objId, commandArray)
     consumeCmd = "quaff"
   elseif (itemType == "Pill") then
     consumeCmd = "eat"
+  elseif (itemType == "Staff") or (itemType == "Wand") then
+    consumeCmd = "hold"
   else
-    --TODO: we don't currently handle wands or staves here yet
     dbot.warn("inv.consume.useItem: Unsupported item type \"" .. itemType .. "\"")
     return DRL_RET_UNSUPPORTED
   end -- if  
