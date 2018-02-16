@@ -1,6 +1,23 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0037] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed GMCP config support on older (r1825) mush builds that could not natively handle it]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added @Gdinv ignore list@W option to report which (if any) locations are currently ignored]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[The @Cconsume@W mode now actually ignores ignored containers]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[The @Cconsume@W mode now supports wands and staves.  Using one is interpreted as getting it
+           and holding it.]]
+  }
+}
+
 dbot.changelog[2.0036] =
 {
   { change = drlDbotChangeLogTypeNew,
