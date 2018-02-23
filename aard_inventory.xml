@@ -3795,26 +3795,29 @@ re-identify it for your inventory table.  As noted in the plugin release notes,
 there are a few situations where this may occur.
 
 You can enchant an item yourself and the plugin will notice and update stats for
-the newly enchanted item.  However, if item caching is enabled, you could hit an
-issue if you give an item to an enchanter and receive it back after it gets a
-boost in stats.  By default, the plugin will pull information about the item from
-the cache -- but the cache now has old information.  In this case, you will need
-to "forget" the item and then re-run an inventory refresh to pick up the change.
+the newly enchanted item on your next item refresh.  However, if item caching is
+enabled, you could hit an issue if you give an item to an enchanter and receive
+it back after it gets a boost in stats.  By default, the plugin will pull
+information about the item from the cache -- but the cache now has old information.
+In this case, you will need to "forget" the item and then re-run an inventory
+refresh to pick up the change.
 
 Most aard operations that modify an item's stats are detected and automatically
-trigger a re-identification.  For example, enchantment spells, sharpening,
-reinforcing, tpenchanting, and wset all are handled transparently.  The one known
-exception is the setweight command which is not currently handled by aard's invitem
-system.  Until this is changed (or until we include a trigger watching for setweight)
-you will need to use the "@Gdinv forget <query>@W" option on an item that changes
-weight in order to "forget" the old stats and then pick up the correct weight (and
-other stats) on the next inventory refresh.
+trigger a re-identification on your next item refresh.  For example, enchantment
+spells, sharpening, reinforcing, tpenchanting, and wset all are handled transparently.
+The one known exception is the setweight command which is not currently handled by
+aard's invitem system.  Until this is changed (or until we include a trigger watching
+for setweight) you will need to use the "@Gdinv forget <query>@W" option on an item
+that changes weight in order to "forget" the old stats and then pick up the correct
+weight (and other stats) on the next inventory refresh.
 
 See the "@Gdinv help search@W" helpfile for examples and more information about
 creating search queries for items that you want to forget.
 
 Examples:
-  1) Forget and re-identify a ring you just received back from an enchanter
+  1) Forget and re-identify a ring you just received back from an enchanter using
+     a "relative name" to indicate which item in your main inventory should be
+     forgotten.
      "@Gdinv forget rname 2.ring@W"
      "@Gdinv refresh all@W"
 
@@ -4635,16 +4638,19 @@ Examples:
   6) Buy 5 "mana" items that are the highest level available in the table
      "@Gdinv consume buy mana 5@W"
 
-  7) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
+  7) Buy 10 "heal" items and put them into 3.bag
+     "@Gdinv consume buy heal 10 3.bag@W"
+
+  8) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
      This is useful when you want to clean out low-level potions.  You probably won't
      use this option in combat but it is convenient out of combat.
     "@Gdinv consume small mana@W"
 
-  8) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
+  9) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
      are of type "mana".  This is handy in combat.
      "@Gdinv consume big mana 2@W"
 
-  9) Consume 3 of your highest-level mana items and look in container 2.bag before
+ 10) Consume 3 of your highest-level mana items and look in container 2.bag before
      checking for the items in other locations
      "@Gdinv consume big mana 3 2.bag@W"
 ]])
@@ -8070,7 +8076,7 @@ function inv.items.search(arrayOfQueryArrays, allowIgnored)
           -- Other string fields (keywords and flags) require an exact match so searching for the
           -- "evil" flag won't match on "anti-evil".
 
-          elseif (key == invStatFieldName) or (key == invStatFieldLeadsTo) then
+          elseif (key == invStatFieldName) or (key == invStatFieldLeadsTo) or (key == invStatFieldFoundAt) then
             local escapedValue = string.gsub(value, "[%(%)%.%+%-%*%?%[%]%^%$%%]", "%%%1")
             local noMatch = (string.find(string.lower(statsVal), string.lower(escapedValue)) == nil)
             if ((invert == false) and noMatch) or ((invert == true) and not noMatch) then
@@ -8938,7 +8944,7 @@ function inv.items.organize.addCR()
   elseif (#idArray ~= 1) then
     -- There should only be a single match to the container's relative name (e.g., "2.bag")
     dbot.warn("Container relative name \"" .. inv.items.organize.addPkg.container .. 
-              "\" did not have a unique match: skipping organization query request")
+              "\" did not have a unique match for a container: skipping organization query request")
   else
     -- We found a single unique match for the relative name
     objId = idArray[1]
@@ -9019,7 +9025,7 @@ function inv.items.organize.clearCR()
   elseif (#idArray ~= 1) then
     -- There should only be a single match to the container's relative name (e.g., "2.bag")
     dbot.warn("Container relative name \"" .. inv.items.organize.clearPkg.container .. 
-              "\" did not have a unique match: skipping organization query request")
+              "\" did not have a unique match for a container: skipping organization query request")
   else
     -- We found a single unique match for the relative name
     objId = idArray[1]
