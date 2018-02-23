@@ -8659,7 +8659,11 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   elseif (wearableLoc ~= nil) and (wearableLoc ~= "") then
     typeExtended = wearableLoc
   elseif (typeField == invmon.typeStr[invmonTypeWeapon]) then
-    typeExtended = weaponType
+    if (wearable == inv.wearLoc[invWearableLocReady]) then
+      typeExtended = "quiver"
+    else
+      typeExtended = weaponType
+    end -- if
   elseif (typeField == invmon.typeStr[invmonTypeContainer]) then
     typeExtended = "Contain"
   elseif (typeField == "RawMaterial:Ore") then
@@ -10453,6 +10457,7 @@ invWearableLocFloat     = 27
 invWearableLocAbove     = 30
 invWearableLocPortal    = 31
 invWearableLocSleeping  = 32
+invWearableLocReady     = 33
 
 inv.wearLoc = {}
 inv.wearLoc[invWearableLocUndefined] = "undefined"
@@ -10487,6 +10492,7 @@ inv.wearLoc[invWearableLocFloat]     = "float"
 inv.wearLoc[invWearableLocAbove]     = "above"
 inv.wearLoc[invWearableLocPortal]    = "portal"
 inv.wearLoc[invWearableLocSleeping]  = "sleeping"
+inv.wearLoc[invWearableLocReady]     = "ready"
 
 
 inv.wearables = { light    = { "light" },
@@ -10511,7 +10517,8 @@ inv.wearables = { light    = { "light" },
                   float    = { "float" },
                   above    = { "above" },
                   portal   = { "portal" },
-                  sleeping = { "sleeping" } }              
+                  sleeping = { "sleeping" },
+                  ready    = { "ready" } }              
 
 
 ----------------------------------------------------------------------------------------------------
