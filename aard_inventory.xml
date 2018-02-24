@@ -13942,9 +13942,12 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     table.sort(weaponArray, function (entry1, entry2) return entry1.score > entry2.score end)
     table.sort(offhandArray, function (entry1, entry2) return entry1.offhand > entry2.offhand end)
 
+    local _, subclass = dbot.gmcp.getClass()
+
     for _, primary in ipairs(weaponArray) do
       for _, offhand in ipairs(offhandArray) do
-        if (primary.weight >= offhand.weight * 2) and (primary.id ~= offhand.id) then
+        if (primary.id ~= offhand.id) and
+           ((primary.weight >= offhand.weight * 2) or (string.lower(subclass) == "soldier")) then
           if (primary.score + offhand.offhand > bestWeaponSet.score) then
             bestWeaponSet.score = primary.score + offhand.offhand
             bestWeaponSet.primary = { id = primary.id, score = primary.score }
