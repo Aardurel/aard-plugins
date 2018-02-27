@@ -1,6 +1,24 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0038] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug where dinv successfully detected a missing item but failed to remove the missing
+           item from your inventory table.  This could cause refreshes to repeatedly report the issue.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed searches using the "foundAt" property.  The previous code didn't handle partial matches
+           for area names and wouldn't let you use spaces in area names so you couldn't really use foundAt.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Finally added support for quivers (sorry rangers!)]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Soldiers can now use sets that don't require light offhand weapons]]
+  }
+}
+
 dbot.changelog[2.0037] =
 {
   { change = drlDbotChangeLogTypeFix,
