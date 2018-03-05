@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0038"
+   version="2.0039"
    >
 <description trim="y">
 <![CDATA[
@@ -5510,6 +5510,8 @@ function inv.items.setStatField(objId, field, value)
 
   entry.stats[field] = value
 
+  return DRL_RET_SUCCESS
+
 end -- inv.items.setStatField
 
 
@@ -5712,40 +5714,71 @@ function inv.items.ignoreCR()
 
   -- We are targeting a container, not the keyring
   else
+
+    -- Check if the container is in the inventory table or if more than one item matches the description
     local idArray, retval = inv.items.searchCR("rname " .. inv.items.ignorePkg.container, true)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.items.ignoreCR: failed to search inventory table: " .. dbot.retval.getString(retval))
-
-    -- Let the user know if no items matched their container relative name
-    elseif (idArray == nil) or (#idArray == 0) then
-      dbot.info("No match found for ignore container: \"" .. inv.items.ignorePkg.container .. "\"")
-      retval = DRL_MISSING_ENTRY
 
     elseif (#idArray > 1) then
       dbot.warn("inv.items.ignoreCR: More than one item matched container \"" ..
                 inv.items.ignorePkg.container .. "\"")
       retval = DRL_INTERNAL_ERROR
+    end -- if
+
+    local containerId = ""
+
+    -- If the container isn't in the inventory table yet, get its objID and add a stub for it into
+    -- the inventory table.  The stub will be enough to add the ignore flag later in this function
+    -- and the user can pick up a full identification on a refresh if they ever remove the ignore flag.
+    if (idArray == nil) or (#idArray == 0) then
+      _, containerId, retval = inv.items.convertRelative(invQueryKeyRelativeName,
+                                                         inv.items.ignorePkg.container)
+      containerId = tonumber(containerId or "")
+      if (retval ~= DRL_RET_SUCCESS) then
+        dbot.warn("inv.items.ignoreCR: Failed to convert relative name \"" .. inv.items.ignorePkg.container ..
+                  "\" to object ID: " .. dbot.retval.getString(retval))
+
+      elseif (containerId == nil) then
+        dbot.info("No match found for ignore container: \"" .. inv.items.ignorePkg.container .. "\"")
+        retval = DRL_MISSING_ENTRY
+
+      else
+        -- Ok, we finally have enough info to add a stub for this container
+        retval = inv.items.add(containerId)
+        if (retval == DRL_RET_SUCCESS) then
+          inv.items.setStatField(containerId, invStatFieldType, invmon.typeStr[invmonTypeContainer])
+          inv.items.setStatField(containerId, invStatFieldId, containerId)
+        else
+          dbot.warn("inv.items.ignoreCR: Failed to add container stub to inventory table: " ..
+                    dbot.retval.getString(retval))
+        end -- if
+
+      end -- if
+
+    else
+      -- We found a valid container that was already in our inventory table
+      containerId = idArray[1]
+    end -- if
 
     -- Set or clear the ignore flag for the specified container
-    else
-      local objId = idArray[1]
-      dbot.debug("Setting ignore to \"" .. modeStr .. "\" for item " .. objId)
+    if (retval == DRL_RET_SUCCESS) then
+      dbot.debug("Setting ignore to \"" .. modeStr .. "\" for item " .. containerId)
 
-      if (inv.items.getStatField(objId, invStatFieldType) ~= invmon.typeStr[invmonTypeContainer]) then
+      if (inv.items.getStatField(containerId, invStatFieldType) ~= invmon.typeStr[invmonTypeContainer]) then
         dbot.warn("inv.items.ignoreCR: item \"" .. inv.items.ignorePkg.container .. "\" is not a container")
         retval = DRL_INVALID_PARAM
 
       elseif (lowerMode == "on") then
-        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpAdd, "id " .. objId, true, nil)
+        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpAdd, "id " .. containerId, true, nil)
 
       elseif (lowerMode == "off") then
-        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpRemove, "id " .. objId, true, nil)
+        retval = inv.items.keyword(inv.items.ignoreFlag, invKeywordOpRemove, "id " .. containerId, true, nil)
 
       end -- if
 
       dbot.info("Ignore mode for container \"" .. inv.items.ignorePkg.container .. "\" is " .. modeStr)
     end -- if
-
   end -- if
 
   -- Save our changes so that they don't get picked up again accidentally if we reload the plugin
@@ -5771,7 +5804,7 @@ function inv.items.listIgnored()
   for objId, itemEntry in pairs(inv.items.table) do
     if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) and
        inv.items.isIgnored(objId) then
-      dbot.print("    " .. inv.items.getField(objId, invFieldColorName))
+      dbot.print("    " .. inv.items.getField(objId, invFieldColorName) .. " (" .. objId .. ")")
       numIgnored = numIgnored + 1
     end -- if
   end -- for
@@ -5781,7 +5814,13 @@ function inv.items.listIgnored()
   end -- if
 
   dbot.print("")
-  dbot.info("Currently ignoring " .. numIgnored .. " locations")
+
+  local suffix = "s"
+  if (numIgnored == 1) then
+    suffix = ""
+  end -- if
+  
+  dbot.info("Currently ignoring " .. numIgnored .. " location" .. suffix)
 
   return DRL_RET_SUCCESS
 
@@ -5791,7 +5830,7 @@ end -- inv.items.listIgnored
 -- An item is "ignored" if it has the inv.items.ignoreFlag or if it is in a container that has
 -- the inv.items.ignoreFlag.  We can also mark the keyring as ignored.
 function inv.items.isIgnored(objId)
-  if (objId == nil) or (tonumber(objId or "") == nil) then
+  if (objId == nil) or (tonumber(objId or "") == nil) or (inv.items.getEntry(objId) == nil) then
     return false
   end -- if
 
@@ -6004,7 +6043,7 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
   local numItemsToIdentify = 0
   for objId, _ in pairs(inv.items.table) do
     local idLevel = inv.items.getField(objId, invFieldIdentifyLevel)
-    if (idLevel ~= nil) and (idLevel == invIdLevelNone) then
+    if (idLevel ~= nil) and (idLevel == invIdLevelNone) and (not inv.items.isIgnored(objId)) then
       numItemsToIdentify = numItemsToIdentify + 1
       table.insert(objsToIdentify, objId)
     end -- if
@@ -12178,7 +12217,7 @@ function inv.priority.stringToTable(priorityString)
     return priEntry, retval
   end -- if
 
-  if (header1[1] ~= "MinLevel") then
+  if (string.lower(header1[1] or "") ~= "minlevel") then
     dbot.warn("Missing or malformed minLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
   end -- if  
@@ -12190,7 +12229,7 @@ function inv.priority.stringToTable(priorityString)
     return priEntry, retval
   end -- if
 
-  if (header2[1] ~= "MaxLevel") then
+  if (string.lower(header2[1] or "") ~= "maxlevel") then
     dbot.warn("Missing or malformed maxLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
   end -- if  
@@ -12231,10 +12270,10 @@ function inv.priority.stringToTable(priorityString)
 
     if (#fieldLine > 0) then
       -- Verify that the field name is valid
-      local fieldName = fieldLine[1]
+      local fieldName = string.lower(fieldLine[1] or "")
       local fieldIsValid = false
       for _, entry in ipairs(inv.priority.fieldTable) do
-        if (entry[1] == fieldName) then
+        if (string.lower(entry[1] or "") == fieldName) then 
           fieldIsValid = true
           break
         end -- if
@@ -12257,6 +12296,14 @@ function inv.priority.stringToTable(priorityString)
           dbot.warn("Non-numeric field value in priority at column " .. blockIdx + 1 ..
                     " in line\n     \"" .. lines[i] .. "\"")
           return priEntry, DRL_RET_INVALID_PARAM
+        end -- if
+
+        -- This is a kludge.  All priority weighting field names are lower case except 
+        -- "offhandDam".  When we added support for case insensitivity, that could cause a problem
+        -- for people with old priorities with "offhandDam" instead of "offhanddam".  Here is a
+        -- one-off to work around that case by handling that one field differently.
+        if (fieldName == "offhanddam") then
+          fieldName = "offhandDam"
         end -- if
 
         priorityBlock.priorities[fieldName] = fieldValue

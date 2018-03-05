@@ -1,6 +1,25 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0039] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug that could repeatedly try to identify unidentified items in an ignored container]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Updated @Cignore@W mode to allow you to ignore containers that haven't been identified yet.
+           This could be helpful if someone gives you a container to hold for them and you don't want to
+           bother identifying the contents of that container.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Names in a priority are now case-insensitive.  "allPhys" and "allphys" should both work now :)]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Displays object ID for each item reported in "dinv ignore list".  This makes it easier to
+           see what is happening if you have multiple bags and are ignoring only some of them.]]
+  }
+}
+
 dbot.changelog[2.0038] =
 {
   { change = drlDbotChangeLogTypeFix,
