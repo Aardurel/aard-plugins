@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0039"
+   version="2.0040"
    >
 <description trim="y">
 <![CDATA[
@@ -779,7 +779,7 @@ function OnPluginSaveState()
 
   -- Update any automatic backups for the saved plugin state
   retval = dbot.backup.current()
-  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_BUSY) then
+  if (retval ~= DRL_RET_SUCCESS) and (retval ~= DRL_RET_BUSY) and (retval ~= DRL_RET_IN_COMBAT) then
     dbot.warn("OnPluginSaveState: Failed to backup plugin state: " .. dbot.retval.getString(retval))
   end -- if
 
@@ -5096,6 +5096,7 @@ function inv.items.init.atInstall()
   check (AddTriggerEx(inv.items.trigger.itemIdStartName,
                       "^(" ..
                          ".-----------------------------------------------------------------.*|" ..
+                         "Current bid on this item is.*|"              ..
                          "You do not have that item.*|"                ..
                          "You dream about being able to identify.*|"   ..
                          ".*does not have that item for sale.*|"       ..
@@ -12098,7 +12099,7 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
   priString = priString .. "\r\n" .. generalSuffix
 
   for _, fieldEntry in ipairs(inv.priority.fieldTable) do
-    local fieldName = fieldEntry[1]
+    local fieldName = string.lower(fieldEntry[1] or "")
     local fieldDesc = fieldEntry[2]
     local useField = true
 
@@ -12382,7 +12383,16 @@ function inv.priority.locIsAllowed(wearableLoc, priorityName, level)
     return false
   end -- if
 
-  local value = tonumber(priorityTable["~" .. wearableLoc] or "") or 0
+  -- We can't use "~light" to specify a light location because that is used to indicate that
+  -- we aren't using the light damage type.  Instead, we use "~lightEq" as a work-around in this
+  -- situation to indicate the wearable light equipment location.
+  local loc = wearableLoc
+  if (wearableLoc == "light") then
+    loc = "lighteq"
+  end -- if
+
+  -- Check if the priority has a non-zero entry for ~[some wearable location] telling us to ignore it
+  local value = tonumber(priorityTable["~" .. loc] or "") or 0
   if (value == 0) then
     return true
   else
@@ -13195,7 +13205,7 @@ inv.priority.fieldTable = {
   { "water"       , "Value of 1 point of water magical resistance" },
 
 -- Note: We use "~light" to ignore the light damType not to ignore the light wearable location
---  { "~light"      , "Set to 1 to disable the light location" },
+  { "~lightEq"    , "Set to 1 to disable the light location" },
   { "~head"       , "Set to 1 to disable the head location" },
   { "~eyes"       , "Set to 1 to disable the eyes location" },
   { "~lear"       , "Set to 1 to disable the left ear location" },
@@ -17797,7 +17807,9 @@ function inv.consume.useItem(objId, commandArray)
     -- consumed the item would take more overhead than we are willing to have.  If something goes
     -- wrong (e.g., the user goes AFK unexpectedly) and we don't actually end up consuming the item
     -- then we'll re-identify this item automagically on the next refresh so there isn't much harm done.
-    retval = inv.items.remove(objId) 
+    if (itemType == "Potion") or (itemType == "Pill") then
+      retval = inv.items.remove(objId) 
+    end -- if
   end -- if
 
   return retval
