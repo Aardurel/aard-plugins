@@ -1,6 +1,28 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0040] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug in the @Cconsume@W mode for staves and wands that incorrectly removed the item
+	   from your inventory table after a single use.  This could require you to refresh to re-identify
+	   a partially used staff or wand.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a conflict between the "light" damage type and "light" equipment location in priorities.
+	   If you use "~light" in a priority, that refers to the damage type.  The new option "~lightEq"
+	   refers to the light equipment location.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[The @Ccovet@W mode now properly gags current bids on items.  The previous code mistakenly
+	   showed some bids when an auction item was identified.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Removed a warning about failing a backup if you were in combat when the backup was attempted.
+	   That case isn't actually an error and the backup will simply run later.]]
+  }
+}
+
 dbot.changelog[2.0039] =
 {
   { change = drlDbotChangeLogTypeFix,
