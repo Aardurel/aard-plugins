@@ -28,7 +28,7 @@ Description
 This plugin includes two primary packages: dinv and dbot.  The dinv package
 provides options to manage inventory and analyze equipment sets.  The dbot
 package is a framework of common code that could be shared among multiple
-plugins.  
+plugins.
 
 
 Durel's Inventory (dinv) Layout
@@ -110,7 +110,7 @@ carrying.
 Once you have a completed inventory table available, I recommend making a
 manual backup in case something goes wrong in the future.  You can restore
 from the backup and avoid the long build process again.  If anything in
-your inventory has changed since the backup, your next refresh will simply 
+your inventory has changed since the backup, your next refresh will simply
 update it to what you currently have.  To make a manual backup named
 "my_first_awesome_backup" type "dinv backup create my_first_awesome_backup".
 See "dinv help backup" for more details about creating, viewing, and restoring
@@ -176,7 +176,7 @@ Release Notes
    the "dinv forget <query>" option to remove that item from your inventory table and its related caches.
    The next inventory refresh will pick up the new stats for the item.
 
-2) Most aard operations that modify an item's stats are detected and automatically trigger a 
+2) Most aard operations that modify an item's stats are detected and automatically trigger a
    re-identification.  For example, enchantment spells, sharpening, reinforcing, tpenchanting, and wset
    all are handled transparently.  There are two known exceptions to this.  First, the setweight
    command does not result in an invitem update from aard's invitem system.  Second, scribing a scroll
@@ -662,8 +662,8 @@ Feature Wishlist
 -- Plugin Information
 ----------------------------------------------------------------------------------------------------
 
-pluginNameCmd   = "dinv" 
-pluginNameAbbr  = "DINV" 
+pluginNameCmd   = "dinv"
+pluginNameAbbr  = "DINV"
 pluginId        = "88c86ea252fc1918556df9fe"
 
 -- Get an absolute path to the plugin's state directory.  We don't want to use just the relative
@@ -672,7 +672,7 @@ pluginId        = "88c86ea252fc1918556df9fe"
 -- saved data regardless of where the plugin xml file lives.
 pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
 
--- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This 
+-- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This
 -- strips out any redundant ".\" in the path if it exists.
 pluginStatePath = string.gsub(pluginStatePath, "\\.\\", "\\")
 
@@ -691,7 +691,7 @@ require "gmcphelper"
 require "async"
 
 -- Use the absolute path to the file in case a user's current directory isn't what we'd expect
-dofile(GetInfo(56) .. GetInfo(60) .. "aardwolf_colors.lua")
+dofile(GetInfo(60) .. "aardwolf_colors.lua")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -710,7 +710,7 @@ function OnPluginInstall()
 end -- OnPluginInstall
 
 
--- You might think that this would be a great place to de-init the plugin.  Unfortunately, 
+-- You might think that this would be a great place to de-init the plugin.  Unfortunately,
 -- MUSHclient calls OnPluginSaveState AFTER calling OnPluginClose.  This means that the state
 -- won't save properly if we fully de-init our data and clean things up.  Bummer.  Instead, we
 -- currently use a somewhat convoluted scheme duplicating code in OnPluginDisconnect and in
@@ -937,7 +937,7 @@ function setPending(msg)
     -- Add a trigger to clear the quitIsPending flag if the quit is cancelled
     AddTriggerEx("drlQuitCancelConfirmationTrigger",
                  "^These items will be lost if you quit. Use .quit quit. if you are sure.$",
-                 "dbot.execute.quitIsPending = false", 
+                 "dbot.execute.quitIsPending = false",
                  drlTriggerFlagsBaseline + trigger_flag.OneShot,
                  custom_colour.NoChange, 0, "", "", sendto.script, 0)
 
@@ -951,7 +951,7 @@ function setPending(msg)
                     "You are now continuing a new post in the .* forum.|" ..
                     "You cannot post notes in this forum."                ..
                  ")$",
-                 "dbot.execute.noteIsPending = false", 
+                 "dbot.execute.noteIsPending = false",
                  drlTriggerFlagsBaseline + trigger_flag.OneShot,
                  custom_colour.NoChange, 0, "", "", sendto.script, 0)
   end -- if
@@ -1006,7 +1006,7 @@ function OnPluginSend(msg)
   if dbot.execute.doDelayCommands then
     dbot.execute.queue.pushFast(msg)
 
-    -- We just added a new command to the command queue.  If we don't already have a 
+    -- We just added a new command to the command queue.  If we don't already have a
     -- co-routine processing commands on that queue, start one now.
     if (not dbot.execute.queue.isDequeueRunning) then
       dbot.execute.queue.isDequeueRunning = true
@@ -1216,7 +1216,7 @@ function inv.fini(doSaveState)
       local initVal = inv[module].fini(doSaveState)
 
       if (initVal ~= DRL_RET_SUCCESS) and (initVal ~= DRL_RET_UNINITIALIZED) then
-        dbot.warn("inv.fini: Failed to de-initialize inv." .. module .. " module: " .. 
+        dbot.warn("inv.fini: Failed to de-initialize inv." .. module .. " module: " ..
                   dbot.retval.getString(initVal))
         retval = initVal
       else
@@ -1280,7 +1280,7 @@ function inv.reset(moduleNames, endTag)
   local suffix = ""
   if (numModulesReset ~= 1) then
     suffix = "s"
-  end -- if 
+  end -- if
 
   dbot.info("Successfully reset " .. numModulesReset .. " module" .. suffix)
 
@@ -1298,7 +1298,7 @@ function inv.reload(doSaveState)
 
     retval = inv.fini(doSaveState)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.reload: Failed to de-initialize inventory module: " .. 
+      dbot.warn("inv.reload: Failed to de-initialize inventory module: " ..
                 dbot.retval.getString(retval))
     end -- if
   end -- if
@@ -1337,9 +1337,9 @@ inv.version.table = { pluginVer      = { major = inv.version.pluginMajor, minor 
                       tableFormat    = { major = 0, minor = 1 },
                       cacheFormat    = { major = 0, minor = 1 },
                       consumeFormat  = { major = 0, minor = 1 },
-                      priorityFormat = { major = 0, minor = 1 }, 
-                      setFormat      = { major = 0, minor = 1 }, 
-                      snapshotFormat = { major = 0, minor = 1 } 
+                      priorityFormat = { major = 0, minor = 1 },
+                      setFormat      = { major = 0, minor = 1 },
+                      snapshotFormat = { major = 0, minor = 1 }
                     }
 
 
@@ -1351,26 +1351,26 @@ end -- inv.version.get
 function inv.version.display()
   dbot.print("\n  @y" .. pluginNameAbbr .. "  Aardwolf Plugin\n" ..
                 "-------------------------@w")
-  dbot.print("@WPlugin Version:    @G" .. 
+  dbot.print("@WPlugin Version:    @G" ..
              string.format("%01d", inv.version.table.pluginVer.major) .. "." ..
              string.format("%04d", inv.version.table.pluginVer.minor) .. "@w")
   dbot.print("")
-  dbot.print("@WInv. Table Format: @G" .. 
+  dbot.print("@WInv. Table Format: @G" ..
              inv.version.table.tableFormat.major .. "." ..
              inv.version.table.tableFormat.minor .. "@w")
-  dbot.print("@WInv. Cache Format: @G" .. 
+  dbot.print("@WInv. Cache Format: @G" ..
              inv.version.table.cacheFormat.major .. "." ..
              inv.version.table.cacheFormat.minor .. "@w")
-  dbot.print("@WConsumable Format: @G" .. 
+  dbot.print("@WConsumable Format: @G" ..
              inv.version.table.consumeFormat.major .. "." ..
              inv.version.table.consumeFormat.minor .. "@w")
-  dbot.print("@WPriorities Format: @G" .. 
+  dbot.print("@WPriorities Format: @G" ..
              inv.version.table.priorityFormat.major .. "." ..
              inv.version.table.priorityFormat.minor .. "@w")
-  dbot.print("@WEquip Set Format:  @G" .. 
+  dbot.print("@WEquip Set Format:  @G" ..
              inv.version.table.setFormat.major .. "." ..
              inv.version.table.setFormat.minor .. "@w")
-  dbot.print("@WSnapshot Format:   @G" .. 
+  dbot.print("@WSnapshot Format:   @G" ..
              inv.version.table.snapshotFormat.major .. "." ..
              inv.version.table.snapshotFormat.minor .. "@w")
   dbot.print("")
@@ -1398,7 +1398,7 @@ end -- inv.version.display
 
 inv.config           = {}
 inv.config.init      = {}
-inv.config.table     = {} 
+inv.config.table     = {}
 inv.config.stateName = "inv-config.state"
 
 
@@ -1544,7 +1544,7 @@ end -- inv.config.new
 --
 -- Functions
 --   inv.cli.fullUsage()
--- 
+--
 --   inv.cli.build.fn(name, line, wildcards)
 --   inv.cli.build.usage()
 --   inv.cli.build.examples()
@@ -1554,7 +1554,7 @@ end -- inv.config.new
 --   inv.cli.search.fn(name, line, wildcards)
 --   inv.cli.search.usage()
 --   inv.cli.search.examples()
--- 
+--
 --   inv.cli.get.fn(name, line, wildcards)
 --   inv.cli.get.usage()
 --   inv.cli.get.examples()
@@ -1567,7 +1567,7 @@ end -- inv.config.new
 --   inv.cli.keyword.fn(name, line, wildcards)
 --   inv.cli.keyword.usage()
 --   inv.cli.keyword.examples()
--- 
+--
 --   inv.cli.set.fn(name, line, wildcards)
 --   inv.cli.set.usage()
 --   inv.cli.set.examples()
@@ -1581,7 +1581,7 @@ end -- inv.config.new
 --   inv.cli.snapshot.fn(name, line, wildcards)
 --   inv.cli.snapshot.usage()
 --   inv.cli.snapshot.examples()
--- 
+--
 --   inv.cli.analyze.fn(name, line, wildcards)
 --   inv.cli.analyze.fn2(name, line, wildcards)
 --   inv.cli.analyze.usage()
@@ -1595,7 +1595,7 @@ end -- inv.config.new
 --   inv.cli.covet.fn(name, line, wildcards)
 --   inv.cli.covet.usage()
 --   inv.cli.covet.examples()
--- 
+--
 --   inv.cli.notify.fn(name, line, wildcards)
 --   inv.cli.notify.usage()
 --   inv.cli.notify.examples()
@@ -1617,14 +1617,14 @@ end -- inv.config.new
 --   inv.cli.tags.fn(name, line, wildcards)
 --   inv.cli.tags.usage()
 --   inv.cli.tags.examples()
--- 
+--
 --   inv.cli.portal.fn(name, line, wildcards)
 --   inv.cli.portal.usage()
 --   inv.cli.portal.examples()
 --   inv.cli.consume.fn(name, line, wildcards)
 --   inv.cli.consume.usage()
 --   inv.cli.consume.examples()
--- 
+--
 --   inv.cli.organize.fn1(name, line, wildcards)
 --   inv.cli.organize.fn2(name, line, wildcards)
 --   inv.cli.organize.fn3(name, line, wildcards)
@@ -1640,7 +1640,7 @@ end -- inv.config.new
 --   inv.cli.help.fn(name, line, wildcards)
 --   inv.cli.help.usage()
 --   inv.cli.help.examples()
--- 
+--
 ----------------------------------------------------------------------------------------------------
 
 inv.cli = {}
@@ -1712,7 +1712,7 @@ function inv.cli.build.fn(name, line, wildcards)
   If you truly want to build your inventory table:
     1) Go to a room where you won't disturb other people]])
    dbot.print("    2) Enter \"" .. pluginNameCmd .. " build confirm\"")
-   dbot.print("    3) Wait for the build to complete or enter \"" .. pluginNameCmd .. 
+   dbot.print("    3) Wait for the build to complete or enter \"" .. pluginNameCmd ..
               " refresh off\" to halt early\n")
     inv.tags.stop(invTagsBuild, endTag, DRL_RET_UNINITIALIZED)
 
@@ -1752,7 +1752,7 @@ a connection with a ~130 ms latency completed the same build in 8 minutes and
 a ~440 ms latency connection (thank you New Zealand!) took 18 minutes to
 complete a full build.  Fortunately, building your inventory table should be
 a one-time operation and subsequent changes to your table will be quick and
-easy.  
+easy.
 
 Building your inventory table requires the plugin to run the "identify"
 operation on all of your items.  If an item is in a container, it will first
@@ -1812,7 +1812,7 @@ function inv.cli.refresh.fn(name, line, wildcards)
 
   if (command == "off") then
     retval = inv.items.refreshOff()
-    dbot.info("Automatic inventory refresh is disabled: run \"@G" .. pluginNameCmd .. 
+    dbot.info("Automatic inventory refresh is disabled: run \"@G" .. pluginNameCmd ..
               " refresh on@W\" to re-enable it")
     inv.tags.stop(invTagsRefresh, endTag, retval)
 
@@ -1869,7 +1869,7 @@ anything that has changed.
 
 A refresh operation may require the plugin to get an item from a container or remove a worn item
 in order to identify the item.  If the plugin moves (or removes) the item, it will automatically
-put the item back when the identification completes.  The plugin suppresses mud output related 
+put the item back when the identification completes.  The plugin suppresses mud output related
 to this moving and identification so it will appear to happen transparently from the user's
 perspective.
 
@@ -1902,7 +1902,7 @@ Examples:
      "@Gdinv refresh off@W"
   3) Enable automatic refreshes with the default period (5 minutes since the last refresh)
      "@Gdinv refresh on@W"
-  4) Enable automatic refreshes with a 10-minute delay between refreshes 
+  4) Enable automatic refreshes with a 10-minute delay between refreshes
      "@Gdinv refresh on 10@W"
   5) Enable automatic refreshes with a 7-minute delay between refreshes and an "eager" refresh
      a few seconds after a new item is added to your inventory
@@ -1951,7 +1951,7 @@ example, the "@Cget@W", "@Cput@W", "@Cstore@W", "@Ckeyword@W", "@Corganize@W", a
 arguments and then get, put, store, etc. whatever items match the query.  See the helpfile at
 "@Gdinv help query@W" for more details and examples.
 
-A query consists of one or more sets of key-value pairs where the key can be any key listed 
+A query consists of one or more sets of key-value pairs where the key can be any key listed
 when you identify/lore an item.  For example, a query could be "@Gtype container keyword box@W"
 if you wanted to find everything with a type value of "container" that has a keyword "box".
 
@@ -1972,7 +1972,7 @@ everything in your inventory that is not currently equipped.
 
 Search queries support both absolute and relative names and locations.  If you want to specify
 all weapons that have "axe" in their name, use "@Gtype weapon name axe@W".  If you want to
-specifically target the third axe in your main inventory, use "@Gtype weapon rname 3.axe@W" 
+specifically target the third axe in your main inventory, use "@Gtype weapon rname 3.axe@W"
 (or you could just get by with "@Grname 3.axe@W" and skip the "@Gtype weapon@W" clause.)  The use
 of the key "rname" instead of "name" means that the search is relative to your main inventory
 and you can use the format [number].[name] to target a specific item.  Similarly, you can use
@@ -2444,7 +2444,7 @@ function inv.cli.set.examples()
 This plugin can automatically generate equipment sets based on statistic priorities
 defined by the user.  This is similar to aardwolf's default "score" value for items.
 If you enter "@Gcompare set all@W", you will see aardwolf's default weighting for each
-statistic based on your class.  
+statistic based on your class.
 
 The plugin implements a similar approach, but with many more options.  For example, the
 plugin's "priority" feature allows you to define statistic weightings for particular levels
@@ -2457,7 +2457,7 @@ examples using stat priorities.
 Once you define a group of priorities, you have the ability to create equipment sets based
 on those priorities.  The plugin finds the optimal (OK, technically it is near-optimal)
 set of items that maximizes your equipment set's score relative to the specified priority.
-The plugin accounts for overmaxing stats and at times may use items that superficially 
+The plugin accounts for overmaxing stats and at times may use items that superficially
 appear to be worse than other items in your inventory.  An item that looks "better" may
 be contributing points to stats that are already maxed and alternative "lesser" items may
 be more valuable when combined with your other equipment.
@@ -2497,7 +2497,7 @@ I normally use -- psis are awesome if you haven't noticed :)).  The following ex
 will use this priority.
 
 Examples:
-  1) Display what equipment set best matches the psi-melee priority for level 20.  The 
+  1) Display what equipment set best matches the psi-melee priority for level 20.  The
      stat summary listed on the last line indicates the cumulative stats for the entire
      set.  This reflects just the stats provided directly by the equipment and it does not
      include any bonuses you may get naturally or via spells.  Also, note the long list
@@ -2639,7 +2639,7 @@ to rotate through the types.  Each time the "next" command is given the plugin w
 one of the available damage types from the originally provided list and generate and wear
 the best possible equipment set that is compatible with the remaining damage types.  The
 plugin's algorithm starts with highest scoring equipment set and then removes the damage
-type of that set's primary weapon to find the next best equipment set.  
+type of that set's primary weapon to find the next best equipment set.
 
 In most cases, using the "@Cweapon@W" mode will just swap your weapons (and possibly your
 shield and/or held item if that's your priority's preference).  However, it is possible that
@@ -2779,7 +2779,7 @@ end -- inv.cli.priority.fn2
 
 
 function inv.cli.priority.usage()
-  dbot.print("@W    " .. pluginNameCmd .. 
+  dbot.print("@W    " .. pluginNameCmd ..
              " priority @G[list | display | create | clone | delete | edit | copy | paste | compare] " ..
              "@Y<name 1> <name 2>@w")
 end -- inv.cli.priority.usage
@@ -2796,7 +2796,7 @@ are you to.  Run "@Gcompare set@W" to see the current scoring weighting for your
 This is a great system and it allows you to customize how important particular statistics are
 to you and your particular playing style.
 
-However, this system has several limitations.  This plugin addresses those limitations by 
+However, this system has several limitations.  This plugin addresses those limitations by
 giving users the ability to implement one or more customizable "priority" groups.  Extensions
 to the mud's scoring system include:
   1) Entire equipment sets are scored collectively.  Knowing how a particular item is scored is
@@ -2816,7 +2816,7 @@ to the mud's scoring system include:
      or a range of levels.  For example, a primary spellcaster may want to emphasize str and dex
      more at lower levels and emphasize int and luck more at higher levels.  You might also give
      the "haste" effect a high priority at lower levels and a lower priority once you have access
-     to the haste spell.  Your priorities will change relative to your level and this plugin 
+     to the haste spell.  Your priorities will change relative to your level and this plugin
      gives you that opportunity.
   5) We provide the ability to prioritize item effects such as sanctuary, haste, or detect invis.
   6) We also allow you to specify the importance of the dual wield and irongrip effects given
@@ -2871,15 +2871,15 @@ Examples:
 @C  offhandDam@r   0.33   0.40@y   0.50   0.60   0.70@w   0.85@W  : @cValue of 1 point of offhand weapon ave damage
 @C          hp@r   0.02   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 hit point
 @C        mana@r   0.01   0.01   0.01   0.01   0.01   0.01@W  : @cValue of 1 mana point
-@C   sanctuary@G  50.00  10.00  10.00  10.00  10.00   5.00@W  : @cValue placed on the sanctuary effect 
-@C       haste@G  20.00   5.00@g   2.00   2.00   2.00   2.00@W  : @cValue placed on the haste effect 
-@C      flying@G   5.00@g   4.00   2.00@w   1.00   1.00   1.00@W  : @cValue placed on the flying effect 
-@C       invis@G  10.00   5.00@g   3.00@w   1.00   1.00   1.00@W  : @cValue placed on the invisible effect 
+@C   sanctuary@G  50.00  10.00  10.00  10.00  10.00   5.00@W  : @cValue placed on the sanctuary effect
+@C       haste@G  20.00   5.00@g   2.00   2.00   2.00   2.00@W  : @cValue placed on the haste effect
+@C      flying@G   5.00@g   4.00   2.00@w   1.00   1.00   1.00@W  : @cValue placed on the flying effect
+@C       invis@G  10.00   5.00@g   3.00@w   1.00   1.00   1.00@W  : @cValue placed on the invisible effect
 @Cregeneration@G   5.00   5.00   5.00   5.00   5.00@g   2.00@W  : @cValue placed on the regeneration effect
-@C detectinvis@g   4.00   4.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect invis effect 
-@Cdetecthidden@g   3.00   3.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect hidden effect 
-@C  detectevil@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect evil effect 
-@C  detectgood@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect good effect 
+@C detectinvis@g   4.00   4.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect invis effect
+@Cdetecthidden@g   3.00   3.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect hidden effect
+@C  detectevil@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect evil effect
+@C  detectgood@g   2.00   2.00   2.00   2.00   2.00   2.00@W  : @cValue placed on the detect good effect
 @C   dualwield@G  20.00@R   0.00   0.00   0.00   0.00   0.00@W  : @cValue of an item's dual wield effect
 @C    irongrip@g   2.00   3.00@G  20.00  20.00  25.00  30.00@W  : @cValue of an item's irongrip effect
 @C      shield@G   5.00   5.00  10.00  20.00  25.00  40.00@W  : @cValue of a shield's damage reduction effect
@@ -2938,15 +2938,15 @@ Examples:
 @WSwitching from priority "@Gpsi@W" to priority "@Gpsi-melee@W" would result in these changes:
 
 @W            Ave  Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects
-@WLevel  11: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  12: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  13: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  14: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  15: @G  23@W @G   4@W @R -3@W @G 22@W   0   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  16: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  17: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  18: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W 
-@WLevel  19: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -3@W   0    0    0    0 @Gregeneration@W @Rshield@W 
+@WLevel  11: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  12: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  13: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  14: @G  23@W @G   4@W @R -6@W @G 26@W @G  2@W   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  15: @G  23@W @G   4@W @R -3@W @G 22@W   0   0   0   0   0 @R -4@W @R -2@W    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  16: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  17: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  18: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -4@W   0    0    0    0 @Gregeneration@W @Rshield@W
+@WLevel  19: @G  23@W @G   4@W @R -9@W @G 32@W   0   0   0   0   0 @R -3@W   0    0    0    0 @Gregeneration@W @Rshield@W
 ]])
 
 end -- inv.cli.priority.examples
@@ -2995,7 +2995,7 @@ end -- inv.cli.snapshot.fn
 
 
 function inv.cli.snapshot.usage()
-  dbot.print("@W    " .. pluginNameCmd .. 
+  dbot.print("@W    " .. pluginNameCmd ..
              " snapshot @G[create | delete | list | display | wear] @Y<snapshot name>")
 end -- inv.cli.snapshot.usage
 
@@ -3007,10 +3007,10 @@ function inv.cli.snapshot.examples()
   dbot.print(
 [[@W
 It's quite easy to take an equipment "snapshot" consisting of everything you are wearing
-at the time of the snapshot.  You can then easily re-wear the items contained in the 
+at the time of the snapshot.  You can then easily re-wear the items contained in the
 snapshot at a later time.  My guess is that most people will want to use automatically
 generated equipment sets (see "@Gdinv help set@W") in most cases.  However, it could also
-be very convenient to explicitly manage what is in a particular set and that is where 
+be very convenient to explicitly manage what is in a particular set and that is where
 snapshots come into play.
 
 If you wear a snapshot, it will remove any currently worn items that are not in the
@@ -3114,7 +3114,7 @@ function inv.cli.analyze.fn(name, line, wildcards)
 
   if (command == "create") then
     if (inv.cli.analyzePkg ~= nil) then
-      dbot.info("Skipping analysis of priority \"@C" .. priorityName .. 
+      dbot.info("Skipping analysis of priority \"@C" .. priorityName ..
                 "@W\": another analysis is in progress")
       return inv.tags.stop(invTagsAnalyze, endTag, DRL_RET_BUSY)
     else
@@ -3529,17 +3529,17 @@ Example:
 @WPriority "@Cpsi-melee@W" advantages with "-@m=@W*@m)@WA @MP@mure @Ma@mnd @MT@mrue @WHeart@m(@W*@m=@W-":
 @w
 @W           Ave Sec  HR  DR Int Wis Lck Str Dex Con Res HitP Mana Move Effects
-@WLevel 200:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 201:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 202:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 203:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 204:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 205:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 206:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 207:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 208:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 209:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
-@WLevel 210:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 
+@WLevel 200:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 201:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 202:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 203:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 204:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 205:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 206:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 207:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 208:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 209:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
+@WLevel 210:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0
 @WLevel 211:   0   0   0 @G  7@W @G  8@W @R -2@W @G  2@W @R -7@W @R -2@W @R -5@W   0    0    0    0 @W
 ]])
 
@@ -3745,7 +3745,7 @@ automatically swap back your previous ring and store the regeneration ring.
 
 If you do not have any items providing regeneration, this mode will not do anything.  Similarly,
 if you have multiple regeneration rings, this mode will only attempt to wear one of them when you
-sleep.  Your regeneration ring(s) can be in your main inventory or in any open container.  Dinv 
+sleep.  Your regeneration ring(s) can be in your main inventory or in any open container.  Dinv
 will find them and put them back when it is done.
 
 Note: This mode will not detect when you sleep if you use an alias to sleep.  In other words, if
@@ -3790,7 +3790,7 @@ function inv.cli.forget.examples()
 
   dbot.print(
 [[@W
-You may occasionally want to "forget" everything you know about an item and 
+You may occasionally want to "forget" everything you know about an item and
 re-identify it for your inventory table.  As noted in the plugin release notes,
 there are a few situations where this may occur.
 
@@ -3926,7 +3926,7 @@ notes complaining about losing something because you reset it :).
 
 The following plugin components currently have the ability to be individually
 reset back to default values:
-  @Cconfig@W:    This holds version info and some of your preferences.  You will 
+  @Cconfig@W:    This holds version info and some of your preferences.  You will
              need to rebuild your inventory table if you reset this.
   @Citems@W:     This is your inventory table.  You'll need to rebuild it if you
              reset this.
@@ -3934,14 +3934,14 @@ reset back to default values:
              and "customization item cache".
   @Csnapshot@W:  This table stores all custom equipment set snapshots that you have
              created.
-  @Cpriority@W:  This wipes out all custom stat priorities and implements the 
+  @Cpriority@W:  This wipes out all custom stat priorities and implements the
              default values.
   @Cset@W:       This is where all of your equipment set data is stored when you
              run a "@Gdinv analyze create [...]@W" operation.  If your backups
              are getting a little big, you may want to wipe the equipment sets
              and regenerate just the ones you currently care about.
   @CstatBonus@W: This table maintains a weighted average of your spell bonuses at
-             each level.  
+             each level.
   @Cconsume@W:   This table keeps track of which consumable items (typically pills
              and potions) you use and where you can buy the items.
   @Ctags@W:      This table tracks which plugin tags are enabled and if the tag
@@ -4008,7 +4008,7 @@ function inv.cli.backup.fn(name, line, wildcards)
     retval = dbot.backup.delete(backupName, endTag, false)
 
   elseif (command == "restore") and (backupName ~= "") then
-    retval = dbot.backup.restore(backupName, endTag)   
+    retval = dbot.backup.restore(backupName, endTag)
 
   elseif (command == "auto") then -- Note: auto is a hidden mode and not included in the help file
     retval = dbot.backup.current()
@@ -4046,12 +4046,12 @@ log out, once every 4 hours you are logged in, and every time you go AFK for at
 least 5 seconds.  You can enable or disable automatic backups by running
 "@Gdinv backup on@W" or "@Gdinv backup off@W".
 
-Most automatic backup systems rotate all previous automatic backups when a new 
+Most automatic backup systems rotate all previous automatic backups when a new
 backup is created.  In other words, if you have automatic backups 1, 2, 3, and 4
 and then create a new backup, the previous backup #1 would become #2, the old #2
 would become #3, #3 would become #4 and the old backup #4 would be deleted.  That's
 not quite how it works here.  I like the idea of frequently updating the most current
-backup but I also like keeping stable backups from previous days around.  If 
+backup but I also like keeping stable backups from previous days around.  If
 something does wrong, you might not notice for a couple of days so you don't a
 situation where you overwrite all of the backups in a relatively short amount of
 time.
@@ -4114,7 +4114,7 @@ function inv.cli.cache.fn(name, line, wildcards)
   end -- if
 
   if (cacheCommand == "reset") then
-    if (cacheType == "recent") or (cacheType == "all") then 
+    if (cacheType == "recent") or (cacheType == "all") then
       retval = inv.cache.resetCache(inv.cache.recent.name)
     end -- if
     if (cacheType == "frequent") or (cacheType == "all") then
@@ -4176,7 +4176,7 @@ end -- inv.cli.cache.fn
 
 
 function inv.cli.cache.usage()
-  dbot.print("@W    " .. pluginNameCmd .. 
+  dbot.print("@W    " .. pluginNameCmd ..
                 " cache @G[reset | size] [recent | frequent | custom | all] @Y<# entries>@w")
 end -- inv.cli.cache.usage
 
@@ -4400,7 +4400,7 @@ You can get a portal's unique ID by searching with the "objid" query mode.  See 
 of all of your portals by typing "@Gdinv search objid type portal@W".
 
 The plugin's portal mode is particularly convenient when used in conjuction with the
-mapper's portal mode.  
+mapper's portal mode.
 
 Examples:
   1) Use the portal with a unique ID of 123456789
@@ -4450,7 +4450,7 @@ function inv.cli.pass.examples()
 [[@W
 Some areas require specific items to be in your main inventory in order for you to
 pass through certain rooms or doors.  These are not keys.  This plugin refers to
-such items as "passes".  A pass is saveable (unlike a key) and can be kept in a 
+such items as "passes".  A pass is saveable (unlike a key) and can be kept in a
 container.
 
 What we want is the ability to quickly pull a pass out of its container, keep it
@@ -4479,8 +4479,8 @@ function inv.cli.consume.fn(name, line, wildcards)
   local itemNum = tonumber(itemName)
   local container = wildcards[4] or ""
 
-  dbot.debug("CLI: " .. pluginNameCmd .. " consume command=\"" .. (command or "") .. "\", itemType=\"" .. 
-             (itemType or "") .. "\", itemName/Num=\"" .. (itemName or "") .. "\", container=\"" .. 
+  dbot.debug("CLI: " .. pluginNameCmd .. " consume command=\"" .. (command or "") .. "\", itemType=\"" ..
+             (itemType or "") .. "\", itemName/Num=\"" .. (itemName or "") .. "\", container=\"" ..
              container .. "\"")
 
   if (not inv.init.initializedActive) then
@@ -4510,7 +4510,7 @@ end -- inv.cli.consume.fn
 
 function inv.cli.consume.usage()
   dbot.print("@W    " .. pluginNameCmd .. " consume @G[add | remove | display | " ..
-             "buy | small | big] <type> <name or quantity> @Y<container>@w") 
+             "buy | small | big] <type> <name or quantity> @Y<container>@w")
 end -- inv.cli.consume.usage
 
 
@@ -4521,8 +4521,8 @@ function inv.cli.consume.examples()
 [[@W
 Using consumable items such as potions, pills, and scrolls is a very common
 occurance.  The plugin facilitates this by giving users the ability to specify
-types and locations of consumable items.  Users can then ask the plugin to 
-restock or use particular types of things.  Confused yet?  Let me explain by 
+types and locations of consumable items.  Users can then ask the plugin to
+restock or use particular types of things.  Confused yet?  Let me explain by
 giving you a walk-through.
 
 Run to the Aylor potion shop, define a new type of consumable named "@Cfly@W", and
@@ -4665,7 +4665,7 @@ function inv.cli.organize.fn1(name, line, wildcards)
   local queryString = wildcards[3] or ""
   local endTag      = inv.tags.new(line)
 
-  dbot.debug("CLI: " .. pluginNameCmd .. " organize command=\"" .. (command or "") .. "\", container=\"" .. 
+  dbot.debug("CLI: " .. pluginNameCmd .. " organize command=\"" .. (command or "") .. "\", container=\"" ..
              container .. "\", query=\"" .. queryString .. "\"")
 
   if (not inv.init.initializedActive) then
@@ -4732,7 +4732,7 @@ end -- inv.cli.organize.fn3
 
 function inv.cli.organize.usage()
   dbot.print("@W    " .. pluginNameCmd .. " organize @G[add | clear | display] " ..
-             "@Y<container relative name> <query>@w") 
+             "@Y<container relative name> <query>@w")
 end -- inv.cli.organize.usage
 
 
@@ -4794,7 +4794,7 @@ Let's see what that looks like:
   4) If I want to put everything away, I would use an empty search query to match everything
      in my inventory.  Bingo.  Everything is now tucked away in containers.  This will also put
      away your worn equipment so you may want to take an equipment snapshot or ensure you have
-     a priority set available to re-wear your equipment before you do this.  
+     a priority set available to re-wear your equipment before you do this.
      "@Gdinv organize@W"
 
   5) You can clear a container's organize queries like this:
@@ -4878,7 +4878,7 @@ Examples:
   3) Display the entire plugin changelog
      "@Gdinv version changelog@W"
 
-  4) Check if you have the latest plugin version.  If your version is not the 
+  4) Check if you have the latest plugin version.  If your version is not the
      latest and greatest, download the latest release and install it.  You do
      not need to log out or restart mush.
      "@Gdinv version update confirm@W"
@@ -4900,7 +4900,7 @@ function inv.cli.help.fn(name, line, wildcards)
     inv.cli.fullUsage()
   end -- if
 
-  inv.tags.stop(invTagsHelp, endTag, DRL_RET_SUCCESS) 
+  inv.tags.stop(invTagsHelp, endTag, DRL_RET_SUCCESS)
 end -- inv.cli.help.fn
 
 
@@ -4995,17 +4995,17 @@ end -- inv.cli.debug.fn
 --   inv.items.get
 --   inv.items.getCR
 --   inv.items.getItem
--- 
+--
 --   inv.items.put
 --   inv.items.putCR
 --   inv.items.putItem
--- 
+--
 --   inv.items.store
 --   inv.items.storeCR
 --   inv.items.storeItem
--- 
+--
 --   inv.items.wearItem(objId, objLoc, commandArray, doCheckLocation)
---   inv.items.wearSetupFn()   
+--   inv.items.wearSetupFn()
 --   inv.items.wearResultFn()
 --
 --   inv.items.isWorn(objId)
@@ -5014,12 +5014,12 @@ end -- inv.cli.debug.fn
 --   inv.items.wearableTypeToLocs(wearableType)
 --
 --   inv.items.removeItem(objId, commandArray)
---   inv.items.removeSetupFn()   
+--   inv.items.removeSetupFn()
 --   inv.items.removeResultFn()
 --
 --   inv.items.keyword
 --   inv.items.keywordCR
--- 
+--
 --   inv.items.search
 --   inv.items.searchCR
 --   inv.items.sort
@@ -5040,7 +5040,7 @@ end -- inv.cli.debug.fn
 ----------------------------------------------------------------------------------------------------
 
 
--- We don't want to scan worn equipment, the main inventory, and all containers each time that we 
+-- We don't want to scan worn equipment, the main inventory, and all containers each time that we
 -- do a refresh because that can take 5-10 seconds depending on how many containers you have.
 -- Instead, we maintain "clean" or "dirty" flags for each possible place to scan.  At startup, we
 -- consider everything to be "dirty" and we require a full scan.  After that, we mark locations as
@@ -5154,7 +5154,7 @@ function inv.items.init.atInstall()
   -- Trigger on the stats for an eqdata, invdata, or keyring data item
   check (AddTriggerEx(inv.items.trigger.itemDataStatsName,
                       "^([0-9]+?),(.*?),(.*?),(.*?),(.*?),(.*?),(.*?),(.*?)$",
-                      "inv.items.trigger.itemDataStats" .. 
+                      "inv.items.trigger.itemDataStats" ..
                       "(\"%1\",\"%2\",\"%3\",\"%4\", \"%5\",\"%6\",\"%7\",\"%8\",false)",
                       drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -5162,7 +5162,7 @@ function inv.items.init.atInstall()
 
   -- Trigger on an identify command to capture the item's object ID
   check (AddTriggerEx(inv.items.trigger.idItemName,
-                      "^(" .. 
+                      "^(" ..
                          ".------.*|"                                   ..
                          "\\|.*|"                                       ..
                          "You do not have that item.*|"                 ..
@@ -5245,7 +5245,7 @@ function inv.items.init.atInstall()
 
   -- Trigger on the output of the "put" command
   check (AddTriggerEx(inv.items.trigger.putName,
-                      "^(" .. 
+                      "^(" ..
                          "You don't have that.*"                 ..
                          "|You do not see.*"                     ..
                          "|You dream about putting items away.*" ..
@@ -5309,7 +5309,7 @@ function inv.items.init.atActive()
     end -- if
   end -- for
 
-  -- If automatic refreshes are enabled (i.e., the period is > 0 minutes), kick off the 
+  -- If automatic refreshes are enabled (i.e., the period is > 0 minutes), kick off the
   -- refresh timer to periodically scan our inventory and update the inventory table
   local refreshPeriod = inv.items.refreshGetPeriods() or inv.items.timer.refreshMin
   if (refreshPeriod > 0) then
@@ -5373,7 +5373,7 @@ end -- inv.items.save
 function inv.items.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.items.stateName, inv.items.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.items.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.items.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.items.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -5439,7 +5439,7 @@ function inv.items.getField(objId, field)
 
   local entry = inv.items.getEntry(objId)
   if (entry == nil) then
-    dbot.debug("inv.items.getField: Failed to get field \"" .. field .. "\", entry " .. objId .. 
+    dbot.debug("inv.items.getField: Failed to get field \"" .. field .. "\", entry " .. objId ..
                " does not exist")
     return nil,DRL_RET_MISSING_ENTRY
   end -- if
@@ -5451,12 +5451,12 @@ end -- inv.items.getField
 function inv.items.setField(objId, field, value)
   -- Check the params
   assert((objId ~= nil) and (field ~= nil) and (value ~= nil), "inv.items.setField: nil parameters")
-  objId = tonumber(objId) 
+  objId = tonumber(objId)
   assert((objId ~= nil), "Invalid non-numeric objId detected")
 
   local entry = inv.items.getEntry(objId)
   if (entry == nil) then
-    dbot.warn("inv.items.setField: Failed to set field \"" .. field .. "\", entry " .. objId .. 
+    dbot.warn("inv.items.setField: Failed to set field \"" .. field .. "\", entry " .. objId ..
               " does not exist")
     return DRL_RET_MISSING_ENTRY
   end -- if
@@ -5482,7 +5482,7 @@ function inv.items.getStatField(objId, field)
 
   local entry = inv.items.table[objId]
   if (entry == nil) then
-    dbot.debug("inv.items.getStatField failed: no inventory entry found for objectID " .. objId .. 
+    dbot.debug("inv.items.getStatField failed: no inventory entry found for objectID " .. objId ..
                " for field " .. (field or "nil"))
     return nil, DRL_RET_MISSING_ENTRY
   end -- if
@@ -5496,7 +5496,7 @@ function inv.items.getStatField(objId, field)
 end -- inv.items.getStatField
 
 
-function inv.items.setStatField(objId, field, value) 
+function inv.items.setStatField(objId, field, value)
 
   assert(objId ~= nil, "inv.items.setStatField: nil objId parameter")
   assert(field ~= nil, "inv.items.setStatField: nil field parameter for item " .. objId)
@@ -5516,7 +5516,7 @@ function inv.items.setStatField(objId, field, value)
 end -- inv.items.setStatField
 
 
-function inv.items.add(objId) 
+function inv.items.add(objId)
   local retval = DRL_RET_SUCCESS
   local objIdNum = tonumber(objId)
 
@@ -5533,7 +5533,7 @@ function inv.items.add(objId)
   else
     retval = inv.items.setEntry(objId, dbot.table.getCopy(entry))
     if (retval == DRL_RET_SUCCESS) then
-      dbot.debug("Added \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. 
+      dbot.debug("Added \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") ..
                DRL_ANSI_WHITE .. "\" (" .. objId .. ") from recent item cache")
 
       -- The item is now in our inventory table so we can remove it from the recent item cache
@@ -5560,8 +5560,8 @@ function inv.items.remove(objId)
   local retval = DRL_RET_SUCCESS
 
   local item = inv.items.getEntry(objId)
-  if (item == nil) then 
-    dbot.warn("inv.items.removeFailed to remove item " .. objId .. 
+  if (item == nil) then
+    dbot.warn("inv.items.removeFailed to remove item " .. objId ..
               " from inventory table because it is not in the table")
     return DRL_RET_MISSING_ENTRY
   end -- if
@@ -5585,7 +5585,7 @@ function inv.items.remove(objId)
   if (name ~= nil) and (inv.cache.get(inv.cache.frequent.table, name) == nil) then
     retval = inv.cache.add(inv.cache.recent.table, objId)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.items.remove: failed to cache \"" .. 
+      dbot.warn("inv.items.remove: failed to cache \"" ..
                 (inv.items.getField(objId, invFieldColorName) or "Unidentified") ..
                 "\" in recently removed item cache: " .. dbot.retval.getString(retval))
     end -- if
@@ -5710,7 +5710,7 @@ function inv.items.ignoreCR()
       dbot.warn("inv.items.ignoreCR: Failed to save inv.config module data: " ..
                 dbot.retval.getString(retval))
     else
-      dbot.info("Ignore mode for keyring \"" .. inv.items.ignorePkg.container .. "\" is " .. modeStr)    
+      dbot.info("Ignore mode for keyring \"" .. inv.items.ignorePkg.container .. "\" is " .. modeStr)
     end -- if
 
   -- We are targeting a container, not the keyring
@@ -5820,7 +5820,7 @@ function inv.items.listIgnored()
   if (numIgnored == 1) then
     suffix = ""
   end -- if
-  
+
   dbot.info("Currently ignoring " .. numIgnored .. " location" .. suffix)
 
   return DRL_RET_SUCCESS
@@ -5880,12 +5880,12 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
   end -- if
 
   -- Discover items in the main inventory
-  if (refreshLocation == invItemsRefreshLocAll) or 
+  if (refreshLocation == invItemsRefreshLocAll) or
      (refreshLocation == invItemsRefreshLocMain) or
      ((refreshLocation == invItemsRefreshLocDirty) and (inv.items.mainState == invItemsRefreshDirty)) then
     retval = inv.items.discoverLocation(invItemLocInventory)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.debug("inv.items.discoverCR: Failed to discover main inventory contents: " .. 
+      dbot.debug("inv.items.discoverCR: Failed to discover main inventory contents: " ..
                  dbot.retval.getString(retval))
       return retval
     else
@@ -5894,12 +5894,12 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
   end -- if
 
   -- Discover items in the keyring
-  if (refreshLocation == invItemsRefreshLocAll) or 
+  if (refreshLocation == invItemsRefreshLocAll) or
      (refreshLocation == invItemsRefreshLocKey) or
      ((refreshLocation == invItemsRefreshLocDirty) and (inv.items.keyringState == invItemsRefreshDirty)) then
     retval = inv.items.discoverLocation(invItemLocKeyring)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.debug("inv.items.discoverCR: Failed to discover keyring contents: " .. 
+      dbot.debug("inv.items.discoverCR: Failed to discover keyring contents: " ..
                  dbot.retval.getString(retval))
       return retval
     else
@@ -5911,7 +5911,7 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
   -- their contents next)
   retval = inv.items.identifyCR(maxNumItems, refreshLocations)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.debug("inv.items.discoverCR: Inventory identification did not complete: " .. 
+    dbot.debug("inv.items.discoverCR: Inventory identification did not complete: " ..
                dbot.retval.getString(retval))
     return retval
   end -- if
@@ -5923,18 +5923,18 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
       if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) then
 
         -- Scan this container if the caller asked us to scan everything or if we need to scan all
-        -- dirty containers and this container is dirty (i.e., it hasn't been verified to be clean 
+        -- dirty containers and this container is dirty (i.e., it hasn't been verified to be clean
         -- in a previous scan)
         local keywordField = inv.items.getStatField(objId, invStatFieldKeywords) or ""
         if (refreshLocation == invItemsRefreshLocAll) or
-           ((refreshLocation == invItemsRefreshLocDirty) and 
+           ((refreshLocation == invItemsRefreshLocDirty) and
             (not dbot.isWordInString(invItemsRefreshClean, keywordField))) then
           dbot.debug("Discovering contents of container " .. objId .. ": " .. v[invFieldColorName])
 
           -- Discover items in the container
           retval = inv.items.discoverLocation(objId)
           if (retval ~= DRL_RET_SUCCESS) then
-            dbot.debug("inv.items.discoverCR: Failed to discover container " .. objId .. 
+            dbot.debug("inv.items.discoverCR: Failed to discover container " .. objId ..
                        ": " .. dbot.retval.getString(retval))
           else
             inv.items.keyword(invItemsRefreshClean, invKeywordOpAdd, "id " .. objId, true)
@@ -5957,7 +5957,7 @@ function inv.items.discoverLocation(location)
   if (location ~= nil) then
     containerId = tonumber(location)
   end -- if
-  assert((location == invItemLocWorn) or (location == invItemLocInventory) or 
+  assert((location == invItemLocWorn) or (location == invItemLocInventory) or
          (location == invItemLocKeyring) or (containerId ~= nil),
          "inv.items.discoverLocation: invalid location parameter")
 
@@ -6075,7 +6075,7 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     -- Attempt to get both the colorized name and the regular name for the item.  If we have
     -- the colorized name, we can get the regular name by stripping the colors from the colorized
     -- version of the name.
-    local colorName = inv.items.getField(objId, invFieldColorName) 
+    local colorName = inv.items.getField(objId, invFieldColorName)
     if (colorName == "") then
       colorName = nil
     end -- if
@@ -6102,12 +6102,12 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
 
         retval = inv.items.setEntry(objId, (cachedEntry))
         if (retval ~= DRL_RET_SUCCESS) then
-          dbot.warn("inv.items.identifyCR: Failed to set \"" .. name .. DRL_ANSI_WHITE .. 
+          dbot.warn("inv.items.identifyCR: Failed to set \"" .. name .. DRL_ANSI_WHITE ..
                     "\" from frequent cache entry: " .. dbot.retval.getString(retval))
         else
-          numItemsIdentified = numItemsIdentified + 1        
+          numItemsIdentified = numItemsIdentified + 1
           dbot.note("Identify (" .. numItemsIdentified .. " / " .. numItemsToIdentify ..
-                    "): \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE .. 
+                    "): \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE ..
                     "\" (" .. objId .. ") from frequent cache")
         end -- if
       end -- if
@@ -6119,10 +6119,10 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
       local resultData = dbot.callback.new()
       numItemsIdentified = numItemsIdentified + 1
       dbot.note(string.format("Identify (%d / %d)", numItemsIdentified, numItemsToIdentify) ..
-                ": \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE .. 
+                ": \"" .. (colorName or name or "Unidentified") .. "@W" .. DRL_ANSI_WHITE ..
                 "\" (" .. objId .. ")")
       local commandArray = dbot.execute.new()
-      retval = inv.items.identifyItem(objId, idCommandBasic, resultData, commandArray)      
+      retval = inv.items.identifyItem(objId, idCommandBasic, resultData, commandArray)
 
       -- Wait until we have confirmation the identification completed
       if (retval == DRL_RET_SUCCESS) then
@@ -6139,7 +6139,7 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
             wait.time(inv.items.timer.idTimeoutPeriodSec)
             timeout = timeout + inv.items.timer.idTimeoutPeriodSec
             if (timeout > inv.items.timer.idTimeoutThresholdSec) then
-              dbot.warn("inv.items.identifyCR: Basic identification timed out for item " .. objId  .. 
+              dbot.warn("inv.items.identifyCR: Basic identification timed out for item " .. objId  ..
                         ": \"" .. (colorName or name or "Unidentified") .. DRL_ANSI_WHITE .. "\"")
               break
             end -- if
@@ -6151,7 +6151,7 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     -- If the item is an instance of a frequently acquired item (potion, pill, etc.) add it
     -- to the "frequently acquired item" cache if it is not already in the cache.
     -- Grab the latest name because it may have been filled in during the ID
-    name = inv.items.getStatField(objId, invStatFieldName) 
+    name = inv.items.getStatField(objId, invStatFieldName)
     if (name ~= nil) then
       local cacheEntry = inv.cache.get(inv.cache.frequent.table, name)
       if (cacheEntry == nil) then
@@ -6162,11 +6162,11 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
         --       outweigh the disadvantages.  If you buy 100 starburst staves, you really don't want
         --       to manually identify each one :p
         itemType = inv.items.getStatField(objId, invStatFieldType)
-        if (itemType == invmon.typeStr[invmonTypePotion]) or 
-           (itemType == invmon.typeStr[invmonTypePill]) or 
-           (itemType == invmon.typeStr[invmonTypeFood]) or 
-           (itemType == invmon.typeStr[invmonTypeWand]) or 
-           (itemType == invmon.typeStr[invmonTypeStaff]) or 
+        if (itemType == invmon.typeStr[invmonTypePotion]) or
+           (itemType == invmon.typeStr[invmonTypePill]) or
+           (itemType == invmon.typeStr[invmonTypeFood]) or
+           (itemType == invmon.typeStr[invmonTypeWand]) or
+           (itemType == invmon.typeStr[invmonTypeStaff]) or
            (itemType == invmon.typeStr[invmonTypeScroll]) then
 
           colorName = inv.items.getField(objId, invFieldColorName)
@@ -6223,8 +6223,8 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
   assert((objId ~= nil) and (idCommand ~= nil), "inv.items.identifyItem: nil parameters detected")
 
   local item = inv.items.getEntry(objId)
-  if (item == nil) then 
-    dbot.warn("inv.items.identifyItem: Failed to identify item " .. objId .. 
+  if (item == nil) then
+    dbot.warn("inv.items.identifyItem: Failed to identify item " .. objId ..
               " in inventory table because it is not in the table")
     return DRL_RET_MISSING_ENTRY
   end -- if
@@ -6233,7 +6233,7 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
   -- put the item back to its original location once we finish identifying it.
   local objLoc = inv.items.getField(objId, invFieldObjLoc)
   if (objLoc == nil) or (objLoc == invItemLocUninitialized) then
-    dbot.warn("inv.items.identifyItem: Failed to identify item " .. objId .. 
+    dbot.warn("inv.items.identifyItem: Failed to identify item " .. objId ..
               ": item's location could not be determined")
     inv.items.table[objId] = nil
     return DRL_RET_MISSING_ENTRY
@@ -6241,7 +6241,7 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
 
   -- Check if another id is in progress before we proceed
   if (inv.items.identifyPkg ~= nil) then
-    dbot.info("inv.items.identifyItem: Skipping identification of " .. objId .. 
+    dbot.info("inv.items.identifyItem: Skipping identification of " .. objId ..
               ": another identification is in progress")
     return DRL_RET_BUSY
   end -- if
@@ -6335,7 +6335,7 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
 
   -- Auction (we may temporarily add an auction item to examine it)
   elseif (objLoc == invItemLocAuction) then
-    command = idCommand .. " " .. objId 
+    command = idCommand .. " " .. objId
     if (commandArray ~= nil) then
       table.insert(commandArray, command)
     else
@@ -6508,9 +6508,9 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
 [[@W
   You must perform at least one manual inventory build before we allow inventory refresh
   requests to proceed.  Otherwise, a user's first automatic refresh could clog up the system
-  for several minutes as the entire inventory is scanned.  We don't want the user to be 
+  for several minutes as the entire inventory is scanned.  We don't want the user to be
   surprised by that behavior.
-]]) 
+]])
     dbot.print("@W  Please see \"@G" .. pluginNameCmd .. " help build@W\" for more details.")
     dbot.print("@W\nUsage:")
     inv.cli.build.usage()
@@ -6536,7 +6536,7 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
   -- then we wait a bit and try again
   elseif (charState ~= dbot.stateActive) then
     dbot.debug("Skipping refresh request: char is in state \"" .. dbot.gmcp.getStateString(charState) .. "\"")
-    retval = DRL_RET_NOT_ACTIVE    
+    retval = DRL_RET_NOT_ACTIVE
 
   -- If the char is in the active state (e.g., not AFK, in a note, in combat, etc.) refresh now
   -- and schedule the next refresh after the default period
@@ -6567,7 +6567,7 @@ function inv.items.refresh(maxNumItems, refreshLocations, endTag, tagProxy)
     inv.items.refreshAtTime(refreshMin, 0)
   end -- if
 
-  -- If everything went as planned, we have a co-routine doing a refresh and that co-routine will 
+  -- If everything went as planned, we have a co-routine doing a refresh and that co-routine will
   -- terminate any end tags that were specified.  Otherwise, we hit an error and we should terminate
   -- the tag now and return what we know to the caller.
   if (retval == DRL_RET_SUCCESS) then
@@ -6581,7 +6581,7 @@ end -- inv.items.refresh
 function inv.items.refreshCR()
   local retval = DRL_RET_SUCCESS
 
-  -- We can skip the refresh if we've already done a full scan, there are no known "dirty" 
+  -- We can skip the refresh if we've already done a full scan, there are no known "dirty"
   -- locations or containers, and the user didn't explicitly request a full scan
   if inv.items.fullScanCompleted and
      (inv.items.refreshPkg.refreshLocations ~= invItemsRefreshLocAll) and
@@ -6597,7 +6597,7 @@ function inv.items.refreshCR()
   dbot.prompt.hide()
 
   -- On each refresh request we track all items discovered and match that against the contents
-  -- of the inventory table.  If something is in the inventory table and we didn't find it 
+  -- of the inventory table.  If something is in the inventory table and we didn't find it
   -- during refresh, remove it from the inventory table because the table is out of sync.
   inv.items.currentItems = {}
 
@@ -6617,13 +6617,13 @@ function inv.items.refreshCR()
   -- refresh.  It's possible that things are out of sync (e.g., the table wasn't saved after
   -- a change to the inventory).  Of course, if the user halted the current search then we
   -- may not have found items that actually are present so we only remove orphans if we
-  -- fully completed the discovery and identification steps above.  Also, if we are only 
+  -- fully completed the discovery and identification steps above.  Also, if we are only
   -- scanning some locations, then we don't want to remove orphans because the items could
   -- be at a location we didn't scan this time.
   if (retval == DRL_RET_SUCCESS) and (inv.items.refreshPkg.refreshLocations == invItemsRefreshLocAll) then
     for k,v in pairs(inv.items.table) do
       if (inv.items.currentItems[k] == nil) then
-        dbot.note("Removed orphan: \"" .. (inv.items.getField(k, invFieldColorName) or "Unidentified") .. 
+        dbot.note("Removed orphan: \"" .. (inv.items.getField(k, invFieldColorName) or "Unidentified") ..
                   DRL_ANSI_WHITE .. "\" (" .. k .. ")")
         inv.items.table[k] = nil
       end -- if
@@ -6827,7 +6827,7 @@ function inv.items.build(endTag)
   retval = inv.items.refresh(0, invItemsRefreshLocAll, endTag, invTagsBuild)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.items.build: refresh did not complete: " .. dbot.retval.getString(retval))
-  end -- if  
+  end -- if
 
   return retval
 
@@ -6847,7 +6847,7 @@ end -- inv.items.build()
 --
 -- Move item(s) to main inventory
 --
--- Suppress get verbage: 
+-- Suppress get verbage:
 --   "You remove ..."                 -- remove item
 --   "You stop wielding ..."          -- remove weapon
 --   "You stop using ..."             -- remove portal
@@ -7036,7 +7036,7 @@ function inv.items.getItem(objId, commandArray)
 
       -- If we pulled the item out of a worn container, we must remember to re-wear the container
       -- now that we took the item out of it
-      if (containerLoc ~= nil) then 
+      if (containerLoc ~= nil) then
         local containerRetval = inv.items.wearItem(itemLocNum, nil, commandArray, false)
         if (containerRetval ~= DRL_RET_SUCCESS) then
           dbot.warn("inv.items.getItem: Failed to wear item " .. (objId or "nil") .. ": " ..
@@ -7087,7 +7087,7 @@ function inv.items.getItem(objId, commandArray)
       -- Remove the item and wait for confirmation that it moved
       retval = inv.items.removeItem(objId, commandArray)
       if (retval ~= DRL_RET_SUCCESS) then
-        dbot.debug("Skipping removal of \"" .. itemName .. "\" worn at location " .. 
+        dbot.debug("Skipping removal of \"" .. itemName .. "\" worn at location " ..
                    itemLoc .. ": " .. dbot.retval.getString(retval))
       end -- if
     end -- if
@@ -7180,7 +7180,7 @@ function inv.items.putCR()
   local containerId
 
   -- Be paranoid!
-  if (inv.items.putPkg == nil) or (inv.items.putPkg.container == nil) or 
+  if (inv.items.putPkg == nil) or (inv.items.putPkg.container == nil) or
      (inv.items.putPkg.queryString == nil) then
     dbot.error("inv.items.putCR: Aborting put request -- put package, container or query is nil!")
     inv.items.putPkg = nil
@@ -7204,7 +7204,7 @@ function inv.items.putCR()
 
     containerId = tonumber(containerId)
     if (containerId == nil) then
-      dbot.warn("inv.items.putCR: Container \"" .. inv.items.putPkg.container .. 
+      dbot.warn("inv.items.putCR: Container \"" .. inv.items.putPkg.container ..
                 "\" resolved to a non-numeric object ID -- aborting put request")
       inv.items.putPkg = nil
       return inv.tags.stop(invTagsPut, endTag, DRL_RET_INTERNAL_ERROR)
@@ -7232,7 +7232,7 @@ function inv.items.putCR()
     for _,objId in ipairs(idArray) do
       retval = inv.items.putItem(objId, containerId, commandArray, true)
       if (retval ~= DRL_RET_SUCCESS) then
-        dbot.debug("Skipping request to put item " .. objId .. " in container \"" .. 
+        dbot.debug("Skipping request to put item " .. objId .. " in container \"" ..
                    containerName .. "\" (" .. containerId .. "): " .. dbot.retval.getString(retval))
         break
       else
@@ -7290,7 +7290,7 @@ function inv.items.putItem(objId, containerId, commandArray, doCheckLocation)
                    "@W" .. DRL_ANSI_WHITE
 
   -- The target container may not be in our inventory (it might be on the floor or might
-  -- be furniture in a room).  
+  -- be furniture in a room).
   local containerName = (inv.items.getField(containerId, invFieldColorName) or "Room container") ..
                         "@W" .. DRL_ANSI_WHITE
   local isRoomContainer = false
@@ -7332,7 +7332,7 @@ function inv.items.putItem(objId, containerId, commandArray, doCheckLocation)
 
     retval = inv.items.getItem(objId, commandArray)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.note("Skipping request to move item " .. objId .. " to main inventory: " .. 
+      dbot.note("Skipping request to move item " .. objId .. " to main inventory: " ..
                 dbot.retval.getString(retval))
       return retval
     end -- if
@@ -7442,7 +7442,7 @@ function inv.items.store(queryString, endTag)
   end -- if
 
   if (inv.items.storePkg ~= nil) then
-    dbot.info("Skipping store request for query \"" .. queryString .. 
+    dbot.info("Skipping store request for query \"" .. queryString ..
               "\", another store request is in progress")
     inv.tags.stop(invTagsStore, endTag, DRL_RET_BUSY)
   end -- if
@@ -7546,7 +7546,7 @@ end -- inv.items.storeItem
 -- Routines to handle wearing items
 --
 -- inv.items.wearItem(objId, objLoc, commandArray, doCheckLocation) -- must be called from a co-routine
--- inv.items.wearSetupFn()   
+-- inv.items.wearSetupFn()
 -- inv.items.wearResultFn()
 --
 -- Verbage:
@@ -7586,7 +7586,7 @@ function inv.items.wearItem(objId, targetLoc, commandArray, doCheckLocation)
     -- Start with the item in your main inventory
     retval = inv.items.getItem(objId, commandArray)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.items.wearItem: Failed to get item \"" .. itemName .. "\": " .. 
+      dbot.warn("inv.items.wearItem: Failed to get item \"" .. itemName .. "\": " ..
                 dbot.retval.getString(retval))
       return retval
     end -- if
@@ -7630,7 +7630,7 @@ function inv.items.wearItem(objId, targetLoc, commandArray, doCheckLocation)
         if inv.items.isInvis(objId) then
           dbot.info("Failed to wear invisible item \"" .. itemName .. "\": can you detect invis?")
         else
-          dbot.warn("inv.items.wearItem: Timed out waiting for invmon to confirm we are wearing \"" .. 
+          dbot.warn("inv.items.wearItem: Timed out waiting for invmon to confirm we are wearing \"" ..
                     itemName .. "\"")
         end -- if
         retval = DRL_RET_MISSING_ENTRY
@@ -7723,7 +7723,7 @@ end -- inv.items.wearableTypeToLocs
 -- Routines to handle removing items
 --
 -- inv.items.removeItem(objId, commandArray) -- must be called from a co-routine
--- inv.items.removeSetupFn()   
+-- inv.items.removeSetupFn()
 -- inv.items.removeResultFn()
 --
 -- Verbage:
@@ -7781,7 +7781,7 @@ function inv.items.removeItem(objId, commandArray)
           if inv.items.isInvis(objId) then
             dbot.info("Failed to remove invisible item \"" .. itemName .. "\": can you detect invis?")
           else
-            dbot.warn("inv.items.removeItem: Timed out waiting for invmon to confirm we removed \"" .. 
+            dbot.warn("inv.items.removeItem: Timed out waiting for invmon to confirm we removed \"" ..
                       itemName .. "\"")
           end -- if
           retval = DRL_RET_MISSING_ENTRY
@@ -7826,7 +7826,7 @@ function inv.items.keyword(keyword, keywordOperation, queryString, useQuietMode,
     return inv.tags.stop(invTagsKeyword, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
-  if (keywordOperation == nil) or 
+  if (keywordOperation == nil) or
      ((keywordOperation ~= invKeywordOpAdd) and (keywordOperation ~= invKeywordOpRemove)) then
     dbot.warn("inv.items.keyword: Invalid keywordOperation")
     return inv.tags.stop(invTagsKeyword, endTag, DRL_RET_INVALID_PARAM)
@@ -7910,10 +7910,10 @@ function inv.items.keywordCR()
         if (keywordField == nil) or (keywordField == "") then
           inv.items.setStatField(objId, invStatFieldKeywords, inv.items.keywordPkg.keyword)
         elseif dbot.isWordInString(inv.items.keywordPkg.keyword, keywordField) then
-          dbot.debug("Skipping keyword of item " .. objId .. ": item is already tagged with " .. 
+          dbot.debug("Skipping keyword of item " .. objId .. ": item is already tagged with " ..
                      inv.items.keywordPkg.keyword)
         else
-          inv.items.setStatField(objId, invStatFieldKeywords, keywordField .. " " .. 
+          inv.items.setStatField(objId, invStatFieldKeywords, keywordField .. " " ..
                                  inv.items.keywordPkg.keyword)
         end -- if
 
@@ -7957,7 +7957,7 @@ function inv.items.keywordCR()
   end -- if
 
   if (not inv.items.keywordPkg.useQuietMode) then
-    dbot.info("Updated keyword \"" .. (inv.items.keywordPkg.keyword or "Unknown")  .. "\" for " .. 
+    dbot.info("Updated keyword \"" .. (inv.items.keywordPkg.keyword or "Unknown")  .. "\" for " ..
               numUpdatedKeywords .. " out of " .. numQueryItems .. " items matching query")
   end -- if
 
@@ -8103,15 +8103,15 @@ function inv.items.search(arrayOfQueryArrays, allowIgnored)
               itemMatches = false
               break
             end -- if
- 
+
           -- If we are searching for an element in a string of elements (e.g., a keyword in a keyword list
           -- or a flag in a list of flags) check if the queried string is present.  We use a case-insensitive
           -- search by making everything in the strings lower case.  We also temporarily replace special
-          -- characters in the search strings with their escaped equivalents (e.g., "-" becomes "%-") so 
+          -- characters in the search strings with their escaped equivalents (e.g., "-" becomes "%-") so
           -- that we can search for things like "anti-evil" without the hyphen being interpreted as a
           -- special character.
           --
-          -- Some string fields (name and leadsTo) support a partial match.  For example, searching for 
+          -- Some string fields (name and leadsTo) support a partial match.  For example, searching for
           -- "Nation" in the "leadsTo" field would match for both "Imperial Nation" and "The Amazon Nation".
           -- Other string fields (keywords and flags) require an exact match so searching for the
           -- "evil" flag won't match on "anti-evil".
@@ -8188,7 +8188,7 @@ function inv.items.search(arrayOfQueryArrays, allowIgnored)
 
         end -- for
       end -- if
-      
+
       if (itemMatches == true) then
         table.insert(idArray, tonumber(itemId))
       end -- if
@@ -8210,7 +8210,7 @@ end -- inv.items.search
 --   name bob
 --   keyword shardblade
 -- Note: This must be called from within a co-routine because inv.items.convertRelative() can block
-function inv.items.searchCR(rawQueryString, allowIgnored) 
+function inv.items.searchCR(rawQueryString, allowIgnored)
   local retval = DRL_RET_SUCCESS
   local arrayOfKvArrays = {}
   local kvArray = {}
@@ -8283,7 +8283,7 @@ function inv.items.searchCR(rawQueryString, allowIgnored)
         end -- if
 
         -- If a query has a relative name or loc in it, convert the name or loc to an object ID here
-        if (key == invQueryKeyRelativeName) or (key == invQueryKeyRelativeLoc) or 
+        if (key == invQueryKeyRelativeName) or (key == invQueryKeyRelativeLoc) or
            (key == invQueryKeyRelativeLocation) then
           key, value, retval = inv.items.convertRelative(key, value) -- new value is ID of relative item
           if (retval ~= DRL_RET_SUCCESS) then
@@ -8365,7 +8365,7 @@ function inv.items.compare(item1, item2)
     -- If we have two numbers, compare the two numbers.  If they are equal, move to the next sorting element.
     -- Otherwise, return with a boolean indicating which one is first.
     if (fieldNum1 ~= nil) and (fieldNum2 ~= nil) and (fieldNum1 ~= fieldNum2) then
-      if (isAscending) then 
+      if (isAscending) then
          return fieldNum1 < fieldNum2
       else
          return fieldNum1 > fieldNum2
@@ -8374,7 +8374,7 @@ function inv.items.compare(item1, item2)
 
    -- If we have two non-numerical strings, compare them!
    if (fieldNum == nil) and (fieldNum2 == nil) and (field1 ~= field2) then
-     if (isAscending) then 
+     if (isAscending) then
        return field1 < field2
      else
        return field1 > field2
@@ -8414,7 +8414,7 @@ function inv.items.convertRelative(relativeName, value)
   table.insert(commandArray, "identify " .. value)
   table.insert(commandArray, "echo " .. inv.items.identifyFence)
   retval = dbot.execute.safe.commands(commandArray, inv.items.convertSetupFn, nil,
-                                      dbot.callback.default, resultData) 
+                                      dbot.callback.default, resultData)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.items.convertRelative: Failed to submit safe identification call: " ..
               dbot.retval.getString(retval))
@@ -8441,7 +8441,7 @@ function inv.items.convertRelative(relativeName, value)
   end -- if
 
   inv.lastIdentifiedObjectId = nil
-  
+
   return key, id, retval
 end -- inv.items.convertRelative
 
@@ -8624,7 +8624,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   -- because there are 3 physical resist types.  Similarly, one specific magical resist is worth 1/17 of
   -- one "all" magical resist value because there are 17 magical resistance types.
   local physResists = allphys + (slash + pierce + bash) / 3
-  local magicResists = allmagic + (acid + cold + energy + holy + electric + negative + shadow + magic + 
+  local magicResists = allmagic + (acid + cold + energy + holy + electric + negative + shadow + magic +
                        air + earth + fire + light + mental + sonic + water + poison + disease) / 17
   local totResists = physResists + magicResists
 
@@ -8690,7 +8690,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
 
   -- The trimmed name could end on an "@" which messes up color codes and spacing
   formattedName = string.gsub(formattedName, "@$", " ") .. " " .. DRL_XTERM_GREY
-  formattedName = formattedName .. colorizedId 
+  formattedName = formattedName .. colorizedId
 
   -- If we have a wearable location, use it in the display.  Otherwise, use the item's type.
   local typeExtended
@@ -8713,7 +8713,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   else
     typeExtended = wearable
   end -- if
-  typeExtended = string.format("%-8s", typeExtended) 
+  typeExtended = string.format("%-8s", typeExtended)
 
   -- Make the item's type show up in bright green if the item is currently worn
   if (isCurrentlyWorn == true) then
@@ -8728,8 +8728,8 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   -- Format the output for the item's stat display
   local header
   local statLine
-  if (typeField == invmon.typeStr[invmonTypePotion]) or 
-     (typeField == invmon.typeStr[invmonTypePill]) or 
+  if (typeField == invmon.typeStr[invmonTypePotion]) or
+     (typeField == invmon.typeStr[invmonTypePill]) or
      (typeField == invmon.typeStr[invmonTypeScroll]) then
     header = "@WLvl Name of " .. formattedType .. "Type    Lvl  # Spell name@w"
     local spellDetails = ""
@@ -8747,7 +8747,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   -- we'd need to ID each item -- which defeats the purpose of caching the info in the first place.
   -- Trust me, if you buy 100 starburst staves, you'd rather have them in the frequent cache even if
   -- it means your inventory table doesn't know how many charges are on each instance.
-  elseif (typeField == invmon.typeStr[invmonTypeWand]) or 
+  elseif (typeField == invmon.typeStr[invmonTypeWand]) or
          (typeField == invmon.typeStr[invmonTypeStaff]) then
     header = "@WLvl Name of " .. formattedType .. "Type    Lvl  Spell name@w"
     local spellDetails = ""
@@ -8761,21 +8761,21 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
              "Type     Leads to            HR  DR Int Wis Lck Str Dex Con@w"
     statLine = string.format("@W%3d@w %s%s %-18s %s %s %s %s %s %s %s %s",
                              level, formattedName, typeExtended, formattedLeadsTo,
-                             inv.items.colorizeStat(hit, 3), inv.items.colorizeStat(dam, 3), 
-                             inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3), 
+                             inv.items.colorizeStat(hit, 3), inv.items.colorizeStat(dam, 3),
+                             inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3),
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
-                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3)) 
+                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3))
 
   elseif (typeField == invmon.typeStr[invmonTypeContainer]) then
-    header = "@WLvl Name of " .. formattedType .. 
+    header = "@WLvl Name of " .. formattedType ..
              "Type       HR   DR Int Wis Lck Str Dex Con Wght  Cap Hold Hvy #In Wgt%@w"
 
     statLine = string.format("@W%3d@w %s%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s",
                              level, formattedName, typeExtended,
-                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4), 
+                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4),
                              inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3),
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
-                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3), 
+                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3),
                              inv.items.colorizeStat(totWeight, 4, true), inv.items.colorizeStat(capacity, 4),
                              inv.items.colorizeStat(holding, 4), inv.items.colorizeStat(heaviestItem, 3),
                              inv.items.colorizeStat(itemsInside, 3), inv.items.colorizeStat(weightReduction, 4))
@@ -8786,27 +8786,27 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
     statLine = string.format("@W%3d@w %s%s %s %s %s %s %-8s %-8s %s %s %s %s %s %s",
                              level, formattedName, typeExtended,
                              inv.items.colorizeStat(avedam, 3), inv.items.colorizeStat(weight, 3),
-                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4), 
+                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4),
                              damtype, specials,
                              inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3),
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
-                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3)) 
+                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3))
   elseif (typeField == "Unknown") then
     header = "@WLvl Name of Unknown Item     Type"
     statLine = string.format("@WN/A@w %sItem has not yet been identified", formattedName)
   else
-    header = "@WLvl Name of " .. formattedType .. 
+    header = "@WLvl Name of " .. formattedType ..
              "Type       HR   DR Int Wis Lck Str Dex Con Res HitP Mana Move@w"
 
     statLine = string.format("@W%3d@w %s%s %s %s %s %s %s %s %s %s %s %s %s %s",
                              level, formattedName, typeExtended,
-                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4), 
+                             inv.items.colorizeStat(hit, 4), inv.items.colorizeStat(dam, 4),
                              inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3),
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
-                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3), 
+                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3),
                              inv.items.colorizeStat(totResists, 3),
                              inv.items.colorizeStat(hp, 4), inv.items.colorizeStat(mana, 4),
-                             inv.items.colorizeStat(moves, 4)) 
+                             inv.items.colorizeStat(moves, 4))
   end -- if
 
   -- Dump the stats for this item.  We print a header if we are in full verbosity mode or if this
@@ -8842,12 +8842,12 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   dbot.print("    flags:\"" .. flags .. "\"")
   dbot.print("    score:" .. score .. " worth:" .. worth .. " material:" .. material ..
              " foundAt:\"" .. foundAt .. "\"")
-  dbot.print("    allphys:" .. allphys .. " allmagic:" .. allmagic .. " slash:" .. slash .. 
+  dbot.print("    allphys:" .. allphys .. " allmagic:" .. allmagic .. " slash:" .. slash ..
              " pierce:" .. pierce .. " bash:" .. bash .. " acid:" .. acid .. " poison:" .. poison)
-  dbot.print("    disease:" .. disease .. " cold:" .. cold .. " energy:" .. energy .. 
-             " holy:" .. holy .. " electric:" .. electric .. " negative:" .. negative .. 
+  dbot.print("    disease:" .. disease .. " cold:" .. cold .. " energy:" .. energy ..
+             " holy:" .. holy .. " electric:" .. electric .. " negative:" .. negative ..
              " shadow:" .. shadow)
-  dbot.print("    air:" .. air .. " earth:" .. earth .. " fire:" .. fire .. " water:" .. water .. 
+  dbot.print("    air:" .. air .. " earth:" .. earth .. " fire:" .. fire .. " water:" .. water ..
              " light:" .. light .. " mental:" .. mental .. " sonic:" .. sonic .." magic:" .. magic)
   dbot.print("    weight:" .. weight .. " ownedBy:\"" .. ownedBy .. "\"")
   dbot.print("    clan:\"" .. clan .. "\" affectMods:\"" .. affectMods .. "\"")
@@ -8874,7 +8874,7 @@ function inv.items.colorizeStat(value, numDigits, invertColors)
   numDigits = tonumber(numDigits)
 
   if (value == nil) or (numDigits == nil) then
-    dbot.warn("inv.items.colorizeStat: non-numeric parameter detected: value=\"" .. (value or "nil") .. 
+    dbot.warn("inv.items.colorizeStat: non-numeric parameter detected: value=\"" .. (value or "nil") ..
             "\", numDigits=\"" .. (numDigits or "nil") .. "\"")
     return nil
   end -- if
@@ -8919,7 +8919,7 @@ end -- inv.items.isInvis
 --       container priorities and the item could end up in any matching container.  For now, it is
 --       up to the user to not create conflicting container queries.
 -- TODO: Check if there is any overlap in the item arrays returned from container queries and
---       warn the user.  We could also implement a priority scheme for containers too, but that 
+--       warn the user.  We could also implement a priority scheme for containers too, but that
 --       seems like overkill...
 --
 -- dinv organize [add | clear] <container relative name> <query>
@@ -8927,7 +8927,7 @@ end -- inv.items.isInvis
 -- dinv organize <query>
 --
 -- inv.items.organize.add(containerName, queryString, endTag)
--- inv.items.organize.addCR() 
+-- inv.items.organize.addCR()
 -- inv.items.organize.clear(containerName, endTag)
 -- inv.items.organize.clearCR()
 -- inv.items.organize.display(endTag)
@@ -8941,7 +8941,7 @@ inv.items.organize = {}
 
 
 inv.items.organize.addPkg = nil
-function inv.items.organize.add(containerName, queryString, endTag) 
+function inv.items.organize.add(containerName, queryString, endTag)
   if (containerName == nil) or (containerName == "") then
     dbot.warn("inv.items.organize.add: Missing container relative name")
     return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_INVALID_PARAM)
@@ -8957,21 +8957,21 @@ function inv.items.organize.add(containerName, queryString, endTag)
 
   if (inv.items.organize.addPkg ~= nil) then
     dbot.info("Skipping add request in organize package: another add request is in progress")
-    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_BUSY)    
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_BUSY)
   end -- if
 
   inv.items.organize.addPkg           = {}
   inv.items.organize.addPkg.container = containerName
   inv.items.organize.addPkg.query     = queryString
   inv.items.organize.addPkg.endTag    = endTag
-  
+
   wait.make(inv.items.organize.addCR)
 
   return DRL_RET_SUCCESS
 end -- inv.items.organize.add
 
 
-function inv.items.organize.addCR() 
+function inv.items.organize.addCR()
   local retval
   local objId
   local idArray
@@ -8987,7 +8987,7 @@ function inv.items.organize.addCR()
     dbot.warn("inv.items.organize.addCR: failed to search inventory table: " .. dbot.retval.getString(retval))
   elseif (#idArray ~= 1) then
     -- There should only be a single match to the container's relative name (e.g., "2.bag")
-    dbot.warn("Container relative name \"" .. inv.items.organize.addPkg.container .. 
+    dbot.warn("Container relative name \"" .. inv.items.organize.addPkg.container ..
               "\" did not have a unique match for a container: skipping organization query request")
   else
     -- We found a single unique match for the relative name
@@ -9038,13 +9038,13 @@ function inv.items.organize.clear(containerName, endTag)
 
   if (inv.items.organize.clearPkg ~= nil) then
     dbot.info("Skipping clear request in organize package: another clear request is in progress")
-    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_BUSY)    
+    return inv.tags.stop(invTagsOrganize, endTag, DRL_RET_BUSY)
   end -- if
 
   inv.items.organize.clearPkg           = {}
   inv.items.organize.clearPkg.container = containerName
   inv.items.organize.clearPkg.endTag    = endTag
-  
+
   wait.make(inv.items.organize.clearCR)
 
   return DRL_RET_SUCCESS
@@ -9068,7 +9068,7 @@ function inv.items.organize.clearCR()
               dbot.retval.getString(retval))
   elseif (#idArray ~= 1) then
     -- There should only be a single match to the container's relative name (e.g., "2.bag")
-    dbot.warn("Container relative name \"" .. inv.items.organize.clearPkg.container .. 
+    dbot.warn("Container relative name \"" .. inv.items.organize.clearPkg.container ..
               "\" did not have a unique match for a container: skipping organization query request")
   else
     -- We found a single unique match for the relative name
@@ -9163,7 +9163,7 @@ function inv.items.organize.cleanupCR()
   -- Find all items that match the given inventory query
   invIdArray, retval = inv.items.searchCR(inv.items.organize.cleanupPkg.query)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.items.organize.cleanupCR: failed to search inventory table: " .. 
+    dbot.warn("inv.items.organize.cleanupCR: failed to search inventory table: " ..
               dbot.retval.getString(retval))
     inv.items.organize.cleanupPkg = nil
     return inv.tags.stop(invTagsOrganize, endTag, retval)
@@ -9177,7 +9177,7 @@ function inv.items.organize.cleanupCR()
     if (organizeQuery ~= "") then
       local containerIdArray, retval = inv.items.searchCR(organizeQuery)
       if (retval ~= DRL_RET_SUCCESS) then
-        dbot.warn("inv.items.organize.cleanupCR: failed to search inventory table: " .. 
+        dbot.warn("inv.items.organize.cleanupCR: failed to search inventory table: " ..
                   dbot.retval.getString(retval))
         inv.items.organize.cleanupPkg = nil
         return inv.tags.stop(invTagsOrganize, endTag, retval)
@@ -9189,9 +9189,9 @@ function inv.items.organize.cleanupCR()
       for _, invId in ipairs(invIdArray) do
         for _, containerId in ipairs(containerIdArray) do
           -- Note that we don't want to try sorting containers into other containers
-          if (invId == containerId) and 
+          if (invId == containerId) and
              (inv.items.getStatField(invId, invStatFieldType) ~= invmon.typeStr[invmonTypeContainer]) then
-            dbot.debug("Found item to organize: \"" .. 
+            dbot.debug("Found item to organize: \"" ..
                        (inv.items.getField(invId, invFieldColorName) or "Unidentified") ..
                        DRL_ANSI_WHITE .. "@W\"")
 
@@ -9201,7 +9201,7 @@ function inv.items.organize.cleanupCR()
               retval = inv.items.putItem(invId, objId, commandArray, true)
               if (retval ~= DRL_RET_SUCCESS) then
                 dbot.debug("inv.items.organize.cleanupCR: failed to put item \"" ..
-                           (inv.items.getField(invId, invFieldColorName) or "Unidentified") .. 
+                           (inv.items.getField(invId, invFieldColorName) or "Unidentified") ..
                            "\" in container \"" ..
                            (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. "\": " ..
                            dbot.retval.getString(retval))
@@ -9219,7 +9219,7 @@ function inv.items.organize.cleanupCR()
                 commandArray = dbot.execute.new()
               end -- if
 
-            end -- if          
+            end -- if
           end -- if
         end -- for
       end -- for
@@ -9624,7 +9624,7 @@ function inv.items.trigger.itemIdStats(line)
       -- Add the continuation to the existing affectMods
 
       inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods,
-                            (inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods) 
+                            (inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods)
                              or "") .. " " .. continuation)
 
       -- If the continued affectMods end in a comma, keep the continuation going; otherwise stop it
@@ -9671,9 +9671,9 @@ function inv.items.trigger.itemIdStats(line)
       end -- if
     end -- if
 
-    -- If we don't have an entry yet for this spell, add one 
+    -- If we don't have an entry yet for this spell, add one
     if (foundSpellMatch == false) then
-      table.insert(spellArray, { level=spellLevel, name=spellName, count=spellUses }) 
+      table.insert(spellArray, { level=spellLevel, name=spellName, count=spellUses })
     end -- if
 
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldSpells, spellArray)
@@ -9939,16 +9939,16 @@ function inv.items.trigger.itemIdEnd()
   end -- if
 
   -- Check if something interferred with the identification.  The "dbot.execute" package
-  -- guarantees that the user can't manually try to ID something at the same moment we 
+  -- guarantees that the user can't manually try to ID something at the same moment we
   -- are doing our background identification.  In theory, there shouldn't be any potential
   -- conflict here (i.e., we get back ID results for a different item).  However, it's
-  -- probably still helpful to check if the ID we get back matches what we expect.  I'd 
+  -- probably still helpful to check if the ID we get back matches what we expect.  I'd
   -- rather find out what is happening the easy way than the hard way...
   -- Note: Auctions and shop items are not ID'ed with their objId (we don't know the objID
   --       until identification completes) so we don't worry about this check for those cases.
   local objId = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldId)
   local objLoc = inv.items.getField(inv.items.identifyPkg.objId, invFieldObjLoc)
-  if (objId ~= inv.items.identifyPkg.objId) and (objLoc ~= invItemLocAuction) and 
+  if (objId ~= inv.items.identifyPkg.objId) and (objLoc ~= invItemLocAuction) and
      (objLoc ~= invItemLocShopkeeper) then
     dbot.debug("Identification wasn't successful for item " .. inv.items.identifyPkg.objId ..
                ": Try again later...")
@@ -10096,7 +10096,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
   unique = tonumber(unique)
   wearLoc = tonumber(wearLoc)
   timer = tonumber(timer)
-  if (objId == nil) or (level == nil) or (typeField == nil) or (unique == nil) or 
+  if (objId == nil) or (level == nil) or (typeField == nil) or (unique == nil) or
      (wearLoc == nil) or (timer == nill) then
     dbot.warn("inv.items.trigger.itemDataStats: Detected malformed invitem trigger: " ..
               "numeric parameters are not numbers")
@@ -10104,7 +10104,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
   end -- if
 
   -- Get a text name for the item type
-  assert((invmon.typeStr ~= nil) and (invmon.typeStr[typeField] ~= nil), 
+  assert((invmon.typeStr ~= nil) and (invmon.typeStr[typeField] ~= nil),
          "Invalid invdata item type " .. typeField)
   local typeName = invmon.typeStr[typeField]
 
@@ -10143,7 +10143,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
       else
         -- Create an entry for this item.  We don't know much yet, but fill in the little we know
         -- about the item.  We don't know the full colorized name yet, but we can use the basic name
-        -- for now and this is sufficient to support the frequent item cache.  We will fill in the 
+        -- for now and this is sufficient to support the frequent item cache.  We will fill in the
         -- full colorized name once we know it.
         retval = inv.items.add(objId)
         -- Use a basic name for the colorized name if necessary
@@ -10164,10 +10164,10 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
     if (item == nil) and (inv.items.discoverPkg ~= nil) then
       retval = inv.items.add(objId)
       if (retval ~= DRL_RET_SUCCESS) then
-        dbot.warn("inv.items.trigger.itemDataStats: Failed to add item " .. objId .. 
+        dbot.warn("inv.items.trigger.itemDataStats: Failed to add item " .. objId ..
                   ": error " .. dbot.retval.getString(retval))
         return retval
-      end -- if 
+      end -- if
     end -- if
 
     -- Set the item's location: worn equipment slot, main inventory, keyring, or a container
@@ -10188,14 +10188,14 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
     -- Set the colorized name of the item
     retval = inv.items.setField(objId, invFieldColorName, itemName)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.items.trigger.itemDataStats: Failed to set colorName for item " .. objId .. 
+      dbot.warn("inv.items.trigger.itemDataStats: Failed to set colorName for item " .. objId ..
                 ": error " .. dbot.retval.getString(retval))
       return retval
      end -- if
   end -- if
 
-  dbot.debug("inv.items.trigger.itemDataStats: object " .. objId .. ", flags=\"" .. flags .. 
-             "\", itemName=\"" .. itemName .. "@W\", level=" .. level .. ", type=" .. typeName .. 
+  dbot.debug("inv.items.trigger.itemDataStats: object " .. objId .. ", flags=\"" .. flags ..
+             "\", itemName=\"" .. itemName .. "@W\", level=" .. level .. ", type=" .. typeName ..
              ", unique=" .. unique .. ", wearLoc=\"" .. wearLocText .. "\", timer=" .. timer)
 
   -- We're done!
@@ -10271,7 +10271,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
     return DRL_RET_INTERNAL_ERROR
   end -- if
 
-  dbot.debug("Invmon trigger: " .. invmon.action[action] .. " object " .. objId .. 
+  dbot.debug("Invmon trigger: " .. invmon.action[action] .. " object " .. objId ..
              ", container=" .. containerText .. ", wearLoc=" .. wearLocText)
 
   -- Add the current item to the inventory table if it doesn't exist yet
@@ -10282,7 +10282,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
       dbot.warn("inv.items.trigger.invmon: Failed to add item " .. objId .. ": error " ..
                 dbot.retval.getString(retval))
       return retval
-    end -- if 
+    end -- if
   end -- if
 
   -- If the item isn't identified and we aren't already in the middle of a refresh, schedule an
@@ -10316,7 +10316,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
       dbot.warn("inv.items.trigger.invmon: Failed to set location for " .. objId .. ": error "
                 .. dbot.retval.getString(retval))
       return retval
-    end -- if 
+    end -- if
 
   elseif (action == invmonActionTakenOutOfContainer) then
     if (idLevel == invIdLevelNone) then
@@ -10330,7 +10330,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
       inv.items.setField(containerId, invFieldIdentifyLevel, invIdLevelNone)
     else
       -- Update the container's stats based on this item's removal
-      if (holding == nil) or (itemsInside == nil) or (totWeight == nil) or 
+      if (holding == nil) or (itemsInside == nil) or (totWeight == nil) or
          (weightReduction == nil) or (weightReduction == 0) or (itemWeight == nil) then
         -- If we don't have all of the container's stats, force a full re-identification
         inv.items.setField(containerId, invFieldIdentifyLevel, invIdLevelNone)
@@ -10357,7 +10357,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
       inv.items.setField(containerId, invFieldIdentifyLevel, invIdLevelNone)
     else
       -- Update the container's stats based on this item's addition
-      if (holding == nil) or (itemsInside == nil) or (totWeight == nil) or 
+      if (holding == nil) or (itemsInside == nil) or (totWeight == nil) or
          (weightReduction == nil) or (weightReduction == 0) or (itemWeight == nil) then
         -- If we don't have all of the container's stats, force a full re-identification
         inv.items.setField(containerId, invFieldIdentifyLevel, invIdLevelNone)
@@ -10375,7 +10375,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
 
   elseif (action == invmonActionPutIntoVault) then
     -- If the item is a container, this will remove any items in the container too
-    retval = inv.items.remove(objId) 
+    retval = inv.items.remove(objId)
 
   elseif (action == invmonActionRemovedFromVault) then
     inv.items.mainState = invItemsRefreshDirty -- we want to rescan main inventory now
@@ -10404,7 +10404,7 @@ function inv.items.trigger.invmon(action, objId, containerId, wearLoc)
   -- If we updated a container's stats by adding or removing an item and if the container is not
   -- already in line to be re-identified, update the container's stats now.  We don't bother saving
   -- this state because even if mushclient crashes before we save the state, the container's stats
-  -- will be re-read and updated automatically the next time the plugin is loaded.  There's no 
+  -- will be re-read and updated automatically the next time the plugin is loaded.  There's no
   -- reason to pay for the overhead of writing out the inventory table state right now.
   if ((action == invmonActionTakenOutOfContainer) or (action == invmonActionPutIntoContainer)) and
      (inv.items.getField(containerId, invFieldIdentifyLevel) ~= nil) and
@@ -10558,7 +10558,7 @@ inv.wearables = { light    = { "light" },
                   above    = { "above" },
                   portal   = { "portal" },
                   sleeping = { "sleeping" },
-                  ready    = { "ready" } }              
+                  ready    = { "ready" } }
 
 
 ----------------------------------------------------------------------------------------------------
@@ -10880,14 +10880,14 @@ invItemEffectsShield    = "shield"
 --   inv.cache.add
 --   inv.cache.remove
 --   inv.cache.prune
--- 
+--
 --   inv.cache.get
 --   inv.cache.getSize
 --   inv.cache.setSize
--- 
+--
 --   inv.cache.dump
 --   inv.cache.clearOld
--- 
+--
 -- Data:
 --   inv.cache.recent.table
 --   inv.cache.frequent.table
@@ -11061,7 +11061,7 @@ function inv.cache.load()
   local recentRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.recent.stateName,
                                               inv.cache.resetRecent)
   if (recentRetval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
+    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.cache.recent.stateName .. "@W\": " ..
               dbot.retval.getString(recentRetval))
     retval = recentRetval
@@ -11070,7 +11070,7 @@ function inv.cache.load()
   local frequentRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName,
                                                 inv.cache.resetFrequent)
   if (frequentRetval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
+    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.cache.frequent.stateName .. "@W\": " ..
               dbot.retval.getString(frequentRetval))
     retval = frequentRetval
@@ -11079,7 +11079,7 @@ function inv.cache.load()
   local customRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.cache.custom.stateName,
                                               inv.cache.resetCustom)
   if (customRetval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" .. 
+    dbot.warn("inv.cache.load: Failed to load cache table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.cache.custom.stateName .. "@W\": " ..
               dbot.retval.getString(customRetval))
     retval = customRetval
@@ -11183,7 +11183,7 @@ function inv.cache.resetCache(cacheName)
   elseif (cacheName == inv.cache.custom.name) then
     numEntries = inv.cache.custom.defaultNumEntries
   end -- if
- 
+
   local retval = inv.cache.config(cacheName, numEntries)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cache.resetCache: Failed to configure cache: " .. dbot.retval.getString(retval))
@@ -11297,7 +11297,7 @@ function inv.cache.prune(cache)
     numEntriesToPrune = math.floor(numEntriesInCache * inv.cache.custom.prunePercent) + 1 or 0
   end -- if
 
-  dbot.debug("The " .. cache.name .. " cache is full, removing the " .. 
+  dbot.debug("The " .. cache.name .. " cache is full, removing the " ..
              numEntriesToPrune .. " least recently used items")
 
   -- Sort the cache entries.  We create a temporary array of the entries so that we can sort them
@@ -11433,7 +11433,7 @@ function inv.cache.clearOld(cache, ageInSec)
   local currentTime = dbot.getTime()
 
   for key,cacheEntry in pairs(cache.entries) do
-    if (cacheEntry == nil) or (cacheEntry.timeCached == nil) or 
+    if (cacheEntry == nil) or (cacheEntry.timeCached == nil) or
        (currentTime - cacheEntry.timeCached > ageInSec) then
       inv.cache.remove(cache, key)
     end -- if
@@ -11454,7 +11454,7 @@ end -- inv.cache.clearOld
 --
 -- inv.priority.create(priorityName, endTag)
 -- inv.priority.clone(origPriorityName, clonedPriorityName, useVerbose, endTag)
--- inv.priority.delete(priorityName, endTag) 
+-- inv.priority.delete(priorityName, endTag)
 --
 -- inv.priority.list(endTag)
 -- inv.priority.display(priorityName, endTag)
@@ -11476,7 +11476,7 @@ end -- inv.cache.clearOld
 --
 -- inv.priority.damTypeIsAllowed(damType, priorityName, level)
 -- inv.priority.locIsAllowed(wearableLoc, priorityName, level)
--- 
+--
 -- inv.priority.addDefault() -- add some default priorities
 --
 -- Data:
@@ -11537,7 +11537,7 @@ function inv.priority.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.priority.stateName,
                                         inv.priority.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.priority.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.priority.stateName .. "@W\": " ..
               dbot.retval.getString(retval))
   end -- if
@@ -11630,7 +11630,7 @@ function inv.priority.clone(origPriorityName, clonedPriorityName, useVerbose, en
   end -- if
 
   if (inv.priority.table[clonedPriorityName] ~= nil) then
-    dbot.warn("inv.priority.clone: cloned priority \"@C" .. clonedPriorityName .. "@W\" already exists") 
+    dbot.warn("inv.priority.clone: cloned priority \"@C" .. clonedPriorityName .. "@W\" already exists")
     return inv.tags.stop(invTagsPriority, endTag, DRL_RET_BUSY)
   end -- if
 
@@ -11707,7 +11707,7 @@ function inv.priority.display(priorityName, endTag)
   local retval = DRL_RET_SUCCESS
 
   if (priorityName == nil) or (priorityName == "") then
-    dbot.warn("inv.priority.display: Missing priorityName parameter") 
+    dbot.warn("inv.priority.display: Missing priorityName parameter")
     return inv.tags.stop(invTagsPriority, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
@@ -11750,7 +11750,7 @@ function inv.priority.edit(priorityName, useAllFields, isQuiet, endTag)
     return inv.tags.stop(invTagsPriority, endTag, retval)
   end -- if
 
-  local instructions = 
+  local instructions =
 [[Edit your priority!  See "dinv help priority" for more details.
 
 The first column lists the names of each available priority field.  Subsequent columns specify the numeric values of that field for a level range.  You may have as many level ranges as you wish, but ranges should not overlap and they should cover all levels between 1 - 291.
@@ -11872,7 +11872,7 @@ function inv.priority.paste(priorityName, endTag)
 
   retval = inv.priority.update(priorityName, priorityString, true)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.priority.paste: Failed to update priority from clipboard data: " .. 
+    dbot.warn("inv.priority.paste: Failed to update priority from clipboard data: " ..
               dbot.retval.getString(retval))
   else
     dbot.info(operation .. " priority \"@C" .. priorityName .. "@W\" from clipboard data")
@@ -12003,7 +12003,7 @@ function inv.priority.remove(priorityName)
   end -- if
 
   if (inv.priority.table[priorityName] == nil) then
-    dbot.warn("inv.priority.remove: Priority table does not contain an entry for priority \"" .. 
+    dbot.warn("inv.priority.remove: Priority table does not contain an entry for priority \"" ..
             priorityName .. "\"")
     return DRL_RET_MISSING_ENTRY
   end -- if
@@ -12051,7 +12051,7 @@ function inv.priority.get(priorityName, level)
 
   -- Verify that we found an appropriate priority block for our level
   if (priorityBlock == nil) then
-    dbot.warn("inv.priority.get: Failed to find a priority block for level " .. 
+    dbot.warn("inv.priority.get: Failed to find a priority block for level " ..
             levelNum .. " in priority \"" .. priorityName .. "\"")
     return nil
   end -- if
@@ -12150,7 +12150,7 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
         priString = priString .. "  : " .. descPrefix .. fieldDesc .. descSuffix
       end -- if
     end -- if
-  end -- for  
+  end -- for
 
   return priString, retval
 end -- inv.priority.tableToString
@@ -12179,7 +12179,7 @@ function inv.priority.stringToTable(priorityString)
   for i, line in ipairs(lines) do
     local words, retval = dbot.wordsToArray(line)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.priority.stringToTable: Failed to convert line into array: " .. 
+      dbot.warn("inv.priority.stringToTable: Failed to convert line into array: " ..
                 dbot.retval.getString(retval))
       return priEntry, retval
     end -- if
@@ -12221,7 +12221,7 @@ function inv.priority.stringToTable(priorityString)
   if (string.lower(header1[1] or "") ~= "minlevel") then
     dbot.warn("Missing or malformed minLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
-  end -- if  
+  end -- if
 
   local header2, retval = dbot.wordsToArray(lines[2])
   if (retval ~= DRL_RET_SUCCESS) then
@@ -12233,7 +12233,7 @@ function inv.priority.stringToTable(priorityString)
   if (string.lower(header2[1] or "") ~= "maxlevel") then
     dbot.warn("Missing or malformed maxLevel header line in priority")
     return priEntry, DRL_RET_INVALID_PARAM
-  end -- if  
+  end -- if
 
   -- Set up the initial block entries and level ranges
   for i = 2, numColumns do -- Skip the first column (min/max levels and the field names)
@@ -12246,7 +12246,7 @@ function inv.priority.stringToTable(priorityString)
     -- should be exactly one more than the maxLevel from the previous block.
     if (#priEntry > 0) and (priEntry[#priEntry].maxLevel + 1 ~= minLevel) then
       dbot.warn("Detected level gap between consecutive priority blocks\n" ..
-                "     Previous level block [" .. priEntry[#priEntry].minLevel .. "-" .. 
+                "     Previous level block [" .. priEntry[#priEntry].minLevel .. "-" ..
                 priEntry[#priEntry].maxLevel .. "], current level block [" .. minLevel .. "-" ..
                 maxLevel .. "]")
       return priEntry, DRL_RET_INVALID_PARAM
@@ -12274,7 +12274,7 @@ function inv.priority.stringToTable(priorityString)
       local fieldName = string.lower(fieldLine[1] or "")
       local fieldIsValid = false
       for _, entry in ipairs(inv.priority.fieldTable) do
-        if (string.lower(entry[1] or "") == fieldName) then 
+        if (string.lower(entry[1] or "") == fieldName) then
           fieldIsValid = true
           break
         end -- if
@@ -12299,7 +12299,7 @@ function inv.priority.stringToTable(priorityString)
           return priEntry, DRL_RET_INVALID_PARAM
         end -- if
 
-        -- This is a kludge.  All priority weighting field names are lower case except 
+        -- This is a kludge.  All priority weighting field names are lower case except
         -- "offhandDam".  When we added support for case insensitivity, that could cause a problem
         -- for people with old priorities with "offhandDam" instead of "offhanddam".  Here is a
         -- one-off to work around that case by handling that one field differently.
@@ -12350,7 +12350,7 @@ function inv.priority.damTypeIsAllowed(damType, priorityName, level)
     return true
   else
     return false
-  end -- if  
+  end -- if
 
 end -- inv.priority.damTypeIsAllowed
 
@@ -12415,8 +12415,8 @@ function inv.priority.addDefault()
        you can do.  The table below was taken by running the "compare set" command on the
        Aardwolf mud using a primary psi character.  Hopefully it isn't copyrighted... :)
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          10       10
        Intelligence      int          15       15
@@ -12439,18 +12439,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "psi", -- Equipment priorities using the default psi weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.0,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.0,
                        int        = 1.5,
                        wis        = 1.5,
-                       dex        = 1.0, 
-                       con        = 1.0,  
-                       luck       = 1.2,  
-                       hit        = 0.5,  
+                       dex        = 1.0,
+                       con        = 1.0,
+                       luck       = 1.2,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12467,8 +12467,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary warrior.  This is what we will model in the "warrior" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          15       15
        Intelligence      int          10       10
@@ -12491,18 +12491,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "warrior", -- Equipment priorities using the default warrior weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.5,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.5,
                        int        = 1.0,
                        wis        = 1.0,
-                       dex        = 1.5, 
-                       con        = 1.0,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.5,
+                       con        = 1.0,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12520,8 +12520,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary mage.  This is what we will model in the "mage" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          10       10
        Intelligence      int          15       15
@@ -12544,18 +12544,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "mage", -- Equipment priorities using the default mage weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.0,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.0,
                        int        = 1.5,
                        wis        = 1.0,
-                       dex        = 1.0, 
-                       con        = 1.0,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.0,
+                       con        = 1.0,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12572,8 +12572,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary thief.  This is what we will model in the "thief" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          12       12
        Intelligence      int          10       10
@@ -12596,18 +12596,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "thief", -- Equipment priorities using the default thief weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.2,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.2,
                        int        = 1.0,
                        wis        = 1.0,
-                       dex        = 1.5, 
-                       con        = 1.0,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.5,
+                       con        = 1.0,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12625,8 +12625,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary ranger.  This is what we will model in the "ranger" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          10       10
        Intelligence      int          10       10
@@ -12649,18 +12649,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "ranger", -- Equipment priorities using the default ranger weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.0,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.0,
                        int        = 1.0,
                        wis        = 1.5,
-                       dex        = 1.0, 
-                       con        = 1.5,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.0,
+                       con        = 1.5,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12678,8 +12678,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary paladin.  This is what we will model in the "paladin" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          10       10
        Intelligence      int          15       15
@@ -12702,18 +12702,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "paladin", -- Equipment priorities using the default paladin weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.0,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.0,
                        int        = 1.5,
                        wis        = 1.0,
-                       dex        = 1.0, 
-                       con        = 1.5,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.0,
+                       con        = 1.5,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12730,8 +12730,8 @@ function inv.priority.addDefault()
   --[[ Here are the default statistic weightings from the Aardwolf scoring system for a
        primary cleric.  This is what we will model in the "cleric" priority.
 
-                                 Default   Your  
-       Affect Bonus      Keyword Score     Score  
+                                 Default   Your
+       Affect Bonus      Keyword Score     Score
        ----------------- ------- -------  -------
        Strength          str          10       10
        Intelligence      int          10       10
@@ -12754,18 +12754,18 @@ function inv.priority.addDefault()
   --]]
   retval = inv.priority.add(
     "cleric", -- Equipment priorities using the default cleric weightings from the aardwolf scoring system
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
-        priorities = { 
-                       str        = 1.0,  
+        minLevel = 1,
+        maxLevel = 291,
+        priorities = {
+                       str        = 1.0,
                        int        = 1.0,
                        wis        = 1.5,
-                       dex        = 1.0, 
-                       con        = 1.0,  
-                       luck       = 1.0,  
-                       hit        = 0.5,  
+                       dex        = 1.0,
+                       con        = 1.0,
+                       luck       = 1.0,
+                       hit        = 0.5,
                        dam        = 0.5,
                        avedam     = 0.4,
                        offhandDam = 0.4,
@@ -12784,23 +12784,23 @@ function inv.priority.addDefault()
   -- feel free to tweak it for your own use :)  Many additional options are available to tweak this
   -- even further.  See "dinv help priority" for more details.
   retval = inv.priority.add(
-  "psi-melee", 
-  { 
+  "psi-melee",
+  {
     { -- Priorities for levels 1 - 50
-      minLevel = 1, 
+      minLevel = 1,
       maxLevel = 50,
       priorities = {
-                     str          = 1,  
+                     str          = 1,
                      int          = 0.6,
                      wis          = 0.6,
-                     dex          = 0.8, 
-                     con          = 0.2,  
-                     luck         = 1, 
+                     dex          = 0.8,
+                     con          = 0.2,
+                     luck         = 1,
                      dam          = 0.9,
                      hit          = 0.4,
 
                      avedam       = 0.9,
-                     offhandDam   = 0.3, 
+                     offhandDam   = 0.3,
 
                      hp           = 0.02,
                      mana         = 0.01,
@@ -12810,7 +12810,7 @@ function inv.priority.addDefault()
                      haste        = 20,
                      flying       = 5,
                      invis        = 10,
-                     regeneration = 5, 
+                     regeneration = 5,
                      detectinvis  = 4,
                      detecthidden = 3,
                      detectevil   = 2,
@@ -12825,20 +12825,20 @@ function inv.priority.addDefault()
     },
 
     { -- Priorities for levels 51 - 100
-      minLevel = 51, 
-      maxLevel = 100, 
+      minLevel = 51,
+      maxLevel = 100,
       priorities = {
-                     str          = 0.9,  
+                     str          = 0.9,
                      int          = 0.8,
                      wis          = 0.8,
-                     dex          = 0.7, 
-                     con          = 0.3,  
-                     luck         = 1, 
+                     dex          = 0.7,
+                     con          = 0.3,
+                     luck         = 1,
                      dam          = 0.9,
                      hit          = 0.5,
 
                      avedam       = 0.9,
-                     offhandDam   = 0.4, 
+                     offhandDam   = 0.4,
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12848,7 +12848,7 @@ function inv.priority.addDefault()
                      haste        = 5,
                      flying       = 4,
                      invis        = 5,
-                     regeneration = 5, 
+                     regeneration = 5,
                      detectinvis  = 4,
                      detecthidden = 3,
                      detectevil   = 2,
@@ -12870,20 +12870,20 @@ function inv.priority.addDefault()
     },
 
     { -- Priorities for levels 101 - 130
-      minLevel = 101, 
-      maxLevel = 130, 
+      minLevel = 101,
+      maxLevel = 130,
       priorities = {
-                     str          = 0.8,  
+                     str          = 0.8,
                      int          = 1.0,
                      wis          = 0.9,
-                     dex          = 0.7, 
-                     con          = 0.4,  
-                     luck         = 1.0, 
+                     dex          = 0.7,
+                     con          = 0.4,
+                     luck         = 1.0,
                      dam          = 0.8,
                      hit          = 0.6,
 
                      avedam       = 0.8,
-                     offhandDam   = 0.4, 
+                     offhandDam   = 0.4,
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12893,7 +12893,7 @@ function inv.priority.addDefault()
                      haste        = 2,
                      flying       = 2,
                      invis        = 3,
-                     regeneration = 5, 
+                     regeneration = 5,
                      detectinvis  = 2,
                      detecthidden = 2,
                      detectevil   = 2,
@@ -12908,20 +12908,20 @@ function inv.priority.addDefault()
     },
 
     { -- Priorities for levels 131 - 170
-      minLevel = 131, 
-      maxLevel = 170, 
+      minLevel = 131,
+      maxLevel = 170,
       priorities = {
-                     str          = 0.7,  
+                     str          = 0.7,
                      int          = 1.0,
                      wis          = 1.0,
-                     dex          = 0.6, 
-                     con          = 0.5,  
-                     luck         = 1.0, 
+                     dex          = 0.6,
+                     con          = 0.5,
+                     luck         = 1.0,
                      dam          = 0.7,
                      hit          = 0.6,
 
                      avedam       = 0.7,
-                     offhandDam   = 0.4, 
+                     offhandDam   = 0.4,
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12931,7 +12931,7 @@ function inv.priority.addDefault()
                      haste        = 2,
                      flying       = 1,
                      invis        = 1,
-                     regeneration = 5, 
+                     regeneration = 5,
                      detectinvis  = 2,
                      detecthidden = 2,
                      detectevil   = 2,
@@ -12946,20 +12946,20 @@ function inv.priority.addDefault()
     },
 
     { -- Priorities for levels 171 - 200
-      minLevel = 171, 
-      maxLevel = 200, 
+      minLevel = 171,
+      maxLevel = 200,
       priorities = {
-                     str          = 0.7,  
+                     str          = 0.7,
                      int          = 1.0,
                      wis          = 1.0,
-                     dex          = 0.5, 
-                     con          = 0.5,  
-                     luck         = 1.0, 
+                     dex          = 0.5,
+                     con          = 0.5,
+                     luck         = 1.0,
                      dam          = 0.6,
                      hit          = 0.6,
 
                      avedam       = 0.6,
-                     offhandDam   = 0.4, 
+                     offhandDam   = 0.4,
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -12969,7 +12969,7 @@ function inv.priority.addDefault()
                      haste        = 2,
                      flying       = 1,
                      invis        = 1,
-                     regeneration = 5, 
+                     regeneration = 5,
                      detectinvis  = 2,
                      detecthidden = 2,
                      detectevil   = 2,
@@ -12988,20 +12988,20 @@ function inv.priority.addDefault()
     },
 
     { -- Priorities for level 201 - 291
-      minLevel = 201, 
-      maxLevel = 291, 
+      minLevel = 201,
+      maxLevel = 291,
       priorities = {
-                     str          = 0.6,  
+                     str          = 0.6,
                      int          = 1.0,
                      wis          = 1.0,
-                     dex          = 0.5, 
-                     con          = 0.5,  
-                     luck         = 1.0, 
+                     dex          = 0.5,
+                     con          = 0.5,
+                     luck         = 1.0,
                      dam          = 0.5,
                      hit          = 0.4,
 
                      avedam       = 0.5,
-                     offhandDam   = 0.4, 
+                     offhandDam   = 0.4,
 
                      hp           = 0.01,
                      mana         = 0.01,
@@ -13011,7 +13011,7 @@ function inv.priority.addDefault()
                      haste        = 2,
                      flying       = 1,
                      invis        = 1,
-                     regeneration = 2, 
+                     regeneration = 2,
                      detectinvis  = 2,
                      detecthidden = 2,
                      detectevil   = 2,
@@ -13039,17 +13039,17 @@ function inv.priority.addDefault()
   ------------------------
   -- This prioritizes defensive aspects of an equipment set
   local psiDefensePriority = {
-                               str          = 0.6,  
+                               str          = 0.6,
                                int          = 1.0,
                                wis          = 1.0,
-                               dex          = 0.8, 
-                               con          = 0.8,  
-                               luck         = 1.0, 
+                               dex          = 0.8,
+                               con          = 0.8,
+                               luck         = 1.0,
                                dam          = 0.5,
                                hit          = 0.5,
 
                                avedam       = 1.0,
-                               offhandDam   = 0.0, 
+                               offhandDam   = 0.0,
 
                                hp           = 0.02,
                                mana         = 0.01,
@@ -13058,7 +13058,7 @@ function inv.priority.addDefault()
                                haste        = 0,
                                flying       = 0,
                                invis        = 1,
-                               regeneration = 5, 
+                               regeneration = 5,
                                detectinvis  = 0,
                                detecthidden = 0,
                                detectevil   = 0,
@@ -13076,11 +13076,11 @@ function inv.priority.addDefault()
                              }
   psiDefensePriority["~second"] = 1 -- Minor hack since the "~" messes up table keys
   retval = inv.priority.add(
-    "psi-defense", 
-    { 
+    "psi-defense",
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
+        minLevel = 1,
+        maxLevel = 291,
         priorities = psiDefensePriority
       }
     })
@@ -13097,10 +13097,10 @@ function inv.priority.addDefault()
   -- retaining the wis bonus.
   retval = inv.priority.add(
     "psi-balance", -- Equipment priorities to maximize benefits from the mental balance spell
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
+        minLevel = 1,
+        maxLevel = 291,
         priorities = { int = 1,
                        wis = -1
                      }
@@ -13119,10 +13119,10 @@ function inv.priority.addDefault()
   -- with a set based on this :)
   retval = inv.priority.add(
     "enchanter", -- Equipment priorities for an enchanter (only care about int, luck, wis)
-    { 
+    {
       { -- Priorities for levels 1 - 291
-        minLevel = 1, 
-        maxLevel = 291, 
+        minLevel = 1,
+        maxLevel = 291,
         priorities = { int  = 1,
                        luck = 1,
                        wis  = 1
@@ -13395,7 +13395,7 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
       end -- if
 
       score = score + (multiplier * v)
-      dbot.debug("Score: " .. string.format("%.3f", score) .. " after key \"" .. 
+      dbot.debug("Score: " .. string.format("%.3f", score) .. " after key \"" ..
                  statKey .. "\" with value \"" .. v .. "\", multiplier=" .. multiplier)
 
     -- Update the score for consolidated stats
@@ -13412,9 +13412,9 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
       local dtype
       local physResists  = { invStatFieldBash,    invStatFieldPierce,   invStatFieldSlash }
       local magicResists = { invStatFieldAcid,    invStatFieldCold,     invStatFieldEnergy,
-                             invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative, 
+                             invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative,
                              invStatFieldShadow,  invStatFieldMagic,    invStatFieldAir,
-                             invStatFieldEarth,   invStatFieldFire,     invStatFieldLight, 
+                             invStatFieldEarth,   invStatFieldFire,     invStatFieldLight,
                              invStatFieldMental,  invStatFieldSonic,    invStatFieldWater,
                              invStatFieldDisease, invStatFieldPoison }
 
@@ -13437,7 +13437,7 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
   end -- for
 
   -- In some situations, we may want to give a score bump if we have maxed a particular stat.
-  -- For example, navigators gain an extra bypassed area with maxed int and wis.  In that case, 
+  -- For example, navigators gain an extra bypassed area with maxed int and wis.  In that case,
   -- it is far more valuable to have maxed int and wis than to be "off-by-one" and be one less
   -- than the max.
   local statList = "int luck wis str dex con"
@@ -13445,7 +13445,7 @@ function inv.score.extended(itemOrSet, priorityName, handicap, level, isOffhand)
     local valueOfMaxStat = tonumber(priorityTable["max" .. stat] or 0)
     if (valueOfMaxStat > 0) and
        (inv.statBonus.equipBonus[level] ~= nil) and (inv.statBonus.equipBonus[level][stat] ~= nil) and
-       (tonumber(itemOrSet[stat] or 0) >= inv.statBonus.equipBonus[level][stat]) then        
+       (tonumber(itemOrSet[stat] or 0) >= inv.statBonus.equipBonus[level][stat]) then
       dbot.debug("Added " .. valueOfMaxStat .. " to score for maxing stat \"@G" .. stat .. "@W\"")
       score = score + valueOfMaxStat
     end -- if
@@ -13607,7 +13607,7 @@ end -- inv.set.save
 function inv.set.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.set.stateName, inv.set.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.set.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.set.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.set.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -13775,7 +13775,7 @@ function inv.set.createCR()
 
       for wearLoc,itemStruct in pairs(newSet) do
         if (bestSet ~= nil) and (bestSet[wearLoc] ~= nil) and (bestSet[wearLoc].id ~= itemStruct.id) then
-          dbot.debug("Updating set: " .. wearLoc .. " from " .. bestSet[wearLoc].id .. ", to " .. 
+          dbot.debug("Updating set: " .. wearLoc .. " from " .. bestSet[wearLoc].id .. ", to " ..
                      itemStruct.id)
         end -- if
       end -- for
@@ -13842,7 +13842,7 @@ function inv.set.createCR()
     end -- if
   end -- for
 
-  -- If our best set is empty (maybe we don't have anything in our inventory) then treat that as a 
+  -- If our best set is empty (maybe we don't have anything in our inventory) then treat that as a
   -- special case and let the caller know about it
   if (bestSet == nil) then
     dbot.warn("inv.set.createCR: No items in your inventory fit the set.  Is your inventory empty?")
@@ -13852,7 +13852,7 @@ function inv.set.createCR()
   -- Wait until the end to save the set (calling functions can know it isn't ready yet if it is nil)
   inv.set.table[priorityName][level] = bestSet
 
-  dbot.debug("Created " .. priorityName .. "[" .. level .. "] set with score " .. 
+  dbot.debug("Created " .. priorityName .. "[" .. level .. "] set with score " ..
              string.format("%.2f", bestScore))
 
   -- We are done!
@@ -13951,14 +13951,14 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
 
             nextBest = tmp
           end -- if
-        end -- for        
+        end -- for
 
         -- prune slots that don't have any items or slots that are ignored
         for _,w in ipairs(inv.wearables[objWearable]) do
           if (newSet[w].id == -1) or (not inv.priority.locIsAllowed(w, priorityName, level)) then
             newSet[w] = nil
           end -- if
-        end -- for        
+        end -- for
 
       end -- if
     end -- if
@@ -14020,7 +14020,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
 
   local scorePrimary = 0
   local scoreSecond  = 0
-  local scoreShield  = 0 
+  local scoreShield  = 0
   local scoreHold    = 0
 
   if (newSet[inv.wearLoc[invWearableLocWielded]] ~= nil) then
@@ -14056,7 +14056,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
 
   setScore, setStats = inv.score.set(newSet, priorityName, level)
 
-  return newSet, setStats, setScore 
+  return newSet, setStats, setScore
 
 end -- inv.set.createWithHandicap
 
@@ -14158,7 +14158,7 @@ function inv.set.displaySet(setName, level, equipSet)
   if (level == nil) then
     dbot.print("\n@WEquipment set: \"@C" .. setName .. "@W\"\n")
   else
-    dbot.print("\n@WEquipment set:    @GLevel " .. string.format("%3d", level) .. 
+    dbot.print("\n@WEquipment set:    @GLevel " .. string.format("%3d", level) ..
                " @C" .. setName .. "@w\n")
   end -- if
 
@@ -14174,8 +14174,8 @@ function inv.set.displaySet(setName, level, equipSet)
         locColor = "@Y"
       end -- if
 
-      dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
-                 "): @GLevel " .. 
+      dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) ..
+                 "): @GLevel " ..
                  string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel or "Unknown")) ..
                  "@W \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. "\"")
     end -- if
@@ -14260,7 +14260,7 @@ function inv.set.createAndWearCR()
   local timeout = 10
   while (inv.set.table[priorityName][level] == nil) do
     if (totTime > timeout) then
-      dbot.warn("inv.set.createAndWearCR: Failed to create set " .. priorityName .. 
+      dbot.warn("inv.set.createAndWearCR: Failed to create set " .. priorityName ..
                 "[" .. level .. "] within " .. timeout .. " seconds")
       inv.set.createAndWearPkg = nil
       return inv.tags.stop(invTagsSet, endTag, DRL_RET_TIMEOUT)
@@ -14346,7 +14346,7 @@ function inv.set.wear(equipSet)
 
             retval = inv.items.storeItem(objId, commandArray)
             if (retval ~= DRL_RET_SUCCESS) then
-              dbot.debug("inv.set.wear: Failed to store item " .. objId .. ": " .. 
+              dbot.debug("inv.set.wear: Failed to store item " .. objId .. ": " ..
                          dbot.retval.getString(retval))
             end -- if
           end -- if
@@ -14371,14 +14371,14 @@ function inv.set.wear(equipSet)
   for itemLoc, itemInfo in pairs(equipSet) do
     table.insert(sortedEq, { itemLoc = itemLoc, itemInfo = itemInfo })
   end -- for
-  table.sort(sortedEq, function (v1, v2) return v1.itemLoc < v2.itemLoc end) 
+  table.sort(sortedEq, function (v1, v2) return v1.itemLoc < v2.itemLoc end)
 
   -- For each item in the new set, we get the item's object ID and location and then check
   -- what is at that item's desired location.  If it is already worn at that location, we're
   -- done.  Otherwise, store the item that is currently worn.  It would be convenient if we
   -- could simply wear the new item at this point.  However, some items conflict with other
   -- items (e.g., weapon weights, shields, held items, etc.) and it is easier to simply store
-  -- everything first and then wear everything in the new set.  We know that there are no 
+  -- everything first and then wear everything in the new set.  We know that there are no
   -- conflicts with the new set (otherwise it wouldn't be a set!) so we don't have to worry
   -- about interference between items in the middle of swapping equipment.
   for _, entry in ipairs(sortedEq) do
@@ -14398,7 +14398,7 @@ function inv.set.wear(equipSet)
 
           retval = inv.items.storeItem(objId, commandArray)
           if (retval ~= DRL_RET_SUCCESS) then
-            dbot.note("Skipping request to store item " .. objId .. ": " .. 
+            dbot.note("Skipping request to store item " .. objId .. ": " ..
                        dbot.retval.getString(retval))
           end -- if
         end -- if
@@ -14421,7 +14421,7 @@ function inv.set.wear(equipSet)
   local numNewWornItems = 0
 
   -- Get all of the new items to wear and wear them!  Yes, we are doing the exact same for loop
-  -- that we did above.  It is a little redundant, but it really simplifies things if we can 
+  -- that we did above.  It is a little redundant, but it really simplifies things if we can
   -- separate storing old items and wearing new items.  If we mix those two steps, we can have
   -- conflicts where a new item is conflicting with another item worn in a different location
   -- from the previous set (e.g., weapon weights).
@@ -14454,7 +14454,7 @@ function inv.set.wear(equipSet)
     local suffix = ""
     if (numNewWornItems ~= 1) then
       suffix = "s"
-    end -- if 
+    end -- if
     dbot.info("Wore " .. numNewWornItems .. " new item" .. suffix)
   end -- if
 
@@ -14552,12 +14552,12 @@ function inv.set.getStats(set, level)
                      hit = 0, dam = 0,
                      avedam = 0, offhandDam = 0,
                      slash = 0, pierce = 0, bash = 0,
-                     acid = 0, cold = 0, energy = 0, holy = 0, electric = 0, negative = 0, shadow = 0, 
+                     acid = 0, cold = 0, energy = 0, holy = 0, electric = 0, negative = 0, shadow = 0,
                      poison = 0, disease = 0, magic = 0, air = 0, earth = 0, fire = 0, light = 0,
                      mental = 0, sonic = 0, water = 0,
                      allphys = 0, allmagic = 0,
 
-                     haste = 0, regeneration = 0, sanctuary = 0, invis = 0, flying = 0, 
+                     haste = 0, regeneration = 0, sanctuary = 0, invis = 0, flying = 0,
                      detectgood = 0, detectevil = 0, detecthidden = 0, detectinvis = 0, detectmagic = 0,
                      dualwield = 0, irongrip = 0, shield = 0 -- these last 3 are not official "affect mods"
                    }
@@ -14587,9 +14587,9 @@ function inv.set.getStats(set, level)
     for statName in statsWithCaps:gmatch("%S+") do
       if (inv.statBonus.equipBonus[level] ~= nil) and
          (inv.statBonus.equipBonus[level][statName] ~= nil) and
-         (tonumber(setStats[statName] or 0) > inv.statBonus.equipBonus[level][statName]) then         
+         (tonumber(setStats[statName] or 0) > inv.statBonus.equipBonus[level][statName]) then
         setStats[statName] = inv.statBonus.equipBonus[level][statName]
-      end -- if   
+      end -- if
     end -- for
   end -- if
 
@@ -14619,9 +14619,9 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   resistNames[1]  = { invStatFieldAllPhys, invStatFieldAllMagic }
   resistNames[3]  = { invStatFieldBash,    invStatFieldPierce,   invStatFieldSlash }
   resistNames[17] = { invStatFieldAcid,    invStatFieldCold,     invStatFieldEnergy,
-                      invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative, 
+                      invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative,
                       invStatFieldShadow,  invStatFieldMagic,    invStatFieldAir,
-                      invStatFieldEarth,   invStatFieldFire,     invStatFieldLight, 
+                      invStatFieldEarth,   invStatFieldFire,     invStatFieldLight,
                       invStatFieldMental,  invStatFieldSonic,    invStatFieldWater,
                       invStatFieldDisease, invStatFieldPoison }
 
@@ -14634,7 +14634,7 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
 
   local statSizes = { { avedam = 4 }, { offhandDam = 4 }, { hit = 3 }, { dam = 3 },
                       { str = 3 }, { int = 3 }, { wis = 3 }, { dex = 3 }, { con = 3 }, { luck = 3 },
-                      { totResists = 3 }, { hp = 4 }, { mana = 4 }, { moves = 4 } } 
+                      { totResists = 3 }, { hp = 4 }, { mana = 4 }, { moves = 4 } }
 
   local basicHeader = "@W" .. string.rep(" ", #msgString) ..
                       " Ave  Sec  HR  DR Str Int Wis Dex Con Lck Res HitP Mana Move Effects"
@@ -14664,7 +14664,7 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- for
 
   setStr = setStr .. effectStr
-  
+
   local colorScheme = { { light = "@x010", dark = "@x002" }, { light = "@x190", dark = "@x220" } }
   local colorIndex = 1
 
@@ -14750,7 +14750,7 @@ function inv.set.compare(priorityName, relativeName, endTag)
   end -- if
 
   if (inv.set.comparePkg ~= nil) then
-    dbot.info("Skipping comparison of \"" .. relativeName .. "\" for priority \"" .. priorityName .. 
+    dbot.info("Skipping comparison of \"" .. relativeName .. "\" for priority \"" .. priorityName ..
               "\": another comparison is in progress")
     return inv.tags.stop(invTagsCompare, endTag, DRL_RET_BUSY)
   end -- if
@@ -14795,7 +14795,7 @@ function inv.set.compareCR()
       end -- if
     end -- for
 
-    -- Save the previous set analysis that includes the target item so that we have something to compare 
+    -- Save the previous set analysis that includes the target item so that we have something to compare
     local tmpAnalysis = inv.set.table[inv.set.comparePkg.priorityName]
     if (tmpAnalysis == nil) then
       dbot.warn("inv.set.compareCR: Failed to find analysis table for priority \"" ..
@@ -14831,7 +14831,7 @@ function inv.set.compareCR()
       dbot.warn("inv.set.compareCR: Failed to remove objId " .. (objId or "nil") .. ": " ..
                 dbot.retval.getString(retval))
     else
-      dbot.print("@WAnalyzing optimal \"@C" .. inv.set.comparePkg.priorityName .. 
+      dbot.print("@WAnalyzing optimal \"@C" .. inv.set.comparePkg.priorityName ..
                  "@W\" equipment sets with and without \"" .. itemName .. "\"\n")
 
       -- Analyze the priority with the item removed so that we can compare the results with what
@@ -14856,7 +14856,7 @@ function inv.set.compareCR()
                   dbot.retval.getString(retval))
       end -- if
 
-      dbot.print("\n@WPriority \"@C" .. inv.set.comparePkg.priorityName .. "@W\" advantages with \"" .. 
+      dbot.print("\n@WPriority \"@C" .. inv.set.comparePkg.priorityName .. "@W\" advantages with \"" ..
                  itemName .. DRL_ANSI_WHITE .. "@W\":\n")
 
       -- Display the difference between when the item was present and when it was removed
@@ -14878,7 +14878,7 @@ function inv.set.compareCR()
       end -- for
 
       if (doDisplayHeader) then
-        dbot.print("No set with item \"" .. itemName .. DRL_ANSI_WHITE .. 
+        dbot.print("No set with item \"" .. itemName .. DRL_ANSI_WHITE ..
                    "\" is optimal for any level between " .. minCharLevel .. " and " .. maxCharLevel)
       end -- if
 
@@ -14965,7 +14965,7 @@ function inv.set.covetCR()
     end -- if
   end -- for
 
-  -- Save the previous set analysis that includes the target item so that we have something to compare 
+  -- Save the previous set analysis that includes the target item so that we have something to compare
   local tmpAnalysis = inv.set.table[inv.set.covetPkg.priorityName]
   if (tmpAnalysis == nil) then
     dbot.warn("inv.set.covetCR: Failed to find analysis table for priority \"" ..
@@ -15011,7 +15011,7 @@ function inv.set.covetCR()
 
   -- Attempt to identify the auction item and wait until we have confirmation that the ID completed
   local resultData = dbot.callback.new()
-  retval = inv.items.identifyItem(objId, auctionCmd, resultData) 
+  retval = inv.items.identifyItem(objId, auctionCmd, resultData)
   if (retval == DRL_RET_SUCCESS) then
     retval = dbot.callback.wait(resultData, inv.items.timer.idTimeoutThresholdSec)
     if (retval ~= DRL_RET_SUCCESS) then
@@ -15043,7 +15043,7 @@ function inv.set.covetCR()
     -- We have a temporary copy of this that we will restore after we are done comparing the new analysis
     inv.set.table[inv.set.covetPkg.priorityName] = nil
 
-    dbot.print("@WAnalyzing optimal \"@C" .. inv.set.covetPkg.priorityName .. 
+    dbot.print("@WAnalyzing optimal \"@C" .. inv.set.covetPkg.priorityName ..
                "@W\" equipment sets with and without @Gauction " .. inv.set.covetPkg.auctionNum .. "@w\n")
 
     -- Analyze the priority with the item added so that we can compare the results with what
@@ -15086,7 +15086,7 @@ function inv.set.covetCR()
     end -- for
 
     if (doDisplayHeader) then
-      dbot.print("@WNo set with item \"" .. itemName .. DRL_ANSI_WHITE .. 
+      dbot.print("@WNo set with item \"" .. itemName .. DRL_ANSI_WHITE ..
                  "\" is optimal for any level between " .. minCharLevel .. " and " .. maxCharLevel)
     end -- if
   end -- if
@@ -15249,7 +15249,7 @@ end -- inv.weapon.next
 -- moment and easily go back to re-wear the exact same items at a later date.  That's where this
 -- snapshot module comes in.
 --
--- You can add and remove snapshots (big surprise) with the cleverly named inv.snapshot.add and 
+-- You can add and remove snapshots (big surprise) with the cleverly named inv.snapshot.add and
 -- inv.snapshot.remove functions.  You can also re-wear the items from an existing snapshot by
 -- calling inv.snapshot.wear.  The inv.snapshot.list function prints a listing of all existing
 -- saved snapshots.  The inv.snapshot.display function prints details about a specific snapshot.
@@ -15321,7 +15321,7 @@ function inv.snapshot.load()
 
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.snapshot.stateName, inv.snapshot.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.snapshot.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.snapshot.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.snapshot.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -15344,7 +15344,7 @@ function inv.snapshot.add(snapshotName, endTag)
 
   if (snapshotName == nil) or (snapshotName == "") then
     dbot.warn("inv.snapshot.add: Missing snapshot name")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   for objId, _ in pairs(inv.items.table) do
@@ -15385,13 +15385,13 @@ function inv.snapshot.remove(snapshotName, endTag)
 
   if (snapshotName == nil) or (snapshotName == "") then
     dbot.warn("inv.snapshot.remove: Missing snapshot name")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   if (inv.snapshot.table[snapshotName] == nil) then
-    dbot.warn("inv.snapshot.remove: Failed to remove snapshot \"@C" .. snapshotName .. 
+    dbot.warn("inv.snapshot.remove: Failed to remove snapshot \"@C" .. snapshotName ..
               "@W\": it does not exist")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
   -- Remove the snapshot
@@ -15436,18 +15436,18 @@ function inv.snapshot.display(snapshotName, endTag)
 
   if (snapshotName == nil) or (snapshotName == "") then
     dbot.warn("inv.snapshot.display: Missing snapshot name")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   if (inv.snapshot.table[snapshotName] == nil) then
-    dbot.warn("inv.snapshot.display: Failed to display snapshot \"@C" .. snapshotName .. 
+    dbot.warn("inv.snapshot.display: Failed to display snapshot \"@C" .. snapshotName ..
               "@W\": it does not exist")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
   retval = inv.set.displaySet(snapshotName, nil, inv.snapshot.table[snapshotName])
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.snapshot.display: Failed to display snapshot \"@C" .. snapshotName .. 
+    dbot.warn("inv.snapshot.display: Failed to display snapshot \"@C" .. snapshotName ..
               "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -15461,19 +15461,19 @@ function inv.snapshot.wear(snapshotName, endTag)
 
   if (snapshotName == nil) or (snapshotName == "") then
     dbot.warn("inv.snapshot.wear: Missing snapshot name")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_INVALID_PARAM)
   end -- if
 
   if (inv.snapshot.table[snapshotName] == nil) then
-    dbot.warn("inv.snapshot.wear: Failed to wear snapshot \"@C" .. snapshotName .. 
+    dbot.warn("inv.snapshot.wear: Failed to wear snapshot \"@C" .. snapshotName ..
               "@W\": it does not exist")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
   if (inv.snapshot.wearPkg ~= nil) then
     dbot.info("Skipping request to wear snapshot \"@C" .. snapshotName .. "@W\": " ..
               dbot.retval.getString(retval))
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_BUSY)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_BUSY)
   end -- if
 
   inv.snapshot.wearPkg              = {}
@@ -15498,9 +15498,9 @@ function inv.snapshot.wearCR()
   local snapshotName = inv.snapshot.wearPkg.snapshotName
 
   if (inv.snapshot.table[snapshotName] == nil) then
-    dbot.warn("inv.snapshot.wearCR: Failed to wear snapshot \"@C" .. snapshotName .. 
+    dbot.warn("inv.snapshot.wearCR: Failed to wear snapshot \"@C" .. snapshotName ..
               "@W\": it does not exist")
-    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)  
+    return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)
   end -- if
 
   retval = inv.set.wear(inv.snapshot.table[snapshotName])
@@ -15523,7 +15523,7 @@ end -- inv.snapshot.wearCR
 -- on a character's level and the spell bonuses that are active for the character.  This module
 -- checks the current stats and determines how many stats can be provided by equipment.
 --
--- This is not an exact science.  The equipment bonuses can be very different for the same 
+-- This is not an exact science.  The equipment bonuses can be very different for the same
 -- character at the same level if the character has a good spellup on one call and a poor spellup
 -- on another call.  Our policy is to assume that the character has done their best to spellup
 -- prior to wearing a set.  They can always re-wear a set to pick up the optimal available equipment
@@ -15641,7 +15641,7 @@ function inv.statBonus.load()
   local spellRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.statBonus.stateNameSpells,
                                              inv.statBonus.reset)
   if (spellRetval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.statBonus.load: Failed to load spellBonus table from file \"@R" .. 
+    dbot.warn("inv.statBonus.load: Failed to load spellBonus table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.statBonus.stateNameSpells .. "@W\": " ..
               dbot.retval.getString(spellRetval))
   end -- if
@@ -15649,7 +15649,7 @@ function inv.statBonus.load()
   local equipRetval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.statBonus.stateNameEquip,
                                              inv.statBonus.reset)
   if (equipRetval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.statBonus.load: Failed to load equipBonus table from file \"@R" .. 
+    dbot.warn("inv.statBonus.load: Failed to load equipBonus table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.statBonus.stateNameEquip .. "@W\": " ..
               dbot.retval.getString(equipRetval))
   end -- if
@@ -15694,7 +15694,7 @@ end -- inv.statBonus.reset
 -- timer will periodically check what spell bonuses are present on the character and track a weighted
 -- average and also the max value for each stat over time.  Those values will help improve accuracy
 -- the longer someone uses this plugin.  If someone frequently has SH spellups their estimates will
--- eventually reflect that.  Similarly, if someone never bothers to spellup, that character's 
+-- eventually reflect that.  Similarly, if someone never bothers to spellup, that character's
 -- estimated stats will reflect that too after enough time passes.
 --
 -- Also, you should note that the spellup estimates are only used when real spellup values aren't
@@ -16058,7 +16058,7 @@ function inv.statBonus.setCR()
     dbot.prompt.show()
 
   else
-    dbot.debug("Skipping @Glevel " .. level .. " @Wspell bonus update: you are in state \"@C" .. 
+    dbot.debug("Skipping @Glevel " .. level .. " @Wspell bonus update: you are in state \"@C" ..
                dbot.gmcp.getStateString(charState) .. "@W\"")
     retval = DRL_RET_NOT_ACTIVE
   end -- if
@@ -16078,8 +16078,8 @@ function inv.statBonus.setCR()
       local statList = "int luck wis str dex con"
       for spellStat in statList:gmatch("%S+") do
         -- Update the weighted average (current stats are weighted 50% by default)
-        inv.statBonus.spellBonus[level].ave[spellStat] = 
-          (inv.statBonus.currentBonus[spellStat] + inv.statBonus.spellBonus[level].ave[spellStat]) / 2  
+        inv.statBonus.spellBonus[level].ave[spellStat] =
+          (inv.statBonus.currentBonus[spellStat] + inv.statBonus.spellBonus[level].ave[spellStat]) / 2
 
         -- Update the max stats
         if (inv.statBonus.currentBonus[spellStat] > inv.statBonus.spellBonus[level].max[spellStat]) then
@@ -16088,7 +16088,7 @@ function inv.statBonus.setCR()
       end -- for
     end -- if
 
-    dbot.debug("Updated @GL" .. level .. "@W spell bonuses: " .. 
+    dbot.debug("Updated @GL" .. level .. "@W spell bonuses: " ..
                string.format("@Cint@W=@G%.2f@W, @Cluck@W=@G%.2f@W, @Cwis@W=@G%.2f@W, " ..
                              "@Cstr@W=@G%.2f@W, @Cdex@W=@G%.2f@W, @Ccon@W=@G%.2f@w",
                              inv.statBonus.spellBonus[level].ave.int,
@@ -16156,7 +16156,7 @@ inv.statBonus.trigger.startName = "drlInvStatBonusTriggerStart"
 function inv.statBonus.trigger.get(line)
 
   -- Look for the current spells bonus
-  local matchStart, matchEnd, eqStr, eqInt, eqWis, eqDex, eqCon, eqLuck = 
+  local matchStart, matchEnd, eqStr, eqInt, eqWis, eqDex, eqCon, eqLuck =
     string.find(line, "Spells Bonus%s+:%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+.*$")
 
   if (matchStart ~= nil) then
@@ -16212,7 +16212,7 @@ function inv.analyze.sets(priorityName, minLevel, resultData, intensity)
     return DRL_RET_INVALID_PARAM
   end -- if
 
-  -- Ensure we don't have multiple analyses in progress 
+  -- Ensure we don't have multiple analyses in progress
   if (inv.analyze.setsPkg ~= nil) then
     dbot.info("Skipping analysis of sets: another analysis is in progress")
     return DRL_RET_BUSY
@@ -16242,12 +16242,12 @@ function inv.analyze.setsCR()
   if (inv.state == invStateRunning) then
     dbot.info("Skipping set analysis: you are in the middle of an inventory refresh")
     retval = DRL_RET_BUSY
-  else   
+  else
     totalLevels = maxLevel - inv.analyze.setsPkg.minLevel
     if (totalLevels == 0) then
       totalLevels = 1 -- we don't want to divide by zero in our analysis
     elseif (totalLevels < 0) then
-      dbot.info("Skipping set analysis: minLevel " .. inv.analyze.setsPkg.minLevel .. 
+      dbot.info("Skipping set analysis: minLevel " .. inv.analyze.setsPkg.minLevel ..
                 " exceeds your current maxLevel " .. maxLevel)
       retval = DRL_RET_SUCCESS
     end -- if
@@ -16290,7 +16290,7 @@ function inv.analyze.setsCR()
     end -- if
 
     -- Show progress and let something else run occasionally
-    local levelsChecked = currentLevel - inv.analyze.setsPkg.minLevel 
+    local levelsChecked = currentLevel - inv.analyze.setsPkg.minLevel
     local progressPercent
     if (inv.analyze.setsPkg.minLevel == maxLevel) then
       progressPercent = 100
@@ -16380,7 +16380,7 @@ function inv.analyze.list()
   for name, _ in pairs(inv.set.table) do
     table.insert(sortedNames, name)
   end -- for
-  table.sort(sortedNames, function (v1, v2) return v1 < v2 end) 
+  table.sort(sortedNames, function (v1, v2) return v1 < v2 end)
 
   dbot.print("@WSet analysis: @Gcomplete@W or @Ypartial@W")
   for _, name in ipairs(sortedNames) do
@@ -16393,7 +16393,7 @@ function inv.analyze.list()
     for level = minLevel, maxLevel do
       if (inv.set.table[name][level] == nil) then
         analysisPrefix = "@Y"
-        analysisSuffix = "@W -- Run \"@Gdinv analyze create " .. name .. "@W\" to complete the analysis"      
+        analysisSuffix = "@W -- Run \"@Gdinv analyze create " .. name .. "@W\" to complete the analysis"
         break
       end -- if
     end -- for
@@ -16449,7 +16449,7 @@ function inv.analyze.display(priorityName, wearableLoc, endTag)
           local prevObjId
           if (prevSet ~= nil) and (prevSet[setWearLoc] ~= nil) then
             prevObjId = tonumber(prevSet[setWearLoc].id or "")
-          end -- if 
+          end -- if
 
           -- Display the item if this is our first level or if something changed from the previous level
           if (objId ~= nil) and ((objId ~= prevObjId) or (currentLevel == startLevel)) then
@@ -16525,9 +16525,9 @@ function inv.usage.displayCR()
   if (inv.usage.displayPkg == nil) then
     dbot.error("inv.usage.displayCR: inv.usage.displayPkg is nil!")
     return DRL_RET_INTERNAL_ERROR
-  end -- if    
+  end -- if
 
-  local retval  
+  local retval
   local idArray
   local priorityName = inv.usage.displayPkg.priorityName or ""
   local query        = inv.usage.displayPkg.query or ""
@@ -16556,11 +16556,11 @@ function inv.usage.displayCR()
 
       -- Only consider an item available to be used if it has a wearable location,
       -- is not a potion, pill, or food, and if it is not both a treasure and hold item.
-      if (wearableField ~= nil) and 
-         (typeField ~= invmon.typeStr[invmonTypePotion]) and 
-         (typeField ~= invmon.typeStr[invmonTypePill]) and 
+      if (wearableField ~= nil) and
+         (typeField ~= invmon.typeStr[invmonTypePotion]) and
+         (typeField ~= invmon.typeStr[invmonTypePill]) and
          (typeField ~= invmon.typeStr[invmonTypeFood]) and
-         ((typeField ~= invmon.typeStr[invmonTypeTreasure]) or 
+         ((typeField ~= invmon.typeStr[invmonTypeTreasure]) or
           (wearableField ~= inv.wearLoc[invWearableLocHold])) then
 
         if (priorityName == "all") then
@@ -16632,7 +16632,7 @@ function inv.usage.displayItem(priorityName, objId, doDisplayUnused)
   end -- if
   -- The trimmed name could end on an "@" which messes up color codes and spacing
   formattedName = string.gsub(formattedName, "@$", " ") .. " " .. DRL_XTERM_GREY
-  formattedName = formattedName .. colorizedId 
+  formattedName = formattedName .. colorizedId
 
   local levelUsage  = inv.usage.get(priorityName, objId)
   local itemLevel   = inv.items.getStatField(objId, invStatFieldLevel) or "N/A"
@@ -16650,7 +16650,7 @@ function inv.usage.displayItem(priorityName, objId, doDisplayUnused)
     -- Convert the list of levels into a string with ranges
     for i = 1, #levelUsage do
       -- If we have consecutive numbers on either side, we are in a range and can whack this item
-      if (levelUsage[i - 1] ~= nil) and 
+      if (levelUsage[i - 1] ~= nil) and
          ((levelUsage[i] == levelUsage[i - 1] + 1) or (levelUsage[i - 1] == 0 )) and
          (levelUsage[i + 1] ~= nil) and (levelUsage[i] == levelUsage[i + 1] - 1) then
         levelUsage[i] = 0
@@ -16713,7 +16713,7 @@ function inv.usage.get(priorityName, objId)
     for _, wearLoc in ipairs(inv.wearables[wearType]) do
       if (wearLoc ~= nil) and (startLevel ~= nil) and (inv.set.table[priorityName] ~= nil) then
         for level = startLevel, endLevel do
-          if (inv.set.table[priorityName][level] ~= nil) and 
+          if (inv.set.table[priorityName][level] ~= nil) and
              (inv.set.table[priorityName][level][wearLoc] ~= nil) and
              (inv.set.table[priorityName][level][wearLoc].id == objId) then
             table.insert(levelArray, level)
@@ -16765,7 +16765,7 @@ inv.tags.stateName = "inv-tags.state"
 
 invTagsRefresh   = "refresh"
 invTagsBuild     = "build"
-invTagsSearch    = "search" 
+invTagsSearch    = "search"
 invTagsGet       = "get"
 invTagsPut       = "put"
 invTagsStore     = "store"
@@ -16856,7 +16856,7 @@ end -- inv.tags.save
 function inv.tags.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.tags.stateName, inv.tags.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.tags.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.tags.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.tags.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -16992,7 +16992,7 @@ function inv.tags.start(moduleName, startTag)
            (i.e., seeing the end tag) than knowing that they made the original request -- which
            really shouldn't be a surprise since they are the ones that made the request ;-)
 
-  if (moduleName ~= nil) and (startTag ~= nil) and (startTag ~= "") and 
+  if (moduleName ~= nil) and (startTag ~= nil) and (startTag ~= "") and
      (inv.tags.table ~= nil) and (inv.tags.table[moduleName] == drlInvTagOn) and
      inv.tags.isEnabled() then
     retval = dbot.execute.fast.command("echo " .. "{" .. startTag .. "}")
@@ -17021,10 +17021,10 @@ function inv.tags.stop(moduleName, endTag, retval)
   end -- if
 
   -- Output the end tag's message if the specified module tag is enabled
-  if (moduleName ~= nil) and (endTag.tagMsg ~= nil) and (endTag.tagMsg ~= "") and 
+  if (moduleName ~= nil) and (endTag.tagMsg ~= nil) and (endTag.tagMsg ~= "") and
      (inv.tags.table ~= nil) and (inv.tags.table[moduleName] == drlInvTagOn) and
      inv.tags.isEnabled() then
-    local tagMsg = "{/" .. endTag.tagMsg .. ":" .. dbot.getTime() - endTag.startTime .. ":" .. retval .. 
+    local tagMsg = "{/" .. endTag.tagMsg .. ":" .. dbot.getTime() - endTag.startTime .. ":" .. retval ..
                    ":" .. dbot.retval.getString(retval) .. "}"
     local charState = dbot.gmcp.getState()
 
@@ -17140,15 +17140,15 @@ end -- inv.tags.cleanup.info
 -- inv.consume.use(typeName, size, numItems, containerName)
 -- inv.consume.useCR()
 -- inv.consume.useItem(objId, commandArray)
--- 
+--
 -- Consumable table format:
---   table[typeName] = 
+--   table[typeName] =
 --     { heal  = { { level=1,   name="light relief",   room="32476", fullName="(!(Light Relief)!)" },
 --                 { level=20,  name="serious relief", room="32476", fullName="(!(Serious Relief)!)" } },
 --       mana  = { { level=1,   name="lotus rush",     room="32476", fullName="(!(Lotus Rush)!)" } },
 --       fly   = { { level=1,   name="griff",          room="32476", fullName="(!(Griffon's Blood)!)" } }
 --     }
--- 
+--
 ----------------------------------------------------------------------------------------------------
 
 inv.consume           = {}
@@ -17162,7 +17162,7 @@ function inv.consume.init.atActive()
 
   retval = inv.consume.load()
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.consume.init.atActive: failed to load consume data from storage: " .. 
+    dbot.warn("inv.consume.init.atActive: failed to load consume data from storage: " ..
               dbot.retval.getString(retval))
   end -- if
 
@@ -17199,7 +17199,7 @@ end -- inv.consume.save
 function inv.consume.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. inv.consume.stateName, inv.consume.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.consume.load: Failed to load table from file \"@R" .. 
+    dbot.warn("inv.consume.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. inv.consume.stateName .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -17306,7 +17306,7 @@ function inv.consume.addCR()
   if (retval == DRL_RET_SUCCESS) then
     retval = dbot.callback.wait(resultData, inv.items.timer.idTimeoutThresholdSec)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.consume.addCR: Appraisal timed out for shopkeeper item" .. 
+      dbot.warn("inv.consume.addCR: Appraisal timed out for shopkeeper item" ..
                 inv.consume.addPkg.auctionNum)
     end -- if
   end -- if
@@ -17325,7 +17325,7 @@ function inv.consume.addCR()
     local itemExists = false
     for i, entry in ipairs(inv.consume.table[typeName]) do
       if (entry.level == itemLevel) and (entry.name == itemName) then
-        dbot.note("Skipping addition of consumable item \"" .. itemName .. "\" of type \"" .. 
+        dbot.note("Skipping addition of consumable item \"" .. itemName .. "\" of type \"" ..
                   typeName .. "\": item already exists")
         itemExists = true
         break
@@ -17335,9 +17335,9 @@ function inv.consume.addCR()
     -- If the item isn't already in the consumable table, add it and then re-sort the table to
     -- account for the new item
     if (itemExists == false) then
-      table.insert(inv.consume.table[typeName], 
+      table.insert(inv.consume.table[typeName],
                   { level = itemLevel, name = itemName, room = roomId, fullName = fullName })
-      table.sort(inv.consume.table[typeName], function (v1, v2) return v1.level < v2.level end) 
+      table.sort(inv.consume.table[typeName], function (v1, v2) return v1.level < v2.level end)
       inv.consume.save()
     end -- if
   else
@@ -17424,9 +17424,9 @@ end -- inv.consume.display
 function inv.consume.displayType(typeName)
   local numEntries = 0
 
-  if (inv.consume.table == nil) or (typeName == nil) or (typeName == "") or 
+  if (inv.consume.table == nil) or (typeName == nil) or (typeName == "") or
      (inv.consume.table[typeName] == nil) then
-    dbot.warn("inv.consume.displayType: Type \"" .. (typeName or "nil") .. 
+    dbot.warn("inv.consume.displayType: Type \"" .. (typeName or "nil") ..
               "\" is not in the consumable table")
     return numEntries, DRL_RET_MISSING_ENTRY
   end -- if
@@ -17440,7 +17440,7 @@ function inv.consume.displayType(typeName)
         local itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
         local itemName  = inv.items.getStatField(objId, invStatFieldName) or ""
 
-        if (entry.level == itemLevel) and (entry.fullName == itemName) and 
+        if (entry.level == itemLevel) and (entry.fullName == itemName) and
            (not inv.items.isIgnored(objId)) then
           count = count + 1
         end -- if
@@ -17448,7 +17448,7 @@ function inv.consume.displayType(typeName)
 
       local countColor = ""
       if (count > 0) then
-        countColor = "@M" 
+        countColor = "@M"
       end -- if
 
       dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
@@ -17516,7 +17516,7 @@ end -- inv.consume.buy
 
 
 -- need to block so that we can run to the shopkeeper
-function inv.consume.buyCR() 
+function inv.consume.buyCR()
   local retval = DRL_RET_SUCCESS
   local room = tonumber(inv.consume.buyPkg.room or "")
 
@@ -17543,7 +17543,7 @@ function inv.consume.buyCR()
       retval = DRL_RET_TIMEOUT
       break
     end -- if
-  end -- if 
+  end -- if
 
   -- Buy the items if no problems came up going to the room
   if (retval == DRL_RET_SUCCESS) then
@@ -17551,7 +17551,7 @@ function inv.consume.buyCR()
     table.insert(commands, "buy " .. inv.consume.buyPkg.numItems .. " " .. inv.consume.buyPkg.itemName)
 
     if (inv.consume.buyPkg.containerName ~= nil) and (inv.consume.buyPkg.containerName ~= "") then
-      table.insert(commands, 
+      table.insert(commands,
                    "put all.\'" .. inv.consume.buyPkg.itemName .. "\' " .. inv.consume.buyPkg.containerName)
     end -- if
 
@@ -17564,7 +17564,7 @@ function inv.consume.buyCR()
 end -- inv.consume.buyCR
 
 
--- Returns objId for an item 
+-- Returns objId for an item
 function inv.consume.get(typeName, size, containerId)
   local curLevel = dbot.gmcp.getLevel()
 
@@ -17682,12 +17682,12 @@ function inv.consume.use(typeName, size, numItems, containerName)
   end -- if
 
   if (size ~= drlConsumeBig) and (size ~= drlConsumeSmall) then
-    dbot.warn("inv.consume.use: size must be either \"" .. drlConsumeBig .. "\" or \"" .. 
+    dbot.warn("inv.consume.use: size must be either \"" .. drlConsumeBig .. "\" or \"" ..
               drlConsumeSmall .. "\"")
     return DRL_RET_INVALID_PARAM
   end -- if
 
-  -- The containerName parameter is optional.  If it is present, we use items from the 
+  -- The containerName parameter is optional.  If it is present, we use items from the
   -- specified container before we items outside of that container.
   containerName = containerName or ""
 
@@ -17707,7 +17707,7 @@ function inv.consume.useCR()
   local retval = DRL_RET_SUCCESS
   local objId
 
-  if (inv.consume.usePkg == nil) or (inv.consume.usePkg.size == nil) or 
+  if (inv.consume.usePkg == nil) or (inv.consume.usePkg.size == nil) or
      (inv.consume.usePkg.numItems == nil) or (inv.consume.usePkg.typeName == nil) then
     dbot.error("inv.consume.useCR: usePkg is nil or contains nil components")
     return DRL_RET_INTERNAL_ERROR
@@ -17727,7 +17727,7 @@ function inv.consume.useCR()
       dbot.warn("inv.consume.useCR: failed to search inventory table: " .. dbot.retval.getString(retval))
     elseif (#idArray ~= 1) then
       -- There should only be a single match to the container's relative name (e.g., "2.bag")
-      dbot.warn("Container relative name \"" .. inv.consume.usePkg.container .. 
+      dbot.warn("Container relative name \"" .. inv.consume.usePkg.container ..
                 "\" did not have a unique match: no preferred container will be used for consume request")
     else
       -- We found a single unique match for the relative name
@@ -17786,7 +17786,7 @@ function inv.consume.useItem(objId, commandArray)
   else
     dbot.warn("inv.consume.useItem: Unsupported item type \"" .. itemType .. "\"")
     return DRL_RET_UNSUPPORTED
-  end -- if  
+  end -- if
 
   -- If the item isn't already in the main inventory, get it so that we can consume it!
   if (inv.items.getField(objId, invFieldObjLoc) ~= invItemLocInventory) then
@@ -17808,7 +17808,7 @@ function inv.consume.useItem(objId, commandArray)
     -- wrong (e.g., the user goes AFK unexpectedly) and we don't actually end up consuming the item
     -- then we'll re-identify this item automagically on the next refresh so there isn't much harm done.
     if (itemType == "Potion") or (itemType == "Pill") then
-      retval = inv.items.remove(objId) 
+      retval = inv.items.remove(objId)
     end -- if
   end -- if
 
@@ -17834,7 +17834,7 @@ function inv.portal.use(portalId)
 
   local portalWish = dbot.wish.has("Portal")
 
-  portalId = tonumber(portalId) or "" 
+  portalId = tonumber(portalId) or ""
   if (portalId == nil) then
     dbot.warn("inv.portal.use: Invalid portal ID parameter")
     return DRL_RET_INVALID_PARAM
@@ -18192,7 +18192,7 @@ function inv.regen.onWakeCR()
         end -- if
       end -- if
     end -- if
-    
+
   end -- if
 
   -- We are done with this sleep/wake phase.  Clear out which items to swap.
@@ -18273,7 +18273,7 @@ function dbot.init.atInstall()
     if (dbot[module].init.atInstall ~= nil) then
       local initVal = dbot[module].init.atInstall()
       if (initVal ~= DRL_RET_SUCCESS) then
-        dbot.warn("dbot.init.atInstall: Failed to initialize \"at install\" dbot." .. module .. " module: " .. 
+        dbot.warn("dbot.init.atInstall: Failed to initialize \"at install\" dbot." .. module .. " module: " ..
                   dbot.retval.getString(initVal))
         retval = initVal
       else
@@ -18297,7 +18297,7 @@ function dbot.init.atActive()
     if (dbot[module].init.atActive ~= nil) then
       local initVal = dbot[module].init.atActive()
       if (initVal ~= DRL_RET_SUCCESS) then
-        dbot.warn("dbot.init.atActive: Failed to initialize \"at active\" dbot." .. module .. " module: " .. 
+        dbot.warn("dbot.init.atActive: Failed to initialize \"at active\" dbot." .. module .. " module: " ..
                   dbot.retval.getString(initVal))
         retval = initVal
       else
@@ -18319,7 +18319,7 @@ function dbot.fini(doSaveState)
     if (dbot[module].fini ~= nil) then
       local initVal = dbot[module].fini(doSaveState)
       if (initVal ~= DRL_RET_SUCCESS) and (initVal ~= DRL_RET_UNINITIALIZED) then
-        dbot.warn("dbot.fini: Failed to de-initialize dbot." .. module .. " module: " .. 
+        dbot.warn("dbot.fini: Failed to de-initialize dbot." .. module .. " module: " ..
                   dbot.retval.getString(initVal))
         retval = initVal
       else
@@ -18385,7 +18385,7 @@ function dbot.reload()
 
   -- Tell mush to reload the plugin in one second.  We can't do it directly here because a
   -- plugin can't unload itself.  Even if it could, how could it tell mush to load it again
-  -- if it weren't installed? 
+  -- if it weren't installed?
   retval = Execute(scriptPrefix.."DoAfterSpecial(1, \"ReloadPlugin('"..GetPluginID().."')\", sendto.script)")
   if (retval ~= 0) then
     dbot.warn("dbot.reload: Failed to reload the plugin: mush error " .. retval)
@@ -18491,7 +18491,7 @@ end -- dbot.spinWhileExists
 -- dbot.spinUntilExistsBusy: Spin in a busy-loop waiting for the specified file to be created
 --
 -- This is identical to dbot.spinUntilExists() but it uses a busy loop instead of
--- scheduling a wait.  A busy loop is less efficient, but you have the option of 
+-- scheduling a wait.  A busy loop is less efficient, but you have the option of
 -- using it outside of a co-routine and that comes in handy in certain circumstances.
 ----------------------------------------------------------------------------------------------------
 
@@ -18520,7 +18520,7 @@ end -- dbot.spinUntilExistsBusy
 -- dbot.spinWhileExistsBusy: Spin in a busy-loop waiting for the specified file to be deleted
 --
 -- This is identical to dbot.spinWhileExists() but it uses a busy loop instead of
--- scheduling a wait.  A busy loop is less efficient, but you have the option of 
+-- scheduling a wait.  A busy loop is less efficient, but you have the option of
 -- using it outside of a co-routine and that comes in handy in certain circumstances.
 ----------------------------------------------------------------------------------------------------
 
@@ -18616,7 +18616,7 @@ function dbot.mergeFields(field1, field2)
 
   return mergedField
 end -- dbot.mergeFields
-    
+
 
 ----------------------------------------------------------------------------------------------------
 -- dbot.arrayConcat: Returns an array generated by concatenating the two input arrays
@@ -18645,9 +18645,9 @@ end -- dbot.arrayConcat
 --FIXME: use these throughout the plugin --v
 dbot.physicalTypes = { invStatFieldBash,    invStatFieldPierce,   invStatFieldSlash }
 dbot.magicalTypes =  { invStatFieldAcid,    invStatFieldCold,     invStatFieldEnergy,
-                       invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative, 
+                       invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative,
                        invStatFieldShadow,  invStatFieldMagic,    invStatFieldAir,
-                       invStatFieldEarth,   invStatFieldFire,     invStatFieldLight, 
+                       invStatFieldEarth,   invStatFieldFire,     invStatFieldLight,
                        invStatFieldMental,  invStatFieldSonic,    invStatFieldWater,
                        invStatFieldDisease, invStatFieldPoison }
 
@@ -18903,7 +18903,7 @@ if (drlMushClientVersion ~= nil) and (drlMushClientVersion < 5.06) then
   DRL_ANSI_WHITE  = ANSI(DRL_COLOR_WHITE)
 else
   -- TODO: Yes, these aren't really ANSI color codes but it make the rest of the code compatible
-  --       with the ANSI work-arounds.  At some point, I'd love to stop supporting old 4.x 
+  --       with the ANSI work-arounds.  At some point, I'd love to stop supporting old 4.x
   --       mush builds and then we could remove all of the ANSI color references in this plugin.
   DRL_ANSI_GREEN  = "@G"
   DRL_ANSI_RED    = "@R"
@@ -18923,7 +18923,7 @@ dbot.pluginInfo.dir = 20
 ----------------------------------------------------------------------------------------------------
 -- Notification Module
 --
--- This provides wrapper functions to print various notification messages.  If we are in "Note" 
+-- This provides wrapper functions to print various notification messages.  If we are in "Note"
 -- mode (i.e., we are writing a note) we suppress all of these notifications.  Otherwise, we
 -- print all warnings and errors and any debug, note, and info messages that are above the
 -- user-supplied threshold.  This lets a user change the verbosity of the plugin at runtime.  If
@@ -19029,7 +19029,7 @@ end -- dbot.notify.save
 function dbot.notify.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. dbot.notify.name, dbot.notify.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("dbot.notify.load: Failed to load table from file \"@R" .. 
+    dbot.warn("dbot.notify.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. dbot.notify.name .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -19118,7 +19118,7 @@ function dbot.notify.msg(level, msg)
       return DRL_RET_BUSY
     end -- if
 
-    ColourTell(dbot.notify.level[level].bg, dbot.notify.level[level].fg, dbot.notify.prefix) 
+    ColourTell(dbot.notify.level[level].bg, dbot.notify.level[level].fg, dbot.notify.prefix)
     dbot.print("@W " .. msg .. "@w")
   end -- if
 
@@ -19186,9 +19186,9 @@ dbot.gmcp.init = {}
 dbot.gmcp.isInitialized = false  -- initialized when OnPluginBroadcast detects a GMCP message
 
 dbot.stateLogin    = "1"
-dbot.stateMOTD     = "2" 
+dbot.stateMOTD     = "2"
 dbot.stateActive   = "3"
-dbot.stateAFK      = "4" 
+dbot.stateAFK      = "4"
 dbot.stateNote     = "5"
 dbot.stateBuilding = "6"
 dbot.statePaged    = "7"
@@ -19245,7 +19245,7 @@ function dbot.gmcp.getState()
   if (charStatus == nil) then
     return dbot.stateTBD
   else
-    -- dbot.showStateString(charStatus.state) 
+    -- dbot.showStateString(charStatus.state)
     return charStatus.state
   end -- if
 end -- dbot.gmcp.getState
@@ -19420,7 +19420,7 @@ end -- dbot.gmcp.isEvil
 
 
 -- We can perform actions in the "active" and "combat" states.  Any other state has the potential
--- to prevent us from performing an action.  
+-- to prevent us from performing an action.
 function dbot.gmcp.statePreventsActions()
   local state = dbot.gmcp.getState() or "Uninitialized"
 
@@ -19459,7 +19459,7 @@ end -- dbot.gmcp.stateIsActive()
    Maprun,
    Noexp,
    Nomap,
-   Noobjlevels, 
+   Noobjlevels,
    Nopagerepeat,
    Noprefix,
    Nopretitles,
@@ -19489,7 +19489,7 @@ function dbot.gmcp.getConfig(configMode)
   end -- if
 
   -- Clear out the current state and wait for a new value to arrive
-  dbot.gmcp.currentState.configMode = nil  
+  dbot.gmcp.currentState.configMode = nil
   check (Execute("sendgmcp config " .. configMode))
 
   -- Spin until gmcp gives us the value
@@ -19499,7 +19499,7 @@ function dbot.gmcp.getConfig(configMode)
   while (totTime <= timeout) do
 
     local gmcpValue = dbot.gmcp.currentState[configMode]
-    if (gmcpValue == "YES") then 
+    if (gmcpValue == "YES") then
       configVal = true
       retval = DRL_RET_SUCCESS
       break
@@ -19538,7 +19538,7 @@ end -- dbot.gmcp.getConfig
 --
 ----------------------------------------------------------------------------------------------------
 
-dbot.storage      = {} 
+dbot.storage      = {}
 dbot.storage.init = {}
 
 dbot.storage.fileVersion = 1
@@ -19632,7 +19632,7 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
   local shortName = string.gsub(fileName, ".*\\", "")
   dbot.debug("dbot.storage.saveTable: Saving \"@G" .. shortName .. "@W\"")
 
-  local fileData = "\n" .. serialize.save(tableName, theTable) 
+  local fileData = "\n" .. serialize.save(tableName, theTable)
   local fileHash = utils.hash((fileData or "") .. dbot.storage.fileVersion)
 
   local f, errString, errNum = io.open(fileName, "w+")
@@ -19752,7 +19752,7 @@ function dbot.backup.init.atActive()
   -- periodically from the timer.  Yes, I should probably redo this so that we start the
   -- timer when someone re-enables automatic backups but I'm feeling a bit lazy and this
   -- only runs once every 4 hours by default so there's not a ton of overhead...
-  check (AddTimer(dbot.backup.timer.name, 
+  check (AddTimer(dbot.backup.timer.name,
                   dbot.backup.timer.hour, dbot.backup.timer.min, dbot.backup.timer.sec, "",
                   timer_flag.Enabled + timer_flag.Replace,
                   "dbot.backup.current"))
@@ -19905,7 +19905,7 @@ function dbot.backup.current()
       dbot.backup.inProgress = false
       return retval
     end -- if
-  end -- if  
+  end -- if
 
   -- We need to rotate the backups.  Whack the oldest auto backup if we have hit our max number of
   -- supported auto backups.
@@ -19982,7 +19982,7 @@ function dbot.backup.list(endTag)
 
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("dbot.backup.list: Failed to get backup list: " .. dbot.retval.getString(retval))
-  elseif (backupNames == nil) or 
+  elseif (backupNames == nil) or
          ((backupNames ~= nil) and (#backupNames == 0)) then
     dbot.info("No backups detected")
   else
@@ -20194,7 +20194,7 @@ dbot.telnet.optionOff    = 2
 -- Module to disable and enable empty lines
 --
 -- Many of the commands this plugin runs in the background generate empty lines of output.  We don't
--- want the user to suddenly see empty lines showing up without warning so we provide a way to 
+-- want the user to suddenly see empty lines showing up without warning so we provide a way to
 -- suppress empty lines when desired.
 --
 --
@@ -20331,7 +20331,7 @@ end -- dbot.prompt.fini
 function dbot.prompt.disable()
   if (dbot.prompt.statusEnables ~= nil) then
     -- The moment we transition from having 1 enable to 0 enables, we disable the prompt.  Someone
-    -- could call multiple consecutive disables but we'd only do the disabling once.  
+    -- could call multiple consecutive disables but we'd only do the disabling once.
     dbot.prompt.statusEnables = dbot.prompt.statusEnables - 1
     if (dbot.prompt.statusEnables == 0) then
       SendPkt(string.char (dbot.telnet.IAC, dbot.telnet.SB, 102, dbot.telnet.promptOption,
@@ -20531,7 +20531,7 @@ end -- dbot.invmon.trigger.onToggle
 -- Invmon helper code and definitions
 ----------------------------------------------------------------------------------------------------
 
-invmon = {} 
+invmon = {}
 
 invmonActionRemoved             = 1
 invmonActionWorn                = 2
@@ -20742,7 +20742,7 @@ function dbot.ability.isAvailable(ability, level)
   end -- if
 
   -- Check the level info we found
-  if (dbot.abilityPkg.useLevel ~= nil) and 
+  if (dbot.abilityPkg.useLevel ~= nil) and
      (dbot.abilityPkg.useLevel + (10 * dbot.gmcp.getTier()) <= level) then
       abilityIsAvailable = true
   end -- if
@@ -20794,12 +20794,12 @@ function dbot.ability.trigger.levelFn(line)
 
   -- If we can't use the skill, set the useLevel out of reach
   elseif string.find(line, "You cannot use this") then
-    dbot.abilityPkg.useLevel = 300 
+    dbot.abilityPkg.useLevel = 300
 
   -- Check if we found our level in a line like: "Your Level   : 22                    Learned:  95% "
   elseif (useLevel ~= nil) and (tonumber(useLevel) ~= nil) then
     dbot.abilityPkg.useLevel = tonumber(useLevel) or 300
-  
+
   end -- if
 end -- dbot.ability.trigger.levelFn
 
@@ -20879,7 +20879,7 @@ function dbot.wish.init.atActive()
   -- before GMCP notices that our state changed.  If that happens, no real harm is done and we simply
   -- reschedule the wish detection to try again later.  However, we can (probably) avoid that extra
   -- overhead if we simply give GMCP a chance to detect the state change so we are willing to wait
-  -- an extra second here to give it that chance. 
+  -- an extra second here to give it that chance.
   check (AddTimer(dbot.wish.timer.name, 0, 0, 1, "",
                   timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot,
                   "dbot.wish.get"))
@@ -20923,7 +20923,7 @@ end -- dbot.wish.save
 function dbot.wish.load()
   local retval = dbot.storage.loadTable(dbot.backup.getCurrentDir() .. dbot.wish.name, dbot.wish.reset)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("dbot.wish.load: Failed to load table from file \"@R" .. 
+    dbot.warn("dbot.wish.load: Failed to load table from file \"@R" ..
               dbot.backup.getCurrentDir() .. dbot.wish.name .. "@W\": " .. dbot.retval.getString(retval))
   end -- if
 
@@ -20973,7 +20973,7 @@ function dbot.wish.getCR()
   -- If we are not in the active state (i.e., AFK, sleeping, running, writing a note, etc.) then
   -- we can't get the list of wishes and we need to try again later
   if (charState ~= dbot.stateActive) then
-    dbot.note("Skipping request to get list of active wishes: you are in the state \"" .. 
+    dbot.note("Skipping request to get list of active wishes: you are in the state \"" ..
               dbot.gmcp.getStateString(charState) .. "\"")
     retval = DRL_RET_NOT_ACTIVE
 
@@ -20988,11 +20988,11 @@ function dbot.wish.getCR()
 
     if (pageLines == 0) then
       table.insert(commandArray, "wish list")
-      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg) 
+      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg)
     else
       table.insert(commandArray, "pagesize 0")
       table.insert(commandArray, "wish list")
-      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg) 
+      table.insert(commandArray, "echo " .. dbot.wish.fenceMsg)
       table.insert(commandArray, "pagesize " .. pageLines)
     end -- if
 
@@ -21034,7 +21034,7 @@ function dbot.wish.getCR()
   if (retval ~= DRL_RET_SUCCESS) then
     -- We can't add the timer directly because we are in the function called by that timer.  Instead,
     -- we use an intermediate timer to call back and start this timer again.  Yeah, it's a bit ugly...
-    DoAfterSpecial(0.1, 
+    DoAfterSpecial(0.1,
                    "AddTimer(dbot.wish.timer.name, 0, dbot.wish.timer.min, dbot.wish.timer.sec, \"\", " ..
                    "timer_flag.Enabled + timer_flag.Replace + timer_flag.OneShot, \"dbot.wish.get\")",
                    sendto.script)
@@ -21066,7 +21066,7 @@ end -- dbot.wish.trigger.fn
 
 
 function dbot.wish.has(wishName)
-  if (wishName == nil) or (wishName == "") or 
+  if (wishName == nil) or (wishName == "") or
      (dbot.wish.table == nil) or (dbot.wish.table[wishName] == nil) then
     return false
   else
@@ -21167,7 +21167,7 @@ end -- dbot.pagesize.fini
 
 
 function dbot.pagesize.get()
-  local retval = DRL_RET_SUCCESS  
+  local retval = DRL_RET_SUCCESS
   local commandArray = { "pagesize" }
 
   retval = dbot.execute.safe.blocking({"pagesize"}, dbot.pagesize.setupFn, nil, dbot.pagesize.resultFn, 10)
@@ -21249,7 +21249,7 @@ end -- dbot.pagesize.resultFn
 --      the mud.  No other commands can be pending at the mud's server side at this point.
 --   6) Send the command(s) we want to run atomically
 --   7) Execute any user-supplied setup callback to configure triggers
---   8) Capture the output (either success or failure) with user-supplied triggers 
+--   8) Capture the output (either success or failure) with user-supplied triggers
 --   9) Add a one-shot trigger to catch a unique suffix message we will echo to the mud
 --  10) Send a unique suffix message to the mud
 --  11) Wait until our trigger detects that the mud echoed our suffix
@@ -21369,7 +21369,7 @@ function dbot.execute.fast.commands(commandArray)
 
   -- Restore the echo state before we return
   SetEchoInput(origEchoInput)
-  
+
   return retval
 end -- dbot.execute.fast.commands
 
@@ -21397,7 +21397,7 @@ function dbot.execute.safe.commands(commandArray, setupFn, setupData, resultFn, 
     dbot.warn("dbot.execute.safe.commads: Failed to push request onto queue: " ..
               dbot.retval.getString(retval))
   else
-    -- We just added a new command to the command queue.  If we don't already have a 
+    -- We just added a new command to the command queue.  If we don't already have a
     -- co-routine processing commands on that queue, start one now.
     if (not dbot.execute.queue.isDequeueRunning) then
       dbot.execute.queue.isDequeueRunning = true
@@ -21478,7 +21478,7 @@ function dbot.execute.queue.pushFast(command)
   commandEntry.setupFn      = nil
   commandEntry.setupData    = nil
   commandEntry.resultFn     = nil
-  commandEntry.resultData   = nil 
+  commandEntry.resultData   = nil
 
   table.insert(dbot.execute.table, commandEntry)
 
@@ -21658,7 +21658,7 @@ function dbot.execute.queue.dequeueCR()
       --
       -- If a safe execution command cannot run because the user is too busy or if the user
       -- is in the wrong state (AFK, sleeping, note, etc.) we let the caller know via the
-      -- callback parameter's return value field.  It is up to the caller to resubmit the 
+      -- callback parameter's return value field.  It is up to the caller to resubmit the
       -- request if they really want it to run.  We do not try to re-queue the request here.
       -- Yes, we could re-queue the request and set a timer to attempt to run it later, but
       -- that's a lot of complexity for low odds of success.  If the user really is AFK or
@@ -21670,17 +21670,17 @@ function dbot.execute.queue.dequeueCR()
         retval = DRL_RET_NOT_ACTIVE
 
       elseif dbot.execute.quitIsPending then
-        dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
+        dbot.note("Skipping queued safe commands: \"@G" .. commandString ..
                   "@W\": a request to quit is pending on the mud server")
         retval = DRL_RET_UNINITIALIZED
 
       elseif dbot.execute.afkIsPending then
-        dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
+        dbot.note("Skipping queued safe commands: \"@G" .. commandString ..
                   "@W\": a request to go AFK is pending on the mud server")
         retval = DRL_RET_NOT_ACTIVE
 
       elseif dbot.execute.noteIsPending then
-        dbot.note("Skipping queued safe commands: \"@G" .. commandString .. 
+        dbot.note("Skipping queued safe commands: \"@G" .. commandString ..
                   "@W\": a request to start a note is pending on the mud server")
         retval = DRL_RET_NOT_ACTIVE
 
@@ -21981,7 +21981,7 @@ end -- dbot.remote.getCR
 
 
 ----------------------------------------------------------------------------------------------------
--- dbot.version: Track the plugin's version and changelog and update the plugin 
+-- dbot.version: Track the plugin's version and changelog and update the plugin
 --
 -- dbot.version.changelog.get(minVersion, endTag)
 -- dbot.version.changelog.getCR()
@@ -22168,7 +22168,7 @@ function dbot.version.update.releaseCR()
       return dbot.version.changelog.get(currentVersion, endTag)
 
     elseif (dbot.version.update.pkg.mode == drlDbotUpdateInstall) then
-      dbot.info("Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr) 
+      dbot.info("Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr)
       dbot.info("Please do not enter anything until the update completes")
 
       local pluginFile = GetPluginInfo(GetPluginID(), 6)
@@ -22212,7 +22212,7 @@ function OnHelp ()
   world.Note (world.GetPluginInfo (world.GetPluginID (), 3))
 end
 ]]>
-</script> 
+</script>
 
 </muclient
 >
