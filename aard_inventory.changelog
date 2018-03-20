@@ -1,6 +1,24 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0041] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug in how offhandDam was displayed in priority output.  Due to case insensitivity,
+	   it could appear that offhandDam was not being used or had a value of 0.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Added a reminder that invmon can be disabled if the plugin is disabled]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[The @Cstore@W mode will no longer attempt to store an item if it is already in a container]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Increased the number of allowable items to be consumed in one "dinv consume ..." command from
+	   4 to 10.  It's up to you to not quaff a bunch of pots when you don't need them :p]]
+  }
+}
+
 dbot.changelog[2.0040] =
 {
   { change = drlDbotChangeLogTypeFix,

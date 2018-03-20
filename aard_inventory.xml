@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0040"
+   version="2.0041"
    >
 <description trim="y">
 <![CDATA[
@@ -650,6 +650,26 @@ Feature Wishlist
   >
   </alias>
 
+  <alias
+   script="inv.cli.autoQueue.fn1"
+   match="^[ ]*dinv[ ]+auto[ ]+(halt)[ ]*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.autoQueue.fn2"
+   match="^[ ]*dinv[ ]+auto[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+(.*?)$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
 </aliases>
 
 <!--  Script  -->
@@ -816,11 +836,13 @@ end -- OnPluginDisconnect
 
 function OnPluginEnable()
   dbot.debug("OnPluginEnable!")
+  dbot.info("@GENABLED@W")
 end -- OnPluginEnable
 
 
 function OnPluginDisable()
   dbot.debug("OnPluginDisable!")
+  dbot.info("@RDISABLED@W:  You may type \"invmon\" to disable invmon tags if you no longer need them.")
 end -- OnPluginDisable
 
 
@@ -1641,6 +1663,8 @@ end -- inv.config.new
 --   inv.cli.help.usage()
 --   inv.cli.help.examples()
 -- 
+--   inv.cli.autoQueue.fn(name, line, wildcards)
+--
 ----------------------------------------------------------------------------------------------------
 
 inv.cli = {}
@@ -4930,6 +4954,32 @@ Examples:
 end -- inv.cli.help.examples
 
 
+inv.cli.autoQueue = {}
+function inv.cli.autoQueue.fn1(name, line, wildcards)
+  dbot.autoQueueEnable = false
+  dbot.note("Auto Queue: halting...")
+end -- inv.cli.autoQueue.fn1
+
+
+function inv.cli.autoQueue.fn2(name, line, wildcards)
+  local maxCmds    = wildcards[1] or ""
+  local cmdTimeout = wildcards[2] or ""
+  local totTimeout = wildcards[3] or ""
+  local state      = wildcards[4] or ""
+  local command    = wildcards[5] or ""
+
+  local paramStr = (command or "none") .. ", maxCommands=" .. (maxCmds or "nil")
+  local endTag = inv.tags.new(paramStr, nil, nil, nil)
+
+  dbot.debug("Auto Queue: cmd=\"" .. command .. "\", maxCmds=" .. maxCmds .. ", cmdTO=" .. cmdTimeout ..
+             ", totTO=" .. totTimeout .. ", state=" .. state)
+
+  local retval = dbot.autoQueue(command, maxCmds, cmdTimeout, totTimeout, state, endTag)
+
+  return retval
+end -- inv.cli.autoQueue.fn2
+
+
 inv.cli.debug = {}
 function inv.cli.debug.fn(name, line, wildcards)
   local command = wildcards[1] or ""
@@ -7488,21 +7538,29 @@ function inv.items.storeCR()
     local numItemsMoved = 0
 
     for _,objId in ipairs(idArray) do
-      retval = inv.items.storeItem(objId, commandArray)
-      if (retval ~= DRL_RET_SUCCESS) then
-        dbot.note("Skipping request to store item " .. objId .. ": " .. dbot.retval.getString(retval))
-      else
-        numItemsMoved = numItemsMoved + 1
-      end -- if
 
-      if (commandArray ~= nil) then
-        if (#commandArray >= inv.items.burstSize) then
-          retval = dbot.execute.safe.blocking(commandArray, nil, nil, dbot.callback.default, 10)
-          if (retval ~= DRL_RET_SUCCESS) then
-            dbot.info("Skipping request to store items: " .. dbot.retval.getString(retval))
-            break
+      -- Check the object's location.  We don't want to store it if it is already in a container
+      if (tonumber(inv.items.getField(objId, invFieldObjLoc) or "") ~= nil) then
+        dbot.debug("Skipping store request for objId " .. objId .. ": it is already in a container")
+
+      else
+        -- The item isn't already in a container so we can store it
+        retval = inv.items.storeItem(objId, commandArray)
+        if (retval ~= DRL_RET_SUCCESS) then
+          dbot.note("Skipping request to store item " .. objId .. ": " .. dbot.retval.getString(retval))
+        else
+          numItemsMoved = numItemsMoved + 1
+        end -- if
+
+        if (commandArray ~= nil) then
+          if (#commandArray >= inv.items.burstSize) then
+            retval = dbot.execute.safe.blocking(commandArray, nil, nil, dbot.callback.default, 10)
+            if (retval ~= DRL_RET_SUCCESS) then
+              dbot.info("Skipping request to store items: " .. dbot.retval.getString(retval))
+              break
+            end -- if
+            commandArray = dbot.execute.new()
           end -- if
-          commandArray = dbot.execute.new()
         end -- if
       end -- if
     end -- for
@@ -12103,13 +12161,30 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
     local fieldDesc = fieldEntry[2]
     local useField = true
 
+    -- This is a kludge.  All priority weighting field names are lower case except 
+    -- "offhandDam".  When we added support for case insensitivity, that could cause a problem
+    -- for people with old priorities with "offhandDam" instead of "offhanddam".  Here is a
+    -- one-off to work around that case by handling that one field differently.
+    if (fieldName == "offhanddam") then
+      fieldName = "offhandDam"
+    end -- if
+
     -- Check if we should display this field or not.  We only use the field if at least one entry
     -- block has a non-zero entry for the field or if the doDisplayUnused param is true.
     if (not doDisplayUnused) then
       useField = false
 
       for _, blockEntry in ipairs(priorityTable) do
-        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "") or 0
+
+        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "")
+
+        if (fieldName == "offhandDam") and (fieldValue == nil) then
+          fieldValue = tonumber(blockEntry.priorities["offhanddam"] or "")
+        end -- if
+
+        if (fieldValue == nil) then
+          fieldValue = 0
+        end -- if
 
         if (fieldValue ~= 0) then
           useField = true
@@ -12122,7 +12197,16 @@ function inv.priority.tableToString(priorityTable, doDisplayUnused, doDisplayCol
       priString = priString .. fieldPrefix .. string.format("\r\n%12s", fieldName) .. fieldSuffix
 
       for _, blockEntry in ipairs(priorityTable) do
-        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "") or 0
+        local fieldValue = tonumber(blockEntry.priorities[fieldName] or "")
+
+        if (fieldName == "offhandDam") and (fieldValue == nil) then
+          fieldValue = tonumber(blockEntry.priorities["offhanddam"] or "")
+        end -- if
+
+        if (fieldValue == nil) then
+          fieldValue = 0
+        end -- if
+
         local valuePrefix, valueSuffix = "", ""
 
         if doDisplayColors then
@@ -16784,6 +16868,7 @@ invTagsForget    = "forget"
 invTagsNotify    = "notify"
 invTagsCache     = "cache"
 invTagsVersion   = "version"
+invTagsAutoQueue = "autoQueue"
 invTagsHelp      = "help"
 
 inv.tags.modules = invTagsBuild     .. " " ..
@@ -16807,6 +16892,7 @@ inv.tags.modules = invTagsBuild     .. " " ..
                    invTagsNotify    .. " " ..
                    invTagsCache     .. " " ..
                    invTagsVersion   .. " " ..
+                   invTagsAutoQueue .. " " ..
                    invTagsHelp
 
 
@@ -17702,7 +17788,7 @@ function inv.consume.use(typeName, size, numItems, containerName)
   return DRL_RET_SUCCESS
 end -- inv.consume.use
 
-drlConsumeMaxConsecutiveItems = 4
+drlConsumeMaxConsecutiveItems = 10
 function inv.consume.useCR()
   local retval = DRL_RET_SUCCESS
   local objId
@@ -22189,6 +22275,86 @@ function dbot.version.update.releaseCR()
   return inv.tags.stop(invTagsVersion, endTag, retval)
 
 end -- dbot.version.update.releaseCR
+
+
+dbot.autoQueueEnable = true
+dbot.autoQueuePkg = nil
+function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
+  local numMaxCommands    = tonumber(maxCommands or "")
+  local numCommandTimeout = tonumber(commandTimeout or "")
+  local numTotalTimeout   = tonumber(totalTimeout or "")
+
+  if (command == nil) or (numMaxCommands == nil) or (numCommandTimeout == nil) or (numTotalTimeout == nil) then
+    dbot.warn("dbot.autoQueue: Invalid parameters")
+    return inv.tags.stop(invTagsAutoQueue, endTag, DRL_RET_INVALID_PARAM)
+  end -- if
+
+  if (dbot.autoQueuePkg ~= nil) then
+    dbot.info("Skipping autoQueue request: another request is in progress")
+    return inv.tags.stop(invTagsAutoQueue, endTag, DRL_RET_BUSY)
+  end -- if
+
+  dbot.autoQueuePkg                = {}
+  dbot.autoQueuePkg.command        = command
+  dbot.autoQueuePkg.maxCommands    = numMaxCommands
+  dbot.autoQueuePkg.commandTimeout = numCommandTimeout
+  dbot.autoQueuePkg.totalTimeout   = numTotalTimeout
+  dbot.autoQueuePkg.state          = state
+  dbot.autoQueuePkg.endTag         = endTag
+
+  dbot.autoQueueEnable = true
+
+  wait.make(dbot.autoQueueCR)
+
+  return DRL_RET_SUCCESS
+end -- drlAutoQueue
+
+
+dbot.autoQueueFence    = "Fence: auto queue"
+dbot.autoQueueFenceIdx = 1
+function dbot.autoQueueCR()
+  if (dbot.autoQueuePkg == nil) then
+    dbot.warn("dbot.autoQueueCR: package is nil!?!")
+    return DRL_INTERNAL_ERROR
+  end -- if
+
+  local retval    = DRL_RET_SUCCESS
+  local endTag    = dbot.autoQueuePkg.endTag
+  local startTime = dbot.getTime()
+  local numCmds   = 1
+
+  dbot.debug("Running up to " .. dbot.autoQueuePkg.maxCommands .. " instances of \"" ..
+             dbot.autoQueuePkg.command .. "\", timeouts=" .. dbot.autoQueuePkg.commandTimeout ..
+             "/" .. dbot.autoQueuePkg.totalTimeout)
+            
+  while (dbot.autoQueueEnable == true) do
+    local fence = dbot.autoQueueFence .. " " .. dbot.autoQueueFenceIdx
+    dbot.autoQueueFenceIdx = dbot.autoQueueFenceIdx + 1
+
+    check (Execute(dbot.autoQueuePkg.command))
+    check (Execute("echo " .. fence))
+
+    local line, wildcards = wait.regexp("^" .. fence .. "$",
+                                        dbot.autoQueuePkg.commandTimeout,
+                                        trigger_flag.OmitFromOutput)
+    if (line == nil) or 
+       (line == "") or
+       (numCmds >= dbot.autoQueuePkg.maxCommands) or
+       (dbot.getTime() - startTime > dbot.autoQueuePkg.totalTimeout) or
+       (dbot.gmcp.getState() ~= dbot.autoQueuePkg.state) then
+      break
+    end -- if
+
+    dbot.info("@YAuto Queue: \"" .. dbot.autoQueuePkg.command .. "\" " .. numCmds .. "/" ..
+              dbot.autoQueuePkg.maxCommands)
+
+    numCmds = numCmds + 1
+
+  end -- while
+
+  dbot.autoQueuePkg = nil
+  return inv.tags.stop(invTagsAutoQueue, endTag, retval)
+end -- dbot.autoQueueCR
 
 
 ]]>
