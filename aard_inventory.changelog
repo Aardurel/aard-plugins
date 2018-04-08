@@ -1,6 +1,26 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0042] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a dinv bug that could mistakenly skip valid equipment sets if your spellup gave stats
+           higher than the ceiling for equipment stats at the target level.  This could happen if you
+           received an imm spellup or an SH spellup when you were at a low level.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Dinv will no longer attempt to identify items in a container if the container is owned by
+           another player.  The previous dinv version could generate a lot of warnings if you ran a
+           refresh while holding someone else's container (e.g., from a CR).]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Updated "@Cdinv weapon@W" helpfile to indicate that damage type information is required
+           in order to use that mode.  Dinv has access to a weapon's damage type if you have the
+           identify wish, if dinv identified the item in Hester's room in Aylor, or if the item is
+           owned (fortunately quest weapons are owned).]]
+  }
+}
+
 dbot.changelog[2.0041] =
 {
   { change = drlDbotChangeLogTypeFix,
