@@ -13851,7 +13851,9 @@ function inv.set.createCR()
 
     newSet, stats, score = inv.set.createWithHandicap(priorityName, level, handicap)
 
-    if (score > bestScore) then
+    -- Update the set if we have a better score or if we don't have a valid score yet (we may as well put
+    -- something in the set so that we don't fail to create a set)
+    if (score > bestScore) or ((score == 0) and (bestScore == 0)) then
       local wearLoc
       local itemStruct
 
@@ -13929,8 +13931,12 @@ function inv.set.createCR()
   -- If our best set is empty (maybe we don't have anything in our inventory) then treat that as a 
   -- special case and let the caller know about it
   if (bestSet == nil) then
-    dbot.warn("inv.set.createCR: No items in your inventory fit the set.  Is your inventory empty?")
-    dbot.warn("Do you need to refresh or build your inventory?")
+    dbot.warn("inv.set.createCR: No items in your inventory fit the set.")
+    dbot.info("Possibility #1: You have not yet built your inventory table (see \"dinv help build\")")
+    dbot.info("Possibility #2: You need to refresh your inventory (see \"dinv help refresh\")")
+    dbot.info("Possibility #3: You aren\'t actually carrying anything that would go in the set")
+    dbot.info("Possibility #4: You have an awesome spellup that maxes your stats and none of your equipment adds anything your priority can use")
+    dbot.info("Possibility #5: There is a bug in dinv, but let\'s not go there...")
   end -- if
 
   -- Wait until the end to save the set (calling functions can know it isn't ready yet if it is nil)
@@ -16071,13 +16077,38 @@ function inv.statBonus.get(level, bonusType)
     levelBonus = 200
   end -- if
 
-  inv.statBonus.equipBonus[level] = { int  = levelBonus - spellBonus.int,
-                                      wis  = levelBonus - spellBonus.wis,
-                                      luck = levelBonus - spellBonus.luck,
-                                      str  = levelBonus - spellBonus.str,
-                                      dex  = levelBonus - spellBonus.dex,
-                                      con  = levelBonus - spellBonus.con }
+  local cappedInt  = levelBonus - spellBonus.int
+  local cappedWis  = levelBonus - spellBonus.wis
+  local cappedLuck = levelBonus - spellBonus.luck
+  local cappedStr  = levelBonus - spellBonus.str
+  local cappedDex  = levelBonus - spellBonus.dex
+  local cappedCon  = levelBonus - spellBonus.con
 
+  if (cappedInt < 0) then
+    cappedInt = 0
+  end -- if
+  if (cappedWis < 0) then
+    cappedWis = 0
+  end -- if
+  if (cappedLuck < 0) then
+    cappedLuck = 0
+  end -- if
+  if (cappedStr < 0) then
+    cappedStr = 0
+  end -- if
+  if (cappedDex < 0) then
+    cappedDex = 0
+  end -- if
+  if (cappedCon < 0) then
+    cappedCon = 0
+  end -- if
+
+  inv.statBonus.equipBonus[level] = { int  = cappedInt,
+                                      wis  = cappedWis,
+                                      luck = cappedLuck,
+                                      str  = cappedStr,
+                                      dex  = cappedDex,
+                                      con  = cappedCon }
 
   return inv.statBonus.equipBonus[level], DRL_RET_SUCCESS
 
