@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0041"
+   version="2.0042"
    >
 <description trim="y">
 <![CDATA[
@@ -22277,6 +22277,16 @@ function dbot.version.update.releaseCR()
 end -- dbot.version.update.releaseCR
 
 
+----------------------------------------------------------------------------------------------------
+-- dbot.autoQueue: Module to repeatedly execute a command under a specific set of circumstances
+--
+-- dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
+-- dbot.autoQueueCR()
+--
+-- Note: The "state" parameter refers to a gmcp state, such as dbot.stateActive or dbot.stateCombat
+--
+----------------------------------------------------------------------------------------------------
+
 dbot.autoQueueEnable = true
 dbot.autoQueuePkg = nil
 function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
@@ -22342,10 +22352,10 @@ function dbot.autoQueueCR()
        (numCmds >= dbot.autoQueuePkg.maxCommands) or
        (dbot.getTime() - startTime > dbot.autoQueuePkg.totalTimeout) or
        (dbot.gmcp.getState() ~= dbot.autoQueuePkg.state) then
-      break
+      dbot.autoQueueEnable = false
     end -- if
 
-    dbot.info("@YAuto Queue: \"" .. dbot.autoQueuePkg.command .. "\" " .. numCmds .. "/" ..
+    dbot.info("@YAuto Queue: @C" .. dbot.autoQueuePkg.command .. " @W" .. numCmds .. "@w/@W" ..
               dbot.autoQueuePkg.maxCommands)
 
     numCmds = numCmds + 1
