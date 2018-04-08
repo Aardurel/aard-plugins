@@ -2651,7 +2651,19 @@ it would be tedious to create multiple priorities to target specific damage type
 "@Cweapon@W" mode provides a simple and convenient way to indicate which damage types you
 want to use (or do *not* want to use) as an extension to an existing priority.  See the
 helpfile at "@Gdinv help priority@W" for details on how to create and use a priority.
+@Y
+NOTE: The basic identify command does not report damage types for unowned items.  Dinv will
+      not be able to find and use unowned weapons based on their damage type unless one of
+      these conditions is met:
 
+      1) You have the identify wish
+      2) Dinv identified your weapons in Hester's room at Aylor
+      3) Your weapon is an owned item (fortunately quest weapons are owned)
+
+      The examples below assume you have damage type information available for the weapons
+      you are using.  Run "@Gdinv search type weapon@Y" and look at the "Dam Type" column to
+      see which of your weapons have known damage types.
+@W
 The first step is to specify which damage types you want to allow within a particular
 priority by providing a list of specific damage types (e.g., "pierce" or "mental") and/or
 damage type groups (e.g., "all", "physical", or "magic").  The plugin will determine the
