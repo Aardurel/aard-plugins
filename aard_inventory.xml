@@ -5969,8 +5969,12 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
   -- Discover all containers
   if (refreshLocation == invItemsRefreshLocAll) or (refreshLocation == invItemsRefreshLocDirty) then
     for objId,v in pairs(inv.items.table) do
+      local itemOwner, pretitle = dbot.gmcp.getName()
 
-      if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) then
+      -- If this is a container that we own, try to discover everything in it.  Don't try to discover
+      -- items if we don't own the container because we can't access it anyway.
+      if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) and
+         (inv.items.getStatField(objId, invStatFieldOwnedBy) == itemOwner) then
 
         -- Scan this container if the caller asked us to scan everything or if we need to scan all
         -- dirty containers and this container is dirty (i.e., it hasn't been verified to be clean 
@@ -19280,6 +19284,7 @@ end -- dbot.error
 --
 --  dbot.gmcp.getArea
 --  dbot.gmcp.getClass
+--  dbot.gmcp.getName
 --  dbot.gmcp.getLevel
 --  dbot.gmcp.getAlign
 --  dbot.gmcp.getRoomId
