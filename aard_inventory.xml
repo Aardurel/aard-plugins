@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0042"
+   version="2.0043"
    >
 <description trim="y">
 <![CDATA[
@@ -1663,7 +1663,8 @@ end -- inv.config.new
 --   inv.cli.help.usage()
 --   inv.cli.help.examples()
 -- 
---   inv.cli.autoQueue.fn(name, line, wildcards)
+--   inv.cli.autoQueue.fn1(name, line, wildcards)
+--   inv.cli.autoQueue.fn2(name, line, wildcards)
 --
 ----------------------------------------------------------------------------------------------------
 
@@ -4968,7 +4969,7 @@ end -- inv.cli.help.examples
 
 inv.cli.autoQueue = {}
 function inv.cli.autoQueue.fn1(name, line, wildcards)
-  dbot.autoQueueEnable = false
+  dbot.autoQueueState = dbot.autoQueueHalted
   dbot.note("Auto Queue: halting...")
 end -- inv.cli.autoQueue.fn1
 
@@ -22333,14 +22334,20 @@ end -- dbot.version.update.releaseCR
 --
 -- Note: The "state" parameter refers to a gmcp state, such as dbot.stateActive or dbot.stateCombat
 --
+-- Note2: If the character's room changes before the queue completes, the queue is aborted
+--
 ----------------------------------------------------------------------------------------------------
 
-dbot.autoQueueEnable = true
+dbot.autoQueueEnabled  = "enabled"
+dbot.autoQueueDisabled = "disabled"
+dbot.autoQueueHalted   = "halted"
+dbot.autoQueueState    = dbot.autoQueueEnabled
 dbot.autoQueuePkg = nil
 function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
   local numMaxCommands    = tonumber(maxCommands or "")
   local numCommandTimeout = tonumber(commandTimeout or "")
   local numTotalTimeout   = tonumber(totalTimeout or "")
+  local startRoom         = dbot.gmcp.getRoomId()
 
   if (command == nil) or (numMaxCommands == nil) or (numCommandTimeout == nil) or (numTotalTimeout == nil) then
     dbot.warn("dbot.autoQueue: Invalid parameters")
@@ -22348,7 +22355,7 @@ function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, stat
   end -- if
 
   if (dbot.autoQueuePkg ~= nil) then
-    dbot.info("Skipping autoQueue request: another request is in progress")
+    dbot.info("Skipping auto queue request: another request is in progress")
     return inv.tags.stop(invTagsAutoQueue, endTag, DRL_RET_BUSY)
   end -- if
 
@@ -22357,10 +22364,11 @@ function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, stat
   dbot.autoQueuePkg.maxCommands    = numMaxCommands
   dbot.autoQueuePkg.commandTimeout = numCommandTimeout
   dbot.autoQueuePkg.totalTimeout   = numTotalTimeout
+  dbot.autoQueuePkg.startRoom      = startRoom
   dbot.autoQueuePkg.state          = state
   dbot.autoQueuePkg.endTag         = endTag
 
-  dbot.autoQueueEnable = true
+  dbot.autoQueueState = dbot.autoQueueEnabled
 
   wait.make(dbot.autoQueueCR)
 
@@ -22378,6 +22386,8 @@ function dbot.autoQueueCR()
 
   local retval    = DRL_RET_SUCCESS
   local endTag    = dbot.autoQueuePkg.endTag
+  local startRoom = dbot.autoQueuePkg.startRoom
+  local stateName = dbot.stateNames[dbot.autoQueuePkg.state] or "unknown"
   local startTime = dbot.getTime()
   local numCmds   = 1
 
@@ -22385,30 +22395,76 @@ function dbot.autoQueueCR()
              dbot.autoQueuePkg.command .. "\", timeouts=" .. dbot.autoQueuePkg.commandTimeout ..
              "/" .. dbot.autoQueuePkg.totalTimeout)
             
-  while (dbot.autoQueueEnable == true) do
+  while (dbot.autoQueueState == dbot.autoQueueEnabled) do
     local fence = dbot.autoQueueFence .. " " .. dbot.autoQueueFenceIdx
+    local iterInfo = "@C" .. dbot.autoQueuePkg.command .. " @W" .. numCmds .. "@w/@W" ..
+                     dbot.autoQueuePkg.maxCommands
+    local haltInfo = "@C" .. dbot.autoQueuePkg.command .. "@W"
+    local currentState = dbot.gmcp.getState() or "Unknown"
     dbot.autoQueueFenceIdx = dbot.autoQueueFenceIdx + 1
 
-    check (Execute(dbot.autoQueuePkg.command))
-    check (Execute("echo " .. fence))
-
-    local line, wildcards = wait.regexp("^" .. fence .. "$",
-                                        dbot.autoQueuePkg.commandTimeout,
-                                        trigger_flag.OmitFromOutput)
-    if (line == nil) or 
-       (line == "") or
-       (numCmds >= dbot.autoQueuePkg.maxCommands) or
-       (dbot.getTime() - startTime > dbot.autoQueuePkg.totalTimeout) or
-       (dbot.gmcp.getState() ~= dbot.autoQueuePkg.state) then
-      dbot.autoQueueEnable = false
+    -- I don't like one-off work-arounds, but here is one anyway...It is a common situation to want to
+    -- use a series of combat commands.  However, the auto queue won't run combat commands if we are in
+    -- the active state.  As a result, the user would need to engage a mob (or mobs) manually and then
+    -- kick off the auto queue to continue combat.  The work-around below allows the queue to execute one
+    -- iteration if the user currently is in the active state and the queue runs in the combat state.
+    -- That allows the user to initiate combat with a command in the auto queue.  IMPORTANT: starting the
+    -- auto queue should *always* be done manually and never with a trigger -- that could potentially be
+    -- botting.
+    local useCombatKickstart = false
+    if (currentState == dbot.stateActive) and 
+       (dbot.autoQueuePkg.state == dbot.stateCombat) and
+       (numCmds == 1) then
+      useCombatKickstart = true
     end -- if
 
-    dbot.info("@YAuto Queue: @C" .. dbot.autoQueuePkg.command .. " @W" .. numCmds .. "@w/@W" ..
-              dbot.autoQueuePkg.maxCommands)
+    -- Execute the next command in the queue if we are still in our starting room and haven't changed state.
+    -- Otherwise, halt the queue because we don't want to "bot" by changing rooms in the middle of the
+    -- series of commands.
+    if (startRoom ~= dbot.gmcp.getRoomId()) then
+      dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y You changed rooms")
+      dbot.autoQueueState = dbot.autoQueueDisabled
+      retval = DRL_RET_HALTED
+
+    elseif (currentState ~= dbot.autoQueuePkg.state) and (not useCombatKickstart) then
+      dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y You are not in the @G" .. stateName ..
+                "@Y state")
+      dbot.autoQueueState = dbot.autoQueueDisabled
+      retval = DRL_RET_HALTED
+
+    else
+      dbot.debug("@YAuto queue @Wstarted   " .. iterInfo)
+
+      check (Execute(dbot.autoQueuePkg.command))
+      check (Execute("echo " .. fence))
+
+      local line, wildcards = wait.regexp("^" .. fence .. "$",
+                                          dbot.autoQueuePkg.commandTimeout,
+                                          trigger_flag.OmitFromOutput)
+
+      if (line == nil) or (line == "") or (dbot.getTime() - startTime > dbot.autoQueuePkg.totalTimeout) then
+        dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y Request timed out")
+        dbot.autoQueueState = dbot.autoQueueDisabled
+        retval = DRL_RET_TIMEOUT
+
+      else
+        dbot.info("@YAuto queue @Wcompleted " .. iterInfo)
+
+        -- Break if we completed all of the requested commands
+        if (numCmds >= dbot.autoQueuePkg.maxCommands) then        
+          dbot.autoQueueState = dbot.autoQueueDisabled
+        end -- if
+      end -- if
+
+    end -- if
 
     numCmds = numCmds + 1
 
   end -- while
+
+  if (dbot.autoQueueState == dbot.autoQueueHalted) then
+    retval = DRL_RET_HALTED
+  end -- if
 
   dbot.autoQueuePkg = nil
   return inv.tags.stop(invTagsAutoQueue, endTag, retval)
