@@ -662,7 +662,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.autoQueue.fn2"
-   match="^[ ]*dinv[ ]+auto[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+(.*?)$"
+   match="^[ ]*dinv[ ]+auto[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([^ ]+)[ ]+(.*?)$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -685,12 +685,7 @@ Feature Wishlist
 pluginNameCmd   = "dinv" 
 pluginNameAbbr  = "DINV" 
 pluginId        = "88c86ea252fc1918556df9fe"
-
--- Get an absolute path to the plugin's state directory.  We don't want to use just the relative
--- path in GetInfo(85) in case someone's current directory isn't where we'd expect.  We no longer
--- care where the plugin file is installed because we will use mush's state directory for our
--- saved data regardless of where the plugin xml file lives.
-pluginStatePath = GetInfo(56) .. GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
+pluginStatePath = GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
 
 -- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This 
 -- strips out any redundant ".\" in the path if it exists.
@@ -710,8 +705,7 @@ require "tprint"
 require "gmcphelper"
 require "async"
 
--- Use the absolute path to the file in case a user's current directory isn't what we'd expect
-dofile(GetInfo(56) .. GetInfo(60) .. "aardwolf_colors.lua")
+dofile(GetInfo(60) .. "aardwolf_colors.lua")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -4983,6 +4977,12 @@ function inv.cli.autoQueue.fn2(name, line, wildcards)
 
   local paramStr = (command or "none") .. ", maxCommands=" .. (maxCmds or "nil")
   local endTag = inv.tags.new(paramStr, nil, nil, nil)
+
+  if (state == "active") then
+    state = "3"
+  elseif (state == "combat") then
+    state = "8"
+  end -- if
 
   dbot.debug("Auto Queue: cmd=\"" .. command .. "\", maxCmds=" .. maxCmds .. ", cmdTO=" .. cmdTimeout ..
              ", totTO=" .. totTimeout .. ", state=" .. state)
