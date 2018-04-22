@@ -1857,9 +1857,9 @@ function inv.cli.refresh.fn(name, line, wildcards)
     end -- if
 
     if (command == "") then
-      dbot.debug("Inventory refresh started")
+      dbot.info("Inventory refresh scan: start basic refresh")
     else
-      dbot.info("Inventory refresh full scan started")
+      dbot.info("Inventory refresh scan: start full refresh")
     end -- if
 
     local retval = inv.items.refresh(0, refreshLoc, endTag, nil)
