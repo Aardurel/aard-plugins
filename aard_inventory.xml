@@ -685,13 +685,6 @@ Feature Wishlist
 pluginNameCmd   = "dinv" 
 pluginNameAbbr  = "DINV" 
 pluginId        = "88c86ea252fc1918556df9fe"
-pluginStatePath = GetInfo(85) .. pluginNameCmd .. "-" .. pluginId
-
--- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This 
--- strips out any redundant ".\" in the path if it exists.
-pluginStatePath = string.gsub(pluginStatePath, "\\.\\", "\\")
-
---print("Plugin state: " .. pluginStatePath)
 
 
 ----------------------------------------------------------------------------------------------------
@@ -706,6 +699,55 @@ require "gmcphelper"
 require "async"
 
 dofile(GetInfo(60) .. "aardwolf_colors.lua")
+
+
+----------------------------------------------------------------------------------------------------
+-- Plugin state path
+--
+-- We need a path to the state directory for this plugin.  Ideally, we would just use the path
+-- returned by GetInfo(85) and be done.  Unfortuately, GetInfo(85) returns a relative path on
+-- some mush installations.  This means that the path may or may not be valid depending on what
+-- mush thinks your current directory is.  A relative path may be correct during normal plugin
+-- execution but be wrong during the OnPluginSaveState() call because that call has a different
+-- current directory than what is used while the plugin is running.  Ugh.  This is further
+-- complicated by inconsistencies across systems where some mush installs use absolute paths for
+-- your state directory while other installations use relative paths.  Double ugh.
+--
+-- Our solution is to start with the state directory and check if it is a relative or absolute
+-- path.  If it is relative it should be relative to our current directory.  Fortunately, we 
+-- have access to an absolute path to the current directory via GetInfo(64).  If we concatenate
+-- the current directory and relative state directory, we should have an absolute path to the
+-- state directory.  On the other hand, if the state directory is an absolute path, we can just
+-- use that without modification.
+
+-----------------------------------------------------------------------------------------------------
+
+function drlGetPluginStatePath()
+  local path      = ""
+  local stateBase = GetInfo(85) or ""
+  local stateDir  = stateBase .. pluginNameCmd .. "-" .. pluginId
+
+  if (stateBase == nil) or (stateBase == "") then
+    print("drlGetPluginStatePath: Error: Failed to get state path")
+
+  elseif (string.find(stateDir, "^[.]") ~= nil) then
+    -- The path starts with "." so it must be relative
+    path = GetInfo(64) .. stateDir
+
+  else
+    path = stateDir
+  end -- if
+
+  -- Some versions of windows don't like if a path has something like "foo\.\bar" in it.  This 
+  -- strips out any redundant ".\" in the path if it exists.
+  path = string.gsub(path, "\\.\\", "\\")
+
+  return path
+end -- drlGetPluginStatePath
+
+
+pluginStatePath = drlGetPluginStatePath() or ""
+--print("Plugin state path: \"" .. pluginStatePath .. "\"")
 
 
 ----------------------------------------------------------------------------------------------------
@@ -5983,11 +6025,14 @@ function inv.items.discoverCR(maxNumItems, refreshLocations)
   if (refreshLocation == invItemsRefreshLocAll) or (refreshLocation == invItemsRefreshLocDirty) then
     for objId,v in pairs(inv.items.table) do
       local itemOwner, pretitle = dbot.gmcp.getName()
+      local ownedBy = inv.items.getStatField(objId, invStatFieldOwnedBy)
 
       -- If this is a container that we own, try to discover everything in it.  Don't try to discover
-      -- items if we don't own the container because we can't access it anyway.
+      -- items if we don't own the container because we can't access it anyway.  If there isn't an
+      -- ownership field for the item, assume we own it since it doesn't belong to anyone else that
+      -- we know of.
       if (inv.items.getStatField(objId, invStatFieldType) == invmon.typeStr[invmonTypeContainer]) and
-         (inv.items.getStatField(objId, invStatFieldOwnedBy) == itemOwner) then
+         ((ownedBy == nil) or (ownedBy == "") or (ownedBy == itemOwner)) then
 
         -- Scan this container if the caller asked us to scan everything or if we need to scan all
         -- dirty containers and this container is dirty (i.e., it hasn't been verified to be clean 
