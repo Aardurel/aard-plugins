@@ -1,6 +1,26 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0043] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a boneheaded bug I introduced in the last release.  Dinv automatically ignores
+	   containers that you don't own since you can't get items out of them anyway.  Unfortunately,
+	   dinv mistakenly also auto-ignored unowned containers as well.  Whoops.  That's fixed now.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed incompatibility with pathing on some mush installations.  For some unholy reason,
+	   some mush installs report your current directory with an absolute path and some as a relative
+	   path.  Even worse, your current directory changes as mush is running so if you do use a
+	   relative path to access dinv's data, that path may break depending on when you access it.
+	   Dinv now calculates a true full path to the dinv data directory when the plugin starts and
+	   uses that exclusively.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Added refresh start message when running in "light" notification mode]]
+  }
+}
+
 dbot.changelog[2.0042] =
 {
   { change = drlDbotChangeLogTypeFix,
