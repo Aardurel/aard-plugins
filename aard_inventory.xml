@@ -641,8 +641,18 @@ Feature Wishlist
   </alias>
 
   <alias
+   script="inv.cli.commlog.fn"
+   match="^[ ]*dinv[ ]+commlog( .*)?$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
    script="inv.cli.debug.fn"
-   match="^[ ]*dinv[ ]+debug(.*)$"
+   match="^[ ]*dinv[ ]+debug( .*)?$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -5042,13 +5052,26 @@ function inv.cli.autoQueue.fn2(name, line, wildcards)
 end -- inv.cli.autoQueue.fn2
 
 
+inv.cli.commlog = {}
+function inv.cli.commlog.fn(name, line, wildcards)
+  local msg = Trim(wildcards[1] or "")
+  local outerColor = "@x105"
+  local innerColor = "@x39"
+
+  dbot.debug("Commlog message = \"" .. msg .. "\"")
+
+  dbot.commLog(outerColor .. "[" .. innerColor .. "DINV" .. outerColor .. "]@w " .. msg .. "@w")
+
+end -- inv.cli.commlog.fn
+
+
 inv.cli.debug = {}
 function inv.cli.debug.fn(name, line, wildcards)
-  local command = wildcards[1] or ""
-  command = Trim(command)
+  local params = Trim(wildcards[1] or "")
 
-  dbot.note("Debug params = \"" .. command .. "\"")
-  dbot.shell(command)
+  dbot.note("Debug params = \"" .. params .. "\"")
+
+  dbot.commLog("[DINV] " .. params)
 
 end -- inv.cli.debug.fn
 
@@ -18952,6 +18975,50 @@ function dbot.deleteTimer(name)
 
   return retval
 end -- dbot.deleteTimer
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.commLog sends the given string parameter to the communication log window
+----------------------------------------------------------------------------------------------------
+
+function dbot.commLog(msg)
+  local clPlugin   = "b555825a4a5700c35fa80780"
+  local clFunction = "storeFromOutside"
+
+  if (msg == nil) or (msg == "") then
+    dbot.warn("dbot.commLog: Missing message parameter")
+    return DRL_RET_INVALID_PARAMS
+  end -- if
+
+  local retval = DRL_RET_INTERNAL_ERROR
+  local mushRetval = CallPlugin(clPlugin, clFunction, msg)
+
+  if (mushRetval == error_code.eNoSuchPlugin) then
+    dbot.warn("dbot.commLog: target plugin does not exist")
+
+  elseif (mushRetval == error_code.ePluginDisabled) then
+    dbot.warn("dbot.commLog: target plugin is disabled")
+
+  elseif (mushRetval == error_code.eNoSuchRoutine) then
+    dbot.warn("dbot.commLog: target routine does not exist")
+
+  elseif (mushRetval == error_code.eErrorCallingPluginRoutine) then
+    dbot.warn("dbot.commLog: error calling plugin routine")
+
+  elseif (mushRetval == error_code.eBadParameter) then
+    dbot.warn("dbot.commLog: bad parameter detected")
+    retval = DRL_RET_INVALID_PARAM
+
+  elseif (mushRetval == error_code.eOK) then
+    retval = DRL_RET_SUCCESS
+
+  else
+    dbot.warn("dbot.commLog: Unknown return value from CallPlugin: " .. (mushRetval or "nil"))
+
+  end -- if
+
+  return retval
+end -- dbot.commLog
 
 
 ----------------------------------------------------------------------------------------------------
