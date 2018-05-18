@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0043"
+   version="2.0044"
    >
 <description trim="y">
 <![CDATA[
@@ -4690,6 +4690,10 @@ use this: "@Gdinv consume small heal 3@W".
 The plugin will always choose to consume items that are in your main inventory
 before using an equivalent item from a container unless you specify a container.
 
+I find it very convenient to list which consumable items I actually have in my inventory.
+As a result, you can use "@Gdinv consume display owned@W" as a shorthand to suppress the
+display output for items you do not currently have in your inventory or containers.
+
 Examples:
   1) Add a consumable item ("nachos") that gives something of type "mana".  Nachos
      can be found at "runto bard; run wn" and you should be at the shopkeeper to
@@ -4708,22 +4712,25 @@ Examples:
   5) Display info about each consumable item that is of type "mana"
      "@Gdinv consume display mana@W"
 
-  6) Buy 5 "mana" items that are the highest level available in the table
+  6) Display info about each consumable item that is currently in your inventory
+     "@Gdinv consume display owned@W"
+
+  7) Buy 5 "mana" items that are the highest level available in the table
      "@Gdinv consume buy mana 5@W"
 
-  7) Buy 10 "heal" items and put them into 3.bag
+  8) Buy 10 "heal" items and put them into 3.bag
      "@Gdinv consume buy heal 10 3.bag@W"
 
-  8) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
+  9) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
      This is useful when you want to clean out low-level potions.  You probably won't
      use this option in combat but it is convenient out of combat.
     "@Gdinv consume small mana@W"
 
-  9) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
+ 10) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
      are of type "mana".  This is handy in combat.
      "@Gdinv consume big mana 2@W"
 
- 10) Consume 3 of your highest-level mana items and look in container 2.bag before
+ 11) Consume 3 of your highest-level mana items and look in container 2.bag before
      checking for the items in other locations
      "@Gdinv consume big mana 3 2.bag@W"
 ]])
@@ -5017,7 +5024,7 @@ function inv.cli.autoQueue.fn2(name, line, wildcards)
   local state      = wildcards[4] or ""
   local command    = wildcards[5] or ""
 
-  local paramStr = (command or "none") .. ", maxCommands=" .. (maxCmds or "nil")
+  local paramStr = "x" .. (maxCmds or "nil") .. ", " .. string.gsub(command, ";", ";;")
   local endTag = inv.tags.new(paramStr, nil, nil, nil)
 
   if (state == "active") then
@@ -7710,6 +7717,12 @@ function inv.items.wearItem(objId, targetLoc, commandArray, doCheckLocation)
                 dbot.retval.getString(retval))
       return retval
     end -- if
+  end -- if
+
+  -- Aard is a bit quirky for quivers.  The location reported via identify is "ready" but aard will
+  -- only wear a quiver at the "readied" slot.  Ugh.
+  if (targetLoc == inv.wearLoc[invWearableLocReady]) then
+    targetLoc = invWearableLocReadyWorkaround
   end -- if
 
   local wearCommand = "wear " .. objId .. " " .. targetLoc
@@ -10653,6 +10666,11 @@ inv.wearLoc[invWearableLocAbove]     = "above"
 inv.wearLoc[invWearableLocPortal]    = "portal"
 inv.wearLoc[invWearableLocSleeping]  = "sleeping"
 inv.wearLoc[invWearableLocReady]     = "ready"
+
+-- Aard is a bit inconsistent with the "ready" location.  Items such as quivers report their wearable
+-- location as "ready" in identify but you can't wear an item at the "ready" location.  Instead, you
+-- must wear it at the "readied" location.  Ugh.  This is a work-around for that issue.
+invWearableLocReadyWorkaround = "readied"
 
 
 inv.wearables = { light    = { "light" },
@@ -17311,7 +17329,7 @@ end -- inv.tags.cleanup.info
 -- inv.consume.addCR() -- async so that we can appraise the new item
 -- inv.consume.remove(typeName, itemName)
 -- inv.consume.display(typeName) -- if typeName is missing, display all types
--- inv.consume.displayType(typeName)
+-- inv.consume.displayType(typeName, isOwned)
 --
 -- inv.consume.buy(typeName, numItems, containerName)
 -- inv.consume.buyCR() -- async so that we can run to the shopkeeper
@@ -17575,9 +17593,14 @@ end -- inv.consume.remove
 -- If typeName is nil or "", display all types in the table
 function inv.consume.display(typeName)
   local retval = DRL_RET_SUCCESS
-
   local numEntries = 0
-  if (typeName ~= nil) and (typeName ~= "") then
+
+  local isOwned = false
+  if (typeName == "owned") then
+    isOwned = true
+  end -- if
+
+  if (typeName ~= nil) and (typeName ~= "") and (not isOwned) then
     numEntries = inv.consume.displayType(typeName)
   else
     local sortedTypes = {}
@@ -17587,7 +17610,7 @@ function inv.consume.display(typeName)
     table.sort(sortedTypes, function (v1, v2) return v1 < v2 end)
 
     for _, itemType in ipairs(sortedTypes) do
-      numEntries = numEntries + inv.consume.displayType(itemType)
+      numEntries = numEntries + inv.consume.displayType(itemType, isOwned)
     end -- for
   end -- if
 
@@ -17600,7 +17623,7 @@ function inv.consume.display(typeName)
 end -- inv.consume.display
 
 
-function inv.consume.displayType(typeName)
+function inv.consume.displayType(typeName, isOwned)
   local numEntries = 0
 
   if (inv.consume.table == nil) or (typeName == nil) or (typeName == "") or 
@@ -17610,7 +17633,9 @@ function inv.consume.displayType(typeName)
     return numEntries, DRL_RET_MISSING_ENTRY
   end -- if
 
-  dbot.print(string.format("\n@W@C%-10s@W Level   Room  # Avail  Name", (typeName or "nil")))
+  local header = string.format("\n@W@C%-10s@W Level   Room  # Avail  Name", (typeName or "nil"))
+  local didPrintHeader = false
+
   if (inv.consume.table[typeName] ~= nil) then
     for _, entry in ipairs(inv.consume.table[typeName]) do
       local count = 0
@@ -17630,8 +17655,14 @@ function inv.consume.displayType(typeName)
         countColor = "@M" 
       end -- if
 
-      dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
-                 (entry.level or 0), (entry.room or 0), countColor, count, (entry.name or "nil")))
+      if (isOwned == nil) or (isOwned == false) or (isOwned and (count > 0)) then
+        if (not didPrintHeader) then
+          dbot.print(header)
+          didPrintHeader = true
+        end -- if
+        dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
+                   (entry.level or 0), (entry.room or 0), countColor, count, (entry.name or "nil")))
+      end -- if
       numEntries = numEntries + 1
     end -- for
   end -- if
