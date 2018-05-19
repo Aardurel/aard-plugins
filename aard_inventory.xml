@@ -9667,6 +9667,17 @@ function inv.items.trigger.itemIdStats(line)
   _, _, weaponType = string.find(line, "Weapon Type:%s+(%a+)%s+")
   _, _, specials = string.find(line, "Specials%s+:%s+(%a+)%s+")
 
+  local tmpAvedam, tmpHR, tmpDR, tmpInt, tmpWis, tmpLuck, tmpStr, tmpDex, tmpCon
+  _, _, tmpAvedam = string.find(line, ":%s+adds [+-](%d+) average damage%s+")
+  _, _, tmpHR = string.find(line, ":%s+hit roll [+-](%d+)")
+  _, _, tmpDR = string.find(line, ":%s+damage roll [+-](%d+)")
+  _, _, tmpInt = string.find(line, ":%s+intelligence [+-](%d+)")
+  _, _, tmpWis = string.find(line, ":%s+wisdom [+-](%d+)")
+  _, _, tmpLuck = string.find(line, ":%s+luck [+-](%d+)")
+  _, _, tmpStr = string.find(line, ":%s+strength [+-](%d+)")
+  _, _, tmpDex = string.find(line, ":%s+dexterity [+-](%d+)")
+  _, _, tmpCon = string.find(line, ":%s+constitution [+-](%d+)")
+
   if (id ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldId, dbot.tonumber(id or ""))
     dbot.debug("Id = \"" .. id .. "\"")
@@ -10049,6 +10060,69 @@ function inv.items.trigger.itemIdStats(line)
   if (avedam ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAveDam, dbot.tonumber(avedam))
     dbot.debug("avedam = \"" .. avedam .. "\"")
+  end -- if
+
+  if (tmpAvedam ~= nil) then
+    local currentAvedam = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAveDam)
+    local newAvedam = dbot.tonumber(tmpAvedam) + currentAvedam
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAveDam, newAvedam)
+    dbot.debug("tmpAvedam = \"" .. tmpAvedam .. "\"")
+  end -- if
+
+  if (tmpHR ~= nil) then
+    local currentHR = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldHit)
+    local newHR = dbot.tonumber(tmpHR) + currentHR
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldHit, newHR)
+    dbot.debug("tmpHR = \"" .. tmpHR .. "\"")
+  end -- if
+
+  if (tmpDR ~= nil) then
+    local currentDR = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldDam)
+    local newDR = dbot.tonumber(tmpDR) + currentDR
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldDam, newDR)
+    dbot.debug("tmpDR = \"" .. tmpDR .. "\"")
+  end -- if
+
+  if (tmpInt ~= nil) then
+    local currentInt = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldInt)
+    local newInt = dbot.tonumber(tmpInt) + currentInt
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldInt, newInt)
+    dbot.debug("tmpInt = \"" .. tmpInt .. "\"")
+  end -- if
+
+  if (tmpWis ~= nil) then
+    local currentWis = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWis)
+    local newWis = dbot.tonumber(tmpWis) + currentWis
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldWis, newWis)
+    dbot.debug("tmpWis = \"" .. tmpWis .. "\"")
+  end -- if
+
+  if (tmpLuck ~= nil) then
+    local currentLuck = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldLuck)
+    local newLuck = dbot.tonumber(tmpLuck) + currentLuck
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldLuck, newLuck)
+    dbot.debug("tmpLuck = \"" .. tmpLuck .. "\"")
+  end -- if
+
+  if (tmpStr ~= nil) then
+    local currentStr = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldStr)
+    local newStr = dbot.tonumber(tmpStr) + currentStr
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldStr, newStr)
+    dbot.debug("tmpStr = \"" .. tmpStr .. "\"")
+  end -- if
+
+  if (tmpDex ~= nil) then
+    local currentDex = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldDex)
+    local newDex = dbot.tonumber(tmpDex) + currentDex
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldDex, newDex)
+    dbot.debug("tmpDex = \"" .. tmpDex .. "\"")
+  end -- if
+
+  if (tmpCon ~= nil) then
+    local currentCon = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldCon)
+    local newCon = dbot.tonumber(tmpCon) + currentCon
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldCon, newCon)
+    dbot.debug("tmpCon = \"" .. tmpCon .. "\"")
   end -- if
 
   if (inflicts ~= nil) then
