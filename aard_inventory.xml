@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0043"
+   version="2.0045"
    >
 <description trim="y">
 <![CDATA[
@@ -641,28 +641,18 @@ Feature Wishlist
   </alias>
 
   <alias
+   script="inv.cli.commlog.fn"
+   match="^[ ]*dinv[ ]+commlog( .*)?$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
    script="inv.cli.debug.fn"
-   match="^[ ]*dinv[ ]+debug(.*)$"
-   enabled="y"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  </alias>
-
-  <alias
-   script="inv.cli.autoQueue.fn1"
-   match="^[ ]*dinv[ ]+auto[ ]+(halt)[ ]*$"
-   enabled="y"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  </alias>
-
-  <alias
-   script="inv.cli.autoQueue.fn2"
-   match="^[ ]*dinv[ ]+auto[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([0-9]+)[ ]+([^ ]+)[ ]+(.*?)$"
+   match="^[ ]*dinv[ ]+debug( .*)?$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -1699,9 +1689,6 @@ end -- inv.config.new
 --   inv.cli.help.usage()
 --   inv.cli.help.examples()
 -- 
---   inv.cli.autoQueue.fn1(name, line, wildcards)
---   inv.cli.autoQueue.fn2(name, line, wildcards)
---
 ----------------------------------------------------------------------------------------------------
 
 inv.cli = {}
@@ -4690,6 +4677,10 @@ use this: "@Gdinv consume small heal 3@W".
 The plugin will always choose to consume items that are in your main inventory
 before using an equivalent item from a container unless you specify a container.
 
+I find it very convenient to list which consumable items I actually have in my inventory.
+As a result, you can use "@Gdinv consume display owned@W" as a shorthand to suppress the
+display output for items you do not currently have in your inventory or containers.
+
 Examples:
   1) Add a consumable item ("nachos") that gives something of type "mana".  Nachos
      can be found at "runto bard; run wn" and you should be at the shopkeeper to
@@ -4708,22 +4699,25 @@ Examples:
   5) Display info about each consumable item that is of type "mana"
      "@Gdinv consume display mana@W"
 
-  6) Buy 5 "mana" items that are the highest level available in the table
+  6) Display info about each consumable item that is currently in your inventory
+     "@Gdinv consume display owned@W"
+
+  7) Buy 5 "mana" items that are the highest level available in the table
      "@Gdinv consume buy mana 5@W"
 
-  7) Buy 10 "heal" items and put them into 3.bag
+  8) Buy 10 "heal" items and put them into 3.bag
      "@Gdinv consume buy heal 10 3.bag@W"
 
-  8) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
+  9) Consume (quaff, eat, etc.) the lowest level "mana" item in your inventory
      This is useful when you want to clean out low-level potions.  You probably won't
      use this option in combat but it is convenient out of combat.
     "@Gdinv consume small mana@W"
 
-  9) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
+ 10) Consume (quaff, eat, etc.) 2 of the highest-level items in your inventory that
      are of type "mana".  This is handy in combat.
      "@Gdinv consume big mana 2@W"
 
- 10) Consume 3 of your highest-level mana items and look in container 2.bag before
+ 11) Consume 3 of your highest-level mana items and look in container 2.bag before
      checking for the items in other locations
      "@Gdinv consume big mana 3 2.bag@W"
 ]])
@@ -5003,45 +4997,28 @@ Examples:
 end -- inv.cli.help.examples
 
 
-inv.cli.autoQueue = {}
-function inv.cli.autoQueue.fn1(name, line, wildcards)
-  dbot.autoQueueState = dbot.autoQueueHalted
-  dbot.note("Auto Queue: halting...")
-end -- inv.cli.autoQueue.fn1
 
 
-function inv.cli.autoQueue.fn2(name, line, wildcards)
-  local maxCmds    = wildcards[1] or ""
-  local cmdTimeout = wildcards[2] or ""
-  local totTimeout = wildcards[3] or ""
-  local state      = wildcards[4] or ""
-  local command    = wildcards[5] or ""
+inv.cli.commlog = {}
+function inv.cli.commlog.fn(name, line, wildcards)
+  local msg = Trim(wildcards[1] or "")
+  local outerColor = "@x105"
+  local innerColor = "@x39"
 
-  local paramStr = (command or "none") .. ", maxCommands=" .. (maxCmds or "nil")
-  local endTag = inv.tags.new(paramStr, nil, nil, nil)
+  dbot.debug("Commlog message = \"" .. msg .. "\"")
 
-  if (state == "active") then
-    state = "3"
-  elseif (state == "combat") then
-    state = "8"
-  end -- if
+  dbot.commLog(outerColor .. "[" .. innerColor .. "DINV" .. outerColor .. "]@w " .. msg .. "@w")
 
-  dbot.debug("Auto Queue: cmd=\"" .. command .. "\", maxCmds=" .. maxCmds .. ", cmdTO=" .. cmdTimeout ..
-             ", totTO=" .. totTimeout .. ", state=" .. state)
-
-  local retval = dbot.autoQueue(command, maxCmds, cmdTimeout, totTimeout, state, endTag)
-
-  return retval
-end -- inv.cli.autoQueue.fn2
+end -- inv.cli.commlog.fn
 
 
 inv.cli.debug = {}
 function inv.cli.debug.fn(name, line, wildcards)
-  local command = wildcards[1] or ""
-  command = Trim(command)
+  local params = Trim(wildcards[1] or "")
 
-  dbot.note("Debug params = \"" .. command .. "\"")
-  dbot.shell(command)
+  dbot.note("Debug params = \"" .. params .. "\"")
+
+  dbot.commLog("[DINV] " .. params)
 
 end -- inv.cli.debug.fn
 
@@ -7712,6 +7689,12 @@ function inv.items.wearItem(objId, targetLoc, commandArray, doCheckLocation)
     end -- if
   end -- if
 
+  -- Aard is a bit quirky for quivers.  The location reported via identify is "ready" but aard will
+  -- only wear a quiver at the "readied" slot.  Ugh.
+  if (targetLoc == inv.wearLoc[invWearableLocReady]) then
+    targetLoc = invWearableLocReadyWorkaround
+  end -- if
+
   local wearCommand = "wear " .. objId .. " " .. targetLoc
 
   if (commandArray ~= nil) then
@@ -9523,7 +9506,7 @@ function inv.items.trigger.itemIdStart(line)
 
   -- Watch for the end of the item description so that we can stop scanning
   AddTriggerEx(inv.items.trigger.itemIdEndName,
-               inv.items.identifyFence,
+               "^" .. inv.items.identifyFence .. "$",
                "inv.items.trigger.itemIdEnd()",
                drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput + trigger_flag.OneShot,
                custom_colour.Custom11,
@@ -9630,6 +9613,17 @@ function inv.items.trigger.itemIdStats(line)
   _, _, damtype = string.find(line, "Damage Type%s+:%s+(%a+)%s+")
   _, _, weaponType = string.find(line, "Weapon Type:%s+(%a+)%s+")
   _, _, specials = string.find(line, "Specials%s+:%s+(%a+)%s+")
+
+  local tmpAvedam, tmpHR, tmpDR, tmpInt, tmpWis, tmpLuck, tmpStr, tmpDex, tmpCon
+  _, _, tmpAvedam = string.find(line, ":%s+adds [+-](%d+) average damage%s+")
+  _, _, tmpHR = string.find(line, ":%s+hit roll [+-](%d+)")
+  _, _, tmpDR = string.find(line, ":%s+damage roll [+-](%d+)")
+  _, _, tmpInt = string.find(line, ":%s+intelligence [+-](%d+)")
+  _, _, tmpWis = string.find(line, ":%s+wisdom [+-](%d+)")
+  _, _, tmpLuck = string.find(line, ":%s+luck [+-](%d+)")
+  _, _, tmpStr = string.find(line, ":%s+strength [+-](%d+)")
+  _, _, tmpDex = string.find(line, ":%s+dexterity [+-](%d+)")
+  _, _, tmpCon = string.find(line, ":%s+constitution [+-](%d+)")
 
   if (id ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldId, dbot.tonumber(id or ""))
@@ -10013,6 +10007,69 @@ function inv.items.trigger.itemIdStats(line)
   if (avedam ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAveDam, dbot.tonumber(avedam))
     dbot.debug("avedam = \"" .. avedam .. "\"")
+  end -- if
+
+  if (tmpAvedam ~= nil) then
+    local currentAvedam = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAveDam) or 0
+    local newAvedam = dbot.tonumber(tmpAvedam) + currentAvedam
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAveDam, newAvedam)
+    dbot.debug("tmpAvedam = \"" .. tmpAvedam .. "\"")
+  end -- if
+
+  if (tmpHR ~= nil) then
+    local currentHR = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldHit) or 0
+    local newHR = dbot.tonumber(tmpHR) + currentHR
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldHit, newHR)
+    dbot.debug("tmpHR = \"" .. tmpHR .. "\"")
+  end -- if
+
+  if (tmpDR ~= nil) then
+    local currentDR = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldDam) or 0
+    local newDR = dbot.tonumber(tmpDR) + currentDR
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldDam, newDR)
+    dbot.debug("tmpDR = \"" .. tmpDR .. "\"")
+  end -- if
+
+  if (tmpInt ~= nil) then
+    local currentInt = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldInt) or 0
+    local newInt = dbot.tonumber(tmpInt) + currentInt
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldInt, newInt)
+    dbot.debug("tmpInt = \"" .. tmpInt .. "\"")
+  end -- if
+
+  if (tmpWis ~= nil) then
+    local currentWis = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWis) or 0
+    local newWis = dbot.tonumber(tmpWis) + currentWis
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldWis, newWis)
+    dbot.debug("tmpWis = \"" .. tmpWis .. "\"")
+  end -- if
+
+  if (tmpLuck ~= nil) then
+    local currentLuck = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldLuck) or 0
+    local newLuck = dbot.tonumber(tmpLuck) + currentLuck
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldLuck, newLuck)
+    dbot.debug("tmpLuck = \"" .. tmpLuck .. "\"")
+  end -- if
+
+  if (tmpStr ~= nil) then
+    local currentStr = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldStr) or 0
+    local newStr = dbot.tonumber(tmpStr) + currentStr
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldStr, newStr)
+    dbot.debug("tmpStr = \"" .. tmpStr .. "\"")
+  end -- if
+
+  if (tmpDex ~= nil) then
+    local currentDex = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldDex) or 0
+    local newDex = dbot.tonumber(tmpDex) + currentDex
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldDex, newDex)
+    dbot.debug("tmpDex = \"" .. tmpDex .. "\"")
+  end -- if
+
+  if (tmpCon ~= nil) then
+    local currentCon = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldCon) or 0
+    local newCon = dbot.tonumber(tmpCon) + currentCon
+    inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldCon, newCon)
+    dbot.debug("tmpCon = \"" .. tmpCon .. "\"")
   end -- if
 
   if (inflicts ~= nil) then
@@ -10653,6 +10710,11 @@ inv.wearLoc[invWearableLocAbove]     = "above"
 inv.wearLoc[invWearableLocPortal]    = "portal"
 inv.wearLoc[invWearableLocSleeping]  = "sleeping"
 inv.wearLoc[invWearableLocReady]     = "ready"
+
+-- Aard is a bit inconsistent with the "ready" location.  Items such as quivers report their wearable
+-- location as "ready" in identify but you can't wear an item at the "ready" location.  Instead, you
+-- must wear it at the "readied" location.  Ugh.  This is a work-around for that issue.
+invWearableLocReadyWorkaround = "readied"
 
 
 inv.wearables = { light    = { "light" },
@@ -16961,7 +17023,6 @@ invTagsForget    = "forget"
 invTagsNotify    = "notify"
 invTagsCache     = "cache"
 invTagsVersion   = "version"
-invTagsAutoQueue = "autoQueue"
 invTagsHelp      = "help"
 
 inv.tags.modules = invTagsBuild     .. " " ..
@@ -16985,7 +17046,6 @@ inv.tags.modules = invTagsBuild     .. " " ..
                    invTagsNotify    .. " " ..
                    invTagsCache     .. " " ..
                    invTagsVersion   .. " " ..
-                   invTagsAutoQueue .. " " ..
                    invTagsHelp
 
 
@@ -17311,7 +17371,7 @@ end -- inv.tags.cleanup.info
 -- inv.consume.addCR() -- async so that we can appraise the new item
 -- inv.consume.remove(typeName, itemName)
 -- inv.consume.display(typeName) -- if typeName is missing, display all types
--- inv.consume.displayType(typeName)
+-- inv.consume.displayType(typeName, isOwned)
 --
 -- inv.consume.buy(typeName, numItems, containerName)
 -- inv.consume.buyCR() -- async so that we can run to the shopkeeper
@@ -17575,9 +17635,14 @@ end -- inv.consume.remove
 -- If typeName is nil or "", display all types in the table
 function inv.consume.display(typeName)
   local retval = DRL_RET_SUCCESS
-
   local numEntries = 0
-  if (typeName ~= nil) and (typeName ~= "") then
+
+  local isOwned = false
+  if (typeName == "owned") then
+    isOwned = true
+  end -- if
+
+  if (typeName ~= nil) and (typeName ~= "") and (not isOwned) then
     numEntries = inv.consume.displayType(typeName)
   else
     local sortedTypes = {}
@@ -17587,7 +17652,7 @@ function inv.consume.display(typeName)
     table.sort(sortedTypes, function (v1, v2) return v1 < v2 end)
 
     for _, itemType in ipairs(sortedTypes) do
-      numEntries = numEntries + inv.consume.displayType(itemType)
+      numEntries = numEntries + inv.consume.displayType(itemType, isOwned)
     end -- for
   end -- if
 
@@ -17600,7 +17665,7 @@ function inv.consume.display(typeName)
 end -- inv.consume.display
 
 
-function inv.consume.displayType(typeName)
+function inv.consume.displayType(typeName, isOwned)
   local numEntries = 0
 
   if (inv.consume.table == nil) or (typeName == nil) or (typeName == "") or 
@@ -17610,7 +17675,9 @@ function inv.consume.displayType(typeName)
     return numEntries, DRL_RET_MISSING_ENTRY
   end -- if
 
-  dbot.print(string.format("\n@W@C%-10s@W Level   Room  # Avail  Name", (typeName or "nil")))
+  local header = string.format("\n@W@C%-10s@W Level   Room  # Avail  Name", (typeName or "nil"))
+  local didPrintHeader = false
+
   if (inv.consume.table[typeName] ~= nil) then
     for _, entry in ipairs(inv.consume.table[typeName]) do
       local count = 0
@@ -17630,8 +17697,14 @@ function inv.consume.displayType(typeName)
         countColor = "@M" 
       end -- if
 
-      dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
-                 (entry.level or 0), (entry.room or 0), countColor, count, (entry.name or "nil")))
+      if (isOwned == nil) or (isOwned == false) or (isOwned and (count > 0)) then
+        if (not didPrintHeader) then
+          dbot.print(header)
+          didPrintHeader = true
+        end -- if
+        dbot.print(string.format("             %3d  %5d     %s%4d@w  %s",
+                   (entry.level or 0), (entry.room or 0), countColor, count, (entry.name or "nil")))
+      end -- if
       numEntries = numEntries + 1
     end -- for
   end -- if
@@ -18805,13 +18878,17 @@ end -- dbot.mergeFields
 function dbot.arrayConcat(array1, array2)
   local mergedArray = {}
 
-  for _, entry in ipairs(array1) do
-    table.insert(mergedArray, entry)
-  end -- for
+  if (array1 ~= nil) then
+    for _, entry in ipairs(array1) do
+      table.insert(mergedArray, entry)
+    end -- for
+  end -- if
 
-  for _, entry in ipairs(array2) do
-    table.insert(mergedArray, entry)
-  end -- for
+  if (array2 ~= nil) then
+    for _, entry in ipairs(array2) do
+      table.insert(mergedArray, entry)
+    end -- for
+  end -- if
 
   return mergedArray
 end -- dbot.arrayConcat
@@ -18921,6 +18998,50 @@ function dbot.deleteTimer(name)
 
   return retval
 end -- dbot.deleteTimer
+
+
+----------------------------------------------------------------------------------------------------
+-- dbot.commLog sends the given string parameter to the communication log window
+----------------------------------------------------------------------------------------------------
+
+function dbot.commLog(msg)
+  local clPlugin   = "b555825a4a5700c35fa80780"
+  local clFunction = "storeFromOutside"
+
+  if (msg == nil) or (msg == "") then
+    dbot.warn("dbot.commLog: Missing message parameter")
+    return DRL_RET_INVALID_PARAMS
+  end -- if
+
+  local retval = DRL_RET_INTERNAL_ERROR
+  local mushRetval = CallPlugin(clPlugin, clFunction, msg)
+
+  if (mushRetval == error_code.eNoSuchPlugin) then
+    dbot.warn("dbot.commLog: target plugin does not exist")
+
+  elseif (mushRetval == error_code.ePluginDisabled) then
+    dbot.warn("dbot.commLog: target plugin is disabled")
+
+  elseif (mushRetval == error_code.eNoSuchRoutine) then
+    dbot.warn("dbot.commLog: target routine does not exist")
+
+  elseif (mushRetval == error_code.eErrorCallingPluginRoutine) then
+    dbot.warn("dbot.commLog: error calling plugin routine")
+
+  elseif (mushRetval == error_code.eBadParameter) then
+    dbot.warn("dbot.commLog: bad parameter detected")
+    retval = DRL_RET_INVALID_PARAM
+
+  elseif (mushRetval == error_code.eOK) then
+    retval = DRL_RET_SUCCESS
+
+  else
+    dbot.warn("dbot.commLog: Unknown return value from CallPlugin: " .. (mushRetval or "nil"))
+
+  end -- if
+
+  return retval
+end -- dbot.commLog
 
 
 ----------------------------------------------------------------------------------------------------
@@ -19348,6 +19469,10 @@ end -- dbot.error
 --  dbot.gmcp.getRoomId
 --  dbot.gmcp.getTier
 --
+--  dbot.gmcp.getHp()
+--  dbot.gmcp.getMana()
+--  dbot.gmcp.getMoves()
+--
 --  dbot.gmcp.isGood
 --  dbot.gmcp.isNeutral
 --  dbot.gmcp.isEvil
@@ -19561,6 +19686,84 @@ function dbot.gmcp.getTier()
   return myTier
 
 end -- dbot.gmcp.getTier
+
+
+function dbot.gmcp.getHp()
+  local charVitals, charMaxStats
+  local currentHp = 0
+  local maxHp = 0
+
+  if dbot.gmcp.isInitialized then
+    charVitals = gmcp("char.vitals")
+    if (charVitals ~= nil) and (charVitals.hp ~= nil) then
+      currentHp = tonumber(charVitals.hp)
+    end -- if
+
+    charMaxStats = gmcp("char.maxstats")
+    if (charMaxStats ~= nil) and (charMaxStats.maxhp ~= nil) then
+      maxHp = tonumber(charMaxStats.maxhp)
+    end -- if
+
+  else
+    dbot.note("dbot.gmcp.getTier: GMCP is not initialized")
+
+  end -- if
+
+  return currentHp, maxHp
+
+end -- dbot.gmcp.getHp
+
+
+function dbot.gmcp.getMana()
+  local charVitals, charMaxStats
+  local currentMana = 0
+  local maxMana = 0
+
+  if dbot.gmcp.isInitialized then
+    charVitals = gmcp("char.vitals")
+    if (charVitals ~= nil) and (charVitals.mana ~= nil) then
+      currentMana = tonumber(charVitals.mana)
+    end -- if
+
+    charMaxStats = gmcp("char.maxstats")
+    if (charMaxStats ~= nil) and (charMaxStats.maxmana ~= nil) then
+      maxMana = tonumber(charMaxStats.maxmana)
+    end -- if
+
+  else
+    dbot.note("dbot.gmcp.getTier: GMCP is not initialized")
+
+  end -- if
+
+  return currentMana, maxMana
+
+end -- dbot.gmcp.getMana
+
+
+function dbot.gmcp.getMoves()
+  local charVitals, charMaxStats
+  local currentMoves = 0
+  local maxMoves = 0
+
+  if dbot.gmcp.isInitialized then
+    charVitals = gmcp("char.vitals")
+    if (charVitals ~= nil) and (charVitals.moves ~= nil) then
+      currentMoves = tonumber(charVitals.moves)
+    end -- if
+
+    charMaxStats = gmcp("char.maxstats")
+    if (charMaxStats ~= nil) and (charMaxStats.maxmoves ~= nil) then
+      maxMoves = tonumber(charMaxStats.maxmoves)
+    end -- if
+
+  else
+    dbot.note("dbot.gmcp.getTier: GMCP is not initialized")
+
+  end -- if
+
+  return currentMoves, maxMoves
+
+end -- dbot.gmcp.getMoves
 
 
 function dbot.gmcp.isGood()
@@ -21722,7 +21925,7 @@ function dbot.execute.queue.fence()
 
   -- Add a one-shot trigger to catch the fence message that we will echo to the mud
   check (AddTriggerEx(dbot.execute.trigger.fenceName,
-                      "^.*" .. uniqueString .. ".*$",
+                      "^" .. uniqueString .. "$",
                       "dbot.execute.fenceIsDetected = true",
                       drlTriggerFlagsBaseline + trigger_flag.OneShot + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11, 0, "", "", sendto.script, 0))
@@ -22369,151 +22572,6 @@ function dbot.version.update.releaseCR()
   return inv.tags.stop(invTagsVersion, endTag, retval)
 
 end -- dbot.version.update.releaseCR
-
-
-----------------------------------------------------------------------------------------------------
--- dbot.autoQueue: Module to repeatedly execute a command under a specific set of circumstances
---
--- dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
--- dbot.autoQueueCR()
---
--- Note: The "state" parameter refers to a gmcp state, such as dbot.stateActive or dbot.stateCombat
---
--- Note2: If the character's room changes before the queue completes, the queue is aborted
---
-----------------------------------------------------------------------------------------------------
-
-dbot.autoQueueEnabled  = "enabled"
-dbot.autoQueueDisabled = "disabled"
-dbot.autoQueueHalted   = "halted"
-dbot.autoQueueState    = dbot.autoQueueEnabled
-dbot.autoQueuePkg = nil
-function dbot.autoQueue(command, maxCommands, commandTimeout, totalTimeout, state, endTag)
-  local numMaxCommands    = tonumber(maxCommands or "")
-  local numCommandTimeout = tonumber(commandTimeout or "")
-  local numTotalTimeout   = tonumber(totalTimeout or "")
-  local startRoom         = dbot.gmcp.getRoomId()
-
-  if (command == nil) or (numMaxCommands == nil) or (numCommandTimeout == nil) or (numTotalTimeout == nil) then
-    dbot.warn("dbot.autoQueue: Invalid parameters")
-    return inv.tags.stop(invTagsAutoQueue, endTag, DRL_RET_INVALID_PARAM)
-  end -- if
-
-  if (dbot.autoQueuePkg ~= nil) then
-    dbot.info("Skipping auto queue request: another request is in progress")
-    return inv.tags.stop(invTagsAutoQueue, endTag, DRL_RET_BUSY)
-  end -- if
-
-  dbot.autoQueuePkg                = {}
-  dbot.autoQueuePkg.command        = command
-  dbot.autoQueuePkg.maxCommands    = numMaxCommands
-  dbot.autoQueuePkg.commandTimeout = numCommandTimeout
-  dbot.autoQueuePkg.totalTimeout   = numTotalTimeout
-  dbot.autoQueuePkg.startRoom      = startRoom
-  dbot.autoQueuePkg.state          = state
-  dbot.autoQueuePkg.endTag         = endTag
-
-  dbot.autoQueueState = dbot.autoQueueEnabled
-
-  wait.make(dbot.autoQueueCR)
-
-  return DRL_RET_SUCCESS
-end -- drlAutoQueue
-
-
-dbot.autoQueueFence    = "Fence: auto queue"
-dbot.autoQueueFenceIdx = 1
-function dbot.autoQueueCR()
-  if (dbot.autoQueuePkg == nil) then
-    dbot.warn("dbot.autoQueueCR: package is nil!?!")
-    return DRL_INTERNAL_ERROR
-  end -- if
-
-  local retval    = DRL_RET_SUCCESS
-  local endTag    = dbot.autoQueuePkg.endTag
-  local startRoom = dbot.autoQueuePkg.startRoom
-  local stateName = dbot.stateNames[dbot.autoQueuePkg.state] or "unknown"
-  local startTime = dbot.getTime()
-  local numCmds   = 1
-
-  dbot.debug("Running up to " .. dbot.autoQueuePkg.maxCommands .. " instances of \"" ..
-             dbot.autoQueuePkg.command .. "\", timeouts=" .. dbot.autoQueuePkg.commandTimeout ..
-             "/" .. dbot.autoQueuePkg.totalTimeout)
-            
-  while (dbot.autoQueueState == dbot.autoQueueEnabled) do
-    local fence = dbot.autoQueueFence .. " " .. dbot.autoQueueFenceIdx
-    local iterInfo = "@C" .. dbot.autoQueuePkg.command .. " @W" .. numCmds .. "@w/@W" ..
-                     dbot.autoQueuePkg.maxCommands
-    local haltInfo = "@C" .. dbot.autoQueuePkg.command .. "@W"
-    local currentState = dbot.gmcp.getState() or "Unknown"
-    dbot.autoQueueFenceIdx = dbot.autoQueueFenceIdx + 1
-
-    -- I don't like one-off work-arounds, but here is one anyway...It is a common situation to want to
-    -- use a series of combat commands.  However, the auto queue won't run combat commands if we are in
-    -- the active state.  As a result, the user would need to engage a mob (or mobs) manually and then
-    -- kick off the auto queue to continue combat.  The work-around below allows the queue to execute one
-    -- iteration if the user currently is in the active state and the queue runs in the combat state.
-    -- That allows the user to initiate combat with a command in the auto queue.  IMPORTANT: starting the
-    -- auto queue should *always* be done manually and never with a trigger -- that could potentially be
-    -- botting.
-    local useCombatKickstart = false
-    if (currentState == dbot.stateActive) and 
-       (dbot.autoQueuePkg.state == dbot.stateCombat) and
-       (numCmds == 1) then
-      useCombatKickstart = true
-    end -- if
-
-    -- Execute the next command in the queue if we are still in our starting room and haven't changed state.
-    -- Otherwise, halt the queue because we don't want to "bot" by changing rooms in the middle of the
-    -- series of commands.
-    if (startRoom ~= dbot.gmcp.getRoomId()) then
-      dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y You changed rooms")
-      dbot.autoQueueState = dbot.autoQueueDisabled
-      retval = DRL_RET_HALTED
-
-    elseif (currentState ~= dbot.autoQueuePkg.state) and (not useCombatKickstart) then
-      dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y You are not in the @G" .. stateName ..
-                "@Y state")
-      dbot.autoQueueState = dbot.autoQueueDisabled
-      retval = DRL_RET_HALTED
-
-    else
-      dbot.debug("@YAuto queue @Wstarted   " .. iterInfo)
-
-      check (Execute(dbot.autoQueuePkg.command))
-      check (Execute("echo " .. fence))
-
-      local line, wildcards = wait.regexp("^" .. fence .. "$",
-                                          dbot.autoQueuePkg.commandTimeout,
-                                          trigger_flag.OmitFromOutput)
-
-      if (line == nil) or (line == "") or (dbot.getTime() - startTime > dbot.autoQueuePkg.totalTimeout) then
-        dbot.info("@YAuto queue @WHALTED    " .. haltInfo .. "@Y Request timed out")
-        dbot.autoQueueState = dbot.autoQueueDisabled
-        retval = DRL_RET_TIMEOUT
-
-      else
-        dbot.info("@YAuto queue @Wcompleted " .. iterInfo)
-
-        -- Break if we completed all of the requested commands
-        if (numCmds >= dbot.autoQueuePkg.maxCommands) then        
-          dbot.autoQueueState = dbot.autoQueueDisabled
-        end -- if
-      end -- if
-
-    end -- if
-
-    numCmds = numCmds + 1
-
-  end -- while
-
-  if (dbot.autoQueueState == dbot.autoQueueHalted) then
-    retval = DRL_RET_HALTED
-  end -- if
-
-  dbot.autoQueuePkg = nil
-  return inv.tags.stop(invTagsAutoQueue, endTag, retval)
-end -- dbot.autoQueueCR
 
 
 ]]>
