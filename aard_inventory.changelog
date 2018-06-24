@@ -1,6 +1,7 @@
 
 dbot.changelog = {}
 
+
 dbot.changelog[2.0045] =
 {
   { change = drlDbotChangeLogTypeFix,
