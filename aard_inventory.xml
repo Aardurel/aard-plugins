@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0045"
+   version="2.0046"
    >
 <description trim="y">
 <![CDATA[
@@ -14390,7 +14390,7 @@ function inv.set.displaySet(setName, level, equipSet)
 
       dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
                  "): @GLevel " .. 
-                 string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel or "Unknown")) ..
+                 string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel) or 0) ..
                  "@W \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. "\"")
     end -- if
   end -- for
@@ -14922,7 +14922,7 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- if
 
 --FIXME TODO: allow user to request report to a channel?
---  check (Execute("gtell " .. reportStr))
+--check (Execute("gtell " .. reportStr))
 
   return didFindAStat, DRL_RET_SUCCESS
 end -- inv.set.setDisplay
