@@ -4607,15 +4607,14 @@ we stopped before the instructions said to consume a big fly.]
 
 This looks promising.  Let's add several potions for a new type called "@Cmana@W".
 We start with one potion at the Aylor shop and then run to a shop in the Seekers' clan
-area.  You can specify the shop item either by keyword or by the shop's item number.
-It is probably easiest to just use the number and that is what we do at the Seekers'
-shop below.
+area.
+
 "@Grecall; runto potion@W"
 "@Gdinv consume add mana rush@W"
 "@Grecall; runto seekers; e@W"
-"@Gdinv consume add mana 1@W"
-"@Gdinv consume add mana 6@W"
-"@Gdinv consume add mana 16@W"
+"@Gdinv consume add mana stem@W"
+"@Gdinv consume add mana seed@W"
+"@Gdinv consume add mana bud@W"
 
 Let's display all of our consumable types and instances of those types.  The
 output shown below is for my favorite set of items.  You can run to whatever shops
