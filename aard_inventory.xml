@@ -6322,8 +6322,8 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
   -- put the item back to its original location once we finish identifying it.
   local objLoc = inv.items.getField(objId, invFieldObjLoc)
   if (objLoc == nil) or (objLoc == invItemLocUninitialized) then
-    dbot.warn("inv.items.identifyItem: Failed to identify item " .. objId .. 
-              ": item's location could not be determined")
+    dbot.debug("inv.items.identifyItem: Failed to identify item " .. objId .. 
+               ": item's location could not be determined")
     inv.items.table[objId] = nil
     return DRL_RET_MISSING_ENTRY
   end -- if
@@ -7057,8 +7057,8 @@ function inv.items.getItem(objId, commandArray)
   end -- if
 
   if (itemLoc == nil) then
-    dbot.error("inv.items.getItem: item location for objId " .. objId .. " is missing")
-    retval = DRL_RET_INTERNAL_ERROR
+    dbot.debug("inv.items.getItem: item location for objId " .. objId .. " is missing")
+    retval = DRL_RET_MISSING_ENTRY
   else
     local itemLocNum = tonumber(itemLoc)
 
@@ -7683,8 +7683,11 @@ function inv.items.wearItem(objId, targetLoc, commandArray, doCheckLocation)
     -- Start with the item in your main inventory
     retval = inv.items.getItem(objId, commandArray)
     if (retval ~= DRL_RET_SUCCESS) then
-      dbot.warn("inv.items.wearItem: Failed to get item \"" .. itemName .. "\": " .. 
-                dbot.retval.getString(retval))
+      if (retval ~= DRL_RET_MISSING_ENTRY) then
+        dbot.warn("inv.items.wearItem: Failed to get item \"" .. itemName .. "\": " .. 
+                  dbot.retval.getString(retval))
+      end -- if
+
       return retval
     end -- if
   end -- if
@@ -14388,10 +14391,14 @@ function inv.set.displaySet(setName, level, equipSet)
         locColor = "@Y"
       end -- if
 
-      dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
-                 "): @GLevel " .. 
-                 string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel) or 0) ..
-                 "@W \"" .. (inv.items.getField(objId, invFieldColorName) or "Unidentified") .. "\"")
+      local objName = inv.items.getField(objId, invFieldColorName)
+      if (objName ~= nil) and (objName  ~= "") then
+        dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
+                   "): @GLevel " .. 
+                   string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel) or 0) ..
+                   "@W \"" .. objName .. "\"")
+      end -- if
+
     end -- if
   end -- for
 
