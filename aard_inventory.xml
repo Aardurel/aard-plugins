@@ -641,6 +641,16 @@ Feature Wishlist
   </alias>
 
   <alias
+   script="inv.cli.report.fn"
+   match="^[ ]*dinv[ ]+report[ ]+([^ ]+)[ ]+(item|set)[ ]+(.*)?$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
    script="inv.cli.commlog.fn"
    match="^[ ]*dinv[ ]+commlog( .*)?$"
    enabled="y"
@@ -1726,6 +1736,7 @@ function inv.cli.fullUsage()
   inv.cli.ignore.usage()
   inv.cli.notify.usage()
   inv.cli.regen.usage()
+  inv.cli.report.usage()
   inv.cli.reset.usage()
   inv.cli.cache.usage()
   inv.cli.tags.usage()
@@ -2468,7 +2479,7 @@ function inv.cli.set.fn(name, line, wildcards)
              "\", level=" .. level)
 
   if (command == "display") then
-    inv.set.display(priority, level, endTag)
+    inv.set.display(priority, level, nil, endTag)
   elseif (command == "wear") then
     inv.set.createAndWear(priority, level, inv.set.createIntensity, endTag)
   else
@@ -4996,6 +5007,78 @@ Examples:
 end -- inv.cli.help.examples
 
 
+inv.cli.report = {}
+function inv.cli.report.fn(name, line, wildcards)
+  local reportChannel = wildcards[1] or ""
+  local reportType    = wildcards[2] or ""
+  local reportArgs    = wildcards[3] or ""
+
+  local retval = DRL_RET_SUCCESS
+
+  if (reportChannel == "") then
+    dbot.warn("inv.cli.report.fn: Missing target channel")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (reportType == "set") then
+    local _, _, priName, priLevel = string.find(reportArgs, "([^ ]+)[ ]+(%d+)[ ]*")
+
+    if (priName == nil) or (priLevel == nil) then
+      _, _, priName = string.find(reportArgs, "([^ ]+)")
+    end -- if
+
+    dbot.debug("priName=\"" .. (priName or "nil") .. "\", priLevel=\"" .. (priLevel or "nil") .. "\"")
+    inv.set.display(priName, priLevel, reportChannel, nil)
+
+  elseif (reportType == "item") then
+    local relName = string.gsub(reportArgs, "[ ]+.*", "")
+    return inv.report.item(reportChannel, relName)
+
+  else
+    dbot.warn("inv.cli.report.fn: Invalid report type \"" .. (reportType or "nil") .. "\"")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  return DRL_RET_SUCCESS
+end -- inv.cli.report.fn
+
+
+function inv.cli.report.usage()
+  dbot.print("@W    " .. pluginNameCmd ..
+             " report @G<channel> [item <relative name> | set <priority> @Y(level)@G]@w")
+end -- inv.cli.report.usage
+
+
+function inv.cli.report.examples()
+  dbot.print("@W\nUsage:\n")
+  inv.cli.report.usage()
+  dbot.print(
+[[@W
+The @Creport@W mode allows you to report a short summary of an item or set to a channel.
+To report an item, you must either know the item's unique ID or have the item in your
+main inventory.
+
+Examples:
+  1) Echo a summary description of 2.dagger to yourself
+     "@Gdinv report echo item 2.dagger@W"
+
+  2) Brag about your new aura to your group
+     "@Gdinv report gtell item aura@W"
+
+  3) Advertise a kai on barter
+     "@Gdinv report barter item 3.kai@W"
+
+  4) Use an item's unique ID instead of a relative name
+     "@Gdinv report clantalk item 12345678@W"
+
+  5) Report a set summary to your group for priority psi-melee
+     "@Gdinv report gtell set psi-melee@W"
+
+  6) Report an estimated set summary for priority psi-melee at level 100
+     "@Gdinv report echo set psi-melee 100@W"
+]])
+
+end -- inv.cli.report.examples
 
 
 inv.cli.commlog = {}
@@ -5805,7 +5888,7 @@ function inv.items.ignoreCR()
     elseif (#idArray > 1) then
       dbot.warn("inv.items.ignoreCR: More than one item matched container \"" ..
                 inv.items.ignorePkg.container .. "\"")
-      retval = DRL_INTERNAL_ERROR
+      retval = DRL_RET_INTERNAL_ERROR
     end -- if
 
     local containerId = ""
@@ -6333,6 +6416,15 @@ function inv.items.identifyItem(objId, idCommand, resultData, commandArray)
               ": another identification is in progress")
     return DRL_RET_BUSY
   end -- if
+
+  -- Clear out fields that may be left over from a previous identification.  Otherwise, we may
+  -- be left with incorrect values if a temper or envenom added stats to the item previously.
+  inv.items.setStatField(objId, invStatFieldStr, 0)
+  inv.items.setStatField(objId, invStatFieldInt, 0)
+  inv.items.setStatField(objId, invStatFieldWis, 0)
+  inv.items.setStatField(objId, invStatFieldDex, 0)
+  inv.items.setStatField(objId, invStatFieldCon, 0)
+  inv.items.setStatField(objId, invStatFieldLuck, 0)
 
   -- Use globals to hold state for the identify triggers
   inv.items.identifyPkg         = {}
@@ -8632,7 +8724,73 @@ function inv.items.displayCR()
 end -- inv.items.displayCR
 
 
-function inv.items.displayItem(objId, verbosity, wearableLoc)
+function inv.items.reportItem(channel, name, level, itemType, itemTable)
+  if (itemTable == nil) then
+    dbot.warn("inv.items.reportItem: itemTable is missing")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (channel == nil) or (channel == "") then
+    dbot.warn("inv.items.reportitem: channel is missing")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (level == nil) or (level == "") then
+    dbot.warn("inv.items.reportitem: level is missing")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (itemType == nil) or (itemType == "") then
+    dbot.warn("inv.items.reportitem: itemType is missing")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  local colorIndex = 1
+  local colorScheme = { { light = "@x083", dark = "@x002" },
+                        { light = "@x039", dark = "@x025" },
+--                        { light = "@x190", dark = "@x220" },
+--                        { light = "@x255", dark = "@x242" },
+--                        { light = "@x039", dark = "@x105" },
+--                        { light = "@x144", dark = "@x136" },
+--                        { light = "@R", dark = "@r" },
+                      }
+  
+  local reportStr = (name or "Unidentified") .. "@c [@WL" .. level .. " " ..
+                    Trim(itemType) .. "@c] @W: "
+
+  for _, block in ipairs(itemTable) do
+    for key, value in pairs(block) do
+      if ((value ~= 0) and (value ~= "0") and (value ~= "") and (value ~= "none")) or
+         (((value == 0) or (value == "0")) and (key == "Wgt")) then
+
+        local currentColors = colorScheme[colorIndex]
+        local numVal = tonumber(value or "")
+
+        reportStr = reportStr .. currentColors.dark .. key .. currentColors.light
+        if (numVal == nil) then
+          reportStr = reportStr .. value .. " "
+        else
+          reportStr = reportStr .. math.floor(numVal) .. " "
+        end -- if
+
+        if (colorIndex == #colorScheme) then
+          colorIndex = 1
+        else
+          colorIndex = colorIndex + 1
+        end -- if
+
+      end -- if
+    end -- for
+  end -- for
+
+  Execute(channel .. " " .. reportStr .. "@w")
+
+  return DRL_RET_SUCCESS
+
+end -- inv.items.reportItem
+
+
+function inv.items.displayItem(objId, verbosity, wearableLoc, channel)
   if (objId == nil) then
     dbot.warn("inv.items.displayItem: objId is nil")
     return DRL_RET_INVALID_PARAMETER
@@ -8769,7 +8927,7 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
       idPrefix = DRL_ANSI_GREEN
     else
       dbot.error("inv.items.displayItem: Invalid identify level state detected: idLevel")
-      return DRL_INTERNAL_ERROR
+      return DRL_RET_INTERNAL_ERROR
     end -- if
 
     formattedId = "(" .. objId .. ") "
@@ -8833,15 +8991,24 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
   -- Format the output for the item's stat display
   local header
   local statLine
+  local reportLine = ""
   if (typeField == invmon.typeStr[invmonTypePotion]) or 
      (typeField == invmon.typeStr[invmonTypePill]) or 
      (typeField == invmon.typeStr[invmonTypeScroll]) then
     header = "@WLvl Name of " .. formattedType .. "Type    Lvl  # Spell name@w"
     local spellDetails = ""
+    local spellReport = ""
     for i,v in ipairs(spells) do
       spellDetails = string.format("%s%3d x%1d %s ", spellDetails, v.level, v.count, v.name)
+      spellReport = spellReport .. " L" .. v.level .. " x" .. v.count .. " " .. v.name
     end -- for
     statLine = string.format("@W%3d@w %s%s%s", level, formattedName, typeExtended, spellDetails)
+
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { Spells = spellReport } })
+    end -- if
 
   -- We don't display # of charges for wands and staves.  First, invitem isn't triggered when you
   -- use a staff or wand so it would be a bit of a pain to try to trigger on each brandish/zap, find
@@ -8856,10 +9023,17 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
          (typeField == invmon.typeStr[invmonTypeStaff]) then
     header = "@WLvl Name of " .. formattedType .. "Type    Lvl  Spell name@w"
     local spellDetails = ""
+    local spellReport = ""
     for i,v in ipairs(spells) do
       spellDetails = string.format("%s%3d  %s ", spellDetails, v.level, v.name)
+      spellReport = spellReport .. " L" .. v.level .. " " .. v.name
     end -- for
     statLine = string.format("@W%3d@w %s%s%s", level, formattedName, typeExtended, spellDetails)
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { Spells = spellReport } })
+    end -- if
 
   elseif (typeField == invmon.typeStr[invmonTypePortal]) then
     header = "@WLvl Name of " .. formattedType ..
@@ -8870,6 +9044,16 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
                              inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3), 
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
                              inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3)) 
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { To = formattedLeadsTo },
+                             { DR = dam }, { HR = hit }, 
+                             { Wgt = weight },
+                             { Str = str }, { Int = int }, { Wis = wis },
+                             { Dex = dex }, { Con = con }, { Lck = luck }
+                           })
+    end -- if
 
   elseif (typeField == invmon.typeStr[invmonTypeContainer]) then
     header = "@WLvl Name of " .. formattedType .. 
@@ -8885,6 +9069,17 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
                              inv.items.colorizeStat(holding, 4), inv.items.colorizeStat(heaviestItem, 3),
                              inv.items.colorizeStat(itemsInside, 3), inv.items.colorizeStat(weightReduction, 4))
 
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { Capacity = capacity }, { WgtPct = weightReduction },
+                             { DR = dam }, { HR = hit }, 
+                             { Str = str }, { Int = int }, { Wis = wis },
+                             { Dex = dex }, { Con = con }, { Lck = luck }
+                           })
+    end -- if
+
+
   elseif (typeField == invmon.typeStr[invmonTypeWeapon]) then
     header = "@WLvl Name of " .. formattedType ..
              "Type     Ave Wgt   HR   DR Dam Type Specials Int Wis Lck Str Dex Con@w"
@@ -8895,10 +9090,23 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
                              damtype, specials,
                              inv.items.colorizeStat(int, 3), inv.items.colorizeStat(wis, 3),
                              inv.items.colorizeStat(luck, 3), inv.items.colorizeStat(str, 3),
-                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3)) 
+                             inv.items.colorizeStat(dex, 3), inv.items.colorizeStat(con, 3))
+
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { Ave = avedam }, { DR = dam }, { HR = hit }, 
+                             { Wgt = weight }, 
+                             { Str = str }, { Int = int }, { Wis = wis },
+                             { Dex = dex }, { Con = con }, { Lck = luck },
+                             { Dam = damtype }, { Special = specials },
+                           })
+    end -- if
+
   elseif (typeField == "Unknown") then
     header = "@WLvl Name of Unknown Item     Type"
     statLine = string.format("@WN/A@w %sItem has not yet been identified", formattedName)
+
   else
     header = "@WLvl Name of " .. formattedType .. 
              "Type       HR   DR Int Wis Lck Str Dex Con Res HitP Mana Move@w"
@@ -8912,15 +9120,27 @@ function inv.items.displayItem(objId, verbosity, wearableLoc)
                              inv.items.colorizeStat(totResists, 3),
                              inv.items.colorizeStat(hp, 4), inv.items.colorizeStat(mana, 4),
                              inv.items.colorizeStat(moves, 4)) 
+
+    if (channel ~= nil) then
+      inv.items.reportItem(channel,
+                           colorName, level, typeExtended,
+                           { { DR = dam }, { HR = hit }, 
+                             { Str = str }, { Int = int }, { Wis = wis },
+                             { Dex = dex }, { Con = con }, { Lck = luck },
+                             { Res = totResists }, { HP = hp }, { MN = mana }, { MV = moves }
+                           })
+    end -- if
   end -- if
 
   -- Dump the stats for this item.  We print a header if we are in full verbosity mode or if this
   -- is the first item of its type to be displayed.
-  if (inv.items.displayLastType ~= typeField) or (verbosity == invDisplayVerbosityFull) then
-  dbot.print("\n" .. header)
-    inv.items.displayLastType = typeField
+  if (channel == nil) then
+    if (inv.items.displayLastType ~= typeField) or (verbosity == invDisplayVerbosityFull) then
+      dbot.print("\n" .. header)
+      inv.items.displayLastType = typeField
+    end -- if
+    dbot.print(statLine)
   end -- if
-  dbot.print(statLine)
 
   -- Return now if the user requested anything except the full view -- everything has been displayed for those
   if (verbosity ~= invDisplayVerbosityFull) then
@@ -9495,7 +9715,7 @@ function inv.items.trigger.itemIdStart(line)
   end -- if
 
   if (inv.items.identifyPkg == nil) then
-    return DRL_INTERNAL_ERROR
+    return DRL_RET_INTERNAL_ERROR
   end -- if
 
   -- Clear the ID level field.  If we detect a partial identification this time, we
@@ -10626,6 +10846,100 @@ function inv.items.timer.idTimeout()
   -- Clean up the identification request
   inv.items.trigger.itemIdEnd()
 end -- inv.items.timer.idTimeout
+
+
+----------------------------------------------------------------------------------------------------
+-- inv.report : report item and set summaries to a channel
+--
+-- Functions:
+--  inv.report.item(channel, name)
+--  inv.report.itemCR()
+--
+----------------------------------------------------------------------------------------------------
+
+inv.report = {}
+
+inv.report.itemPkg = nil
+function inv.report.item(channel, name)
+
+  if (channel == nil) or (channel == "") then
+    dbot.warn("inv.report.item: Missing channel name")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (name == nil) or (name == "") then
+    dbot.warn("inv.report.item: Missing relative name of item to report")
+    return DRL_RET_INVALID_PARAM
+  end -- if
+
+  inv.report.itemPkg         = {}
+  inv.report.itemPkg.channel = channel
+  inv.report.itemPkg.name    = name
+
+  wait.make(inv.report.itemCR)
+
+  return DRL_RET_SUCCESS
+
+end -- inv.report.item
+
+
+function inv.report.itemCR()
+  local retval = DRL_RET_SUCCESS
+
+  if (inv.report.itemPkg == nil) then
+    dbot.warn("inv.report.itemCR: package is nil!?!?")
+    return DRL_RET_INTERNAL_ERROR
+  end -- if
+
+  local channel = inv.report.itemPkg.channel
+  local name    = inv.report.itemPkg.name
+  local idArray
+
+  if (channel == nil) or (channel == "") then
+    dbot.warn("inv.report.itemCR: missing channel parameter")
+    retval = DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (name == nil) or (name == "") then
+    dbot.warn("inv.report.itemCR: missing name parameter")
+    retval = DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (retval == DRL_RET_SUCCESS) then
+    dbot.debug("inv.report.itemCR: channel=\"" .. channel .. "\", name=\"" .. name .. "\"")
+
+    -- If the name is a number, search for an item whose objId matches the number.  Otherwise,
+    -- assume it is a relative name.
+    local objId = tonumber(name)
+    if (objId ~= nil) then
+      idArray, retval = inv.items.searchCR("id " .. objId, true)
+    else
+      idArray, retval = inv.items.searchCR("rname " .. name, true)
+    end -- if
+
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.report.itemCR: failed to search inventory table: " .. dbot.retval.getString(retval))
+
+    elseif (#idArray == 0) then
+      dbot.warn("inv.report.itemCR: No items matched name \"" .. name .. "\"")
+      retval = DRL_RET_MISSING_ENTRY
+
+    elseif (#idArray > 1) then
+      dbot.warn("inv.report.itemCR: More than one item matched name \"" .. name .. "\"")
+      retval = DRL_RET_INTERNAL_ERROR
+
+    else
+      objId = idArray[1]
+      inv.items.displayItem(objId, invDisplayVerbosityBasic, nil, channel)
+
+    end -- if
+    
+  end -- if
+
+  inv.report.itemPkg = nil
+  return retval
+
+end -- inv.report.itemCR
 
 
 ----------------------------------------------------------------------------------------------------
@@ -13717,9 +14031,9 @@ end -- inv.score.set
 -- inv.set.createCR()
 -- inv.set.createWithHandicap(priorityName, level, handicap)
 --
--- inv.set.display(priorityName, level, endTag)
+-- inv.set.display(priorityName, level, channel, endTag)
 -- inv.set.displayCR()
--- inv.set.displaySet(setName, level, equipSet)
+-- inv.set.displaySet(setName, level, equipSet, channel)
 --
 -- inv.set.createAndWear(priorityName, level, intensity, endTag)
 -- inv.set.createAndWearCR()
@@ -13730,7 +14044,7 @@ end -- inv.score.set
 --
 -- inv.set.get(priorityName, level)
 -- inv.set.getStats(set, level)
--- inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZero)
+-- inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZero, channel)
 --
 -- inv.set.isItemInSet(objId, set)
 --
@@ -14278,7 +14592,7 @@ end -- inv.set.createWithHandicap
 
 
 inv.set.displayPkg = nil
-function inv.set.display(priorityName, level, endTag)
+function inv.set.display(priorityName, level, channel, endTag)
   local retval
   local priorityTable
 
@@ -14309,6 +14623,7 @@ function inv.set.display(priorityName, level, endTag)
   inv.set.displayPkg           = {}
   inv.set.displayPkg.name      = priorityName
   inv.set.displayPkg.level     = level
+  inv.set.displayPkg.channel   = channel
   inv.set.displayPkg.intensity = inv.set.createIntensity
   inv.set.displayPkg.endTag    = endTag
 
@@ -14324,6 +14639,7 @@ function inv.set.displayCR()
 
   local priorityName = inv.set.displayPkg.name or "Unknown"
   local level        = inv.set.displayPkg.level or 0
+  local channel      = inv.set.displayPkg.channel
   local intensity    = inv.set.displayPkg.intensity or inv.set.createIntensity
   local endTag       = inv.set.displayPkg.endTag
 
@@ -14350,7 +14666,7 @@ function inv.set.displayCR()
     end -- if
   end -- while
 
-  retval = inv.set.displaySet(priorityName, level, inv.set.table[priorityName][level])
+  retval = inv.set.displaySet(priorityName, level, inv.set.table[priorityName][level], channel)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.set.displayCR: Failed to display set: " .. dbot.retval.getString(retval))
   end -- if
@@ -14362,7 +14678,7 @@ function inv.set.displayCR()
 end -- inv.set.displayCR
 
 
-function inv.set.displaySet(setName, level, equipSet)
+function inv.set.displaySet(setName, level, equipSet, channel)
   local retval = DRL_RET_SUCCESS
 
   if (setName == nil) or (setName == "") then
@@ -14371,11 +14687,13 @@ function inv.set.displaySet(setName, level, equipSet)
   end -- if
 
   level = tonumber(level or "")
-  if (level == nil) then
-    dbot.print("\n@WEquipment set: \"@C" .. setName .. "@W\"\n")
-  else
-    dbot.print("\n@WEquipment set:    @GLevel " .. string.format("%3d", level) .. 
-               " @C" .. setName .. "@w\n")
+  if (channel == nil) then
+    if (level == nil) then
+      dbot.print("\n@WEquipment set: \"@C" .. setName .. "@W\"\n")
+    else
+      dbot.print("\n@WEquipment set:    @GLevel " .. string.format("%3d", level) .. 
+                 " @C" .. setName .. "@w\n")
+    end -- if
   end -- if
 
   for _,v in pairs(inv.wearLoc) do
@@ -14391,7 +14709,7 @@ function inv.set.displaySet(setName, level, equipSet)
       end -- if
 
       local objName = inv.items.getField(objId, invFieldColorName)
-      if (objName ~= nil) and (objName  ~= "") then
+      if (objName ~= nil) and (objName  ~= "") and (channel == nil) then
         dbot.print(locColor .. "  " .. string.format("%08s", v) .. "@W(" .. string.format("%4d", score) .. 
                    "): @GLevel " .. 
                    string.format("%3d", inv.items.getStatField(objId, invStatFieldLevel) or 0) ..
@@ -14403,8 +14721,11 @@ function inv.set.displaySet(setName, level, equipSet)
 
   local setStats = inv.set.getStats(equipSet, level)
   if (setStats ~= nil) then
-    dbot.print("")
-    inv.set.displayStats(setStats, "", true, true)
+    if (channel == nil) then
+      dbot.print("")
+    end -- if
+    inv.set.displayStats(setStats, "", true, true, channel)
+
   else
     dbot.warn("inv.set.displaySet: Failed to retrieve equipment stats for set \"@C" .. setName .. "@W\"")
     retval = DRL_RET_MISSING_ENTRY
@@ -14732,7 +15053,7 @@ function inv.set.displayDiff(set1, set2, level, msgString, doPrintHeader)
 
   local diffStats = inv.set.diff(set1, set2, level)
 
-  return inv.set.displayStats(diffStats, msgString, doPrintHeader, false)
+  return inv.set.displayStats(diffStats, msgString, doPrintHeader, false, nil)
 end -- inv.set.diffStats
 
 
@@ -14818,7 +15139,7 @@ function inv.set.getStats(set, level)
 end -- inv.set.getStats
 
 
-function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZero)
+function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZero, channel)
   local setStr = DRL_XTERM_GREY .. (msgString or "")
   local totResists = 0
 
@@ -14884,9 +15205,11 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- for
 
   setStr = setStr .. effectStr
-  
-  local colorScheme = { { light = "@x010", dark = "@x002" }, { light = "@x190", dark = "@x220" } }
-  local colorIndex = 1
+
+  local colorIndex = 1 
+  local colorScheme = { { light = "@x083", dark = "@x002" },
+                        { light = "@x039", dark = "@x025" }
+                      }
 
   local reportFormat = { { avedam     = "Ave" },
                          { offhandDam = "Sec" },
@@ -14903,7 +15226,7 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
                          { mana       = "MN"  },
                          { moves      = "MV"  } }
 
-  local reportStr = (msgString or "") .. "@WCapped EQ: "
+  local reportStr = (msgString or "") .. "@WSet: "
 
   for i, statTable in ipairs(reportFormat) do
     for statName, statHdr in pairs(statTable) do
@@ -14920,18 +15243,19 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- for
   reportStr = reportStr .. effectStr
 
-  if (doDisplayIfZero == true) or (didFindAStat == true) then
-    if (doPrintHeader == true) then
-      dbot.print(basicHeader)
+  if (channel ~= nil) then
+    check (Execute(channel .. " " .. reportStr))
+  else
+    if (doDisplayIfZero == true) or (didFindAStat == true) then
+      if (doPrintHeader == true) then
+        dbot.print(basicHeader)
+      end -- if
+      dbot.print(setStr)
     end -- if
-    dbot.print(setStr)
   end -- if
 
---FIXME TODO: allow user to request report to a channel?
---check (Execute("gtell " .. reportStr))
-
   return didFindAStat, DRL_RET_SUCCESS
-end -- inv.set.setDisplay
+end -- inv.set.displayStats
 
 
 function inv.set.isItemInSet(objId, set)
@@ -15665,7 +15989,7 @@ function inv.snapshot.display(snapshotName, endTag)
     return inv.tags.stop(invTagsSnapshot, endTag, DRL_RET_MISSING_ENTRY)  
   end -- if
 
-  retval = inv.set.displaySet(snapshotName, nil, inv.snapshot.table[snapshotName])
+  retval = inv.set.displaySet(snapshotName, nil, inv.snapshot.table[snapshotName], nil)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.snapshot.display: Failed to display snapshot \"@C" .. snapshotName .. 
               "@W\": " .. dbot.retval.getString(retval))
@@ -18672,7 +18996,7 @@ function dbot.shell(shellCommand)
   local ok, error = utils.shellexecute("cmd", "/C " .. shellCommand, GetInfo(64), "open", 0)
   if (not ok) then
     dbot.warn("dbot.shell: Command \"@G" .. shellCommand .. "@W\" failed")
-    retval = DRL_INTERNAL_ERROR
+    retval = DRL_RET_INTERNAL_ERROR
   end -- if
 
   return retval
@@ -18904,7 +19228,7 @@ end -- dbot.arrayConcat
 -- dbot.isPhysical and dbot.isMagical return booleans indicating if the input parameter string is
 -- one of the known physical or magical damage types
 ----------------------------------------------------------------------------------------------------
---FIXME: use these throughout the plugin --v
+
 dbot.physicalTypes = { invStatFieldBash,    invStatFieldPierce,   invStatFieldSlash }
 dbot.magicalTypes =  { invStatFieldAcid,    invStatFieldCold,     invStatFieldEnergy,
                        invStatFieldHoly,    invStatFieldElectric, invStatFieldNegative, 
