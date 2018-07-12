@@ -2,6 +2,29 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0046] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added preliminary @Creport@W mode to report item and set summaries to a channel.  See
+	   "dinv help report" for details.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a potential crash if a set was displayed that included a partially identified item]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug where a tempered or envenomed item's score could include credit for bonus
+           stats after the temper or envenom expired]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Dinv now avoids unnecessary warning and error messages if you attempt to access a snapshot
+           that includes items you no longer possess.  It will wear/display any available items that
+           you still have but it will not complain if you no longer have everything in the snapshot.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Clarified helpfile for @Cconsume@W mode]]
+  }
+}
+
 dbot.changelog[2.0045] =
 {
   { change = drlDbotChangeLogTypeFix,
