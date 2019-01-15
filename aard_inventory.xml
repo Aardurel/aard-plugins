@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0046"
+   version="2.0047"
    >
 <description trim="y">
 <![CDATA[
@@ -279,7 +279,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.search.fn"
-   match="^[ ]*dinv[ ]+search[ ]*(basic|objid|full|raw|)[ ]*(.*?)$"
+   match="^[ ]*dinv[ ]+search[ ]+(basic|objid|full|raw|)[ ]*(.*?)$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -621,26 +621,6 @@ Feature Wishlist
   </alias>
 
   <alias
-   script="inv.cli.regen.fn2"
-   match="^[ ]*(sleep[ ]*$|slee[ ]*$|sle[ ]*$|sl[ ]*$)"
-   enabled="y"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  </alias>
-
-  <alias
-   script="inv.cli.regen.fn2"
-   match="^[ ]*^[ ]*(sleep|slee|sle|sl)([ ]+[^ ]+)[ ]*$"
-   enabled="y"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  </alias>
-
-  <alias
    script="inv.cli.report.fn"
    match="^[ ]*dinv[ ]+report[ ]+([^ ]+)[ ]+(item|set)[ ]+(.*)?$"
    enabled="y"
@@ -667,6 +647,16 @@ Feature Wishlist
    regexp="y"
    send_to="12"
    sequence="100"
+  >
+  </alias>
+
+  <alias
+   script="inv.cli.catchall.fn"
+   match="^[ ]*dinv[ ]+.*$"
+   enabled="y"
+   regexp="y"
+   send_to="12"
+   sequence="10000"
   >
   </alias>
 
@@ -1482,6 +1472,8 @@ function inv.config.init.atActive()
     dbot.execute.fast.command("prompt")
     dbot.execute.queue.fence()
   end -- if
+
+  inv.regen.init()
 
   return retval
 end -- inv.config.init.atActive
@@ -3782,6 +3774,8 @@ function inv.cli.regen.fn(name, line, wildcards)
     dbot.warn("inv.cli.regen.fn: Invalid regen mode \"" .. (regenMode or "nil") .. "\"")
   end -- if
 
+  inv.regen.aliasEnable(inv.config.table.isRegenEnabled)
+
   return inv.config.save()
 
 end -- inv.cli.regen.fn
@@ -3793,7 +3787,6 @@ function inv.cli.regen.fn2(name, line, wildcards)
 
   dbot.debug("sleepLoc is \"" .. sleepLoc .. "\"")
   return inv.regen.onSleep(sleepLoc)
-
 end -- inv.cli.regen.fn2
 
 
@@ -3819,8 +3812,14 @@ if you have multiple regeneration rings, this mode will only attempt to wear one
 sleep.  Your regeneration ring(s) can be in your main inventory or in any open container.  Dinv 
 will find them and put them back when it is done.
 
-Note: This mode will not detect when you sleep if you use an alias to sleep.  In other words, if
+@YNote@W: This mode will not detect when you sleep if you use an alias to sleep.  In other words, if
 you alias sleep to "goNightNight" and then type "goNightNight" you won't auto-wear your regen ring.
+
+@YNote@W: Some custom exits (e.g., fantasy fields) use the "sleep" command to enter a room.  This
+will conflict with the regen mode because that custom exit will not actually put you to sleep. 
+As a result, you will not re-wear your original finger equipment until you sleep and wake.  It
+is recommended that you use " sleep" (add a space before sleep) for custom exits.  The regen
+"sleep" alias will not trigger if one or more spaces is before the sleep command.
 
 Example:
   1) Enable regen mode
@@ -5102,6 +5101,13 @@ function inv.cli.debug.fn(name, line, wildcards)
 
   dbot.commLog("[DINV] " .. params)
 
+end -- inv.cli.debug.fn
+
+
+inv.cli.catchall = {}
+function inv.cli.catchall.fn(name, line, wildcards)
+  dbot.info("Invalid dinv command: \"" .. (line or "nil") .. "\"")
+  inv.cli.fullUsage()
 end -- inv.cli.debug.fn
 
 
@@ -9747,23 +9753,23 @@ function inv.items.trigger.itemIdStats(line)
   isPartialId = string.find(line, "A full appraisal will reveal further information on this item")
 
   _, _, id = string.find(line, "Id%s+:%s+(%d+)%s+")
-  _, _, name = string.find(line, "Name%s+:%s+(.-)%s+|")
+  _, _, name = string.find(line, "Name%s+:%s+(.-)%s*|")
   _, _, level = string.find(line, "Level%s+:%s+(%d+)%s+")
   _, _, weight = string.find(line, "Weight%s+:%s+([0-9,-]+)%s+")
   _, _, wearable = string.find(line, "Wearable%s+:%s+(.*) %s+")
   _, _, score = string.find(line, "Score%s+:%s([0-9,]+)%s+")
-  _, _, keywords = string.find(line, "Keywords%s+:%s+(.-)%s+|")
+  _, _, keywords = string.find(line, "Keywords%s+:%s+(.-)%s*|")
   _, _, itemType = string.find(line, "| Type%s+:%s+(%a+)%s+")
   _, _, rawMaterial = string.find(line, "| Type%s+:%s+(Raw material:%a+)")
 
   _, _, worth = string.find(line, "Worth%s+:%s+([0-9,]+)%s+")
-  _, _, flags = string.find(line, "Flags%s+:%s+(.-)%s+|")
-  _, _, affectMods = string.find(line, "Affect Mods:%s+(.-)%s+|")
-  _, _, continuation = string.find(line, "|%s+:%s+(.-)%s+|")
+  _, _, flags = string.find(line, "Flags%s+:%s+(.-)%s*|")
+  _, _, affectMods = string.find(line, "Affect Mods:%s+(.-)%s*|")
+  _, _, continuation = string.find(line, "|%s+:%s+(.-)%s*|")
   _, _, material = string.find(line, "Material%s+:%s+(.*)%s+")
-  _, _, foundAt = string.find(line, "Found at%s+:%s+(.-)%s+|")
-  _, _, ownedBy = string.find(line, "Owned By%s+:%s+(.-)%s+|")
-  _, _, clan = string.find(line, "Clan Item%s+:%s+(.-)%s+|")
+  _, _, foundAt = string.find(line, "Found at%s+:%s+(.-)%s*|")
+  _, _, ownedBy = string.find(line, "Owned By%s+:%s+(.-)%s*|")
+  _, _, clan = string.find(line, "Clan Item%s+:%s+(.-)%s*|")
 
   -- Potions, pills, wands, and staves
   local spellUses, spellLevel, spellName
@@ -14724,6 +14730,7 @@ function inv.set.displaySet(setName, level, equipSet, channel)
     if (channel == nil) then
       dbot.print("")
     end -- if
+
     inv.set.displayStats(setStats, "", true, true, channel)
 
   else
@@ -15128,7 +15135,9 @@ function inv.set.getStats(set, level)
     for statName in statsWithCaps:gmatch("%S+") do
       if (inv.statBonus.equipBonus[level] ~= nil) and
          (inv.statBonus.equipBonus[level][statName] ~= nil) and
-         (tonumber(setStats[statName] or 0) > inv.statBonus.equipBonus[level][statName]) then         
+         (tonumber(setStats[statName] or 0) > inv.statBonus.equipBonus[level][statName]) then   
+          dbot.debug("inv.set.getStats: capping " .. statName .. " from " .. setStats[statName] .. " to " .. 
+          inv.statBonus.equipBonus[level][statName])      
         setStats[statName] = inv.statBonus.equipBonus[level][statName]
       end -- if   
     end -- for
@@ -16679,12 +16688,21 @@ end -- inv.statBonus.setCR
 function inv.statBonus.setSetupFn()
   -- Run the "stats" command and pick off the current spell bonuses
   check (AddTriggerEx(inv.statBonus.trigger.startName,
-                      "^.*Str.*Int.*Wis.*Dex.*Con.*Luck.*Total.*$",
-                      "EnableTrigger(inv.statBonus.trigger.getName, true)",
+                      "^(.*Str.*Int.*Wis.*Dex.*Con.*Luck.*Total|You are flagged as remorting).*$",
+                      "inv.statBonus.checkRemort(\"%1\")",
                       drlTriggerFlagsBaseline + trigger_flag.OneShot + trigger_flag.OmitFromOutput,
                       custom_colour.Custom11,
                       0, "", "", sendto.script, 0))
 end -- inv.statBonus.setSetupFn
+
+
+function inv.statBonus.checkRemort(line)
+  if (line == "You are flagged as remorting") then
+    dbot.note("Skipping stat bonus check -- You are remorting and the \"stats\" command is not available")
+  else
+    EnableTrigger(inv.statBonus.trigger.getName, true)
+  end -- if
+end -- inv.statBonus.checkRemort
 
 
 inv.statBonus.timer      = {}
@@ -18556,6 +18574,23 @@ inv.regen = {}
 inv.regen.wearableLoc = "lfinger"
 
 
+inv.regen.aliasName = "invRegenAlias"
+function inv.regen.init()
+  AddAlias(inv.regen.aliasName,
+           "^(sleep|slee|sle|sl)([ ]+[^ ]+)?[ ]*$",
+           "",
+           alias_flag.Enabled + alias_flag.RegularExpression,
+           "inv.cli.regen.fn2")
+
+  inv.regen.aliasEnable(inv.config.table.isRegenEnabled)
+end -- inv.regen.init
+
+
+function inv.regen.aliasEnable(enable)
+  EnableAlias(inv.regen.aliasName, enable)
+end -- inv.regen.aliasEnable
+
+
 inv.regen.pkg = nil
 function inv.regen.onSleep(sleepLoc)
 
@@ -18594,11 +18629,15 @@ function inv.regen.onSleepCR()
 
   local sleepCmd = inv.regen.pkg.sleepCmd
 
+  -- Find the user's level.  We don't want to pick a regen item that the user can't wear yet.
+  local userLevel = dbot.gmcp.getLevel() or 0
+  local searchStr = "affectmods regeneration maxLevel " .. userLevel
+
   -- First look if the user has at least one item providing the regeneration effect.  Get an ID array
   -- for all regen items (currently just regen rings have this effect.)
-  local regenIdArray, retval = inv.items.searchCR("affectmods regeneration")
+  local regenIdArray, retval = inv.items.searchCR(searchStr)
   if (retval ~= DRL_RET_SUCCESS) then
-    dbot.warn("inv.regen.onSleep: Failed to find items with regeneration effect: " ..
+    dbot.warn("inv.regen.onSleep: Failed to find wearable items with regeneration effect: " ..
               dbot.retval.getString(retval))
     check (Send(sleepCmd))
     inv.regen.pkg = nil
@@ -18673,17 +18712,23 @@ function inv.regen.onSleepCR()
       dbot.warn("inv.regen.onSleepCR: Failed to wear item \"" .. regenName .. "@W\": " ..
                 dbot.retval.getString(retval))
     else
+
+      -- Sleep after wearing regen item
+      table.insert(commandArray, sleepCmd)
+
+      -- Disable the regen alias while we actually sleep so that we don't recursively sleep/call alias
+      inv.regen.aliasEnable(false)
+
       -- Flush the commands to the mud and wait for confirmation they are complete
       retval = dbot.execute.safe.blocking(commandArray, nil, nil, dbot.callback.default, 10)
       if (retval ~= DRL_RET_SUCCESS) then
         dbot.warn("inv.regen.onSleepCR: Failed to auto-wear regen item: " .. dbot.retval.getString(retval))
       end -- if
+
+      inv.regen.aliasEnable(true)
+
     end -- if
   end -- if
-
-  -- Don't forget to actually go to sleep now...We use Send() instead of one of the execute functions
-  -- because we don't want our alias to catch this sleep and translate it into another onSleep() call.
-  check (Send(sleepCmd))
 
   inv.regen.pkg = nil
   return retval
@@ -22287,6 +22332,7 @@ function dbot.execute.queue.fence()
 
     elseif ((charState ~= dbot.stateActive) and
             (charState ~= dbot.stateCombat) and
+            (charState ~= dbot.stateSleeping) and
             (charState ~= dbot.stateRunning)) then
       dbot.note("Skipping fence request: you are in the \"@C" .. dbot.gmcp.getStateString(charState) ..
                 "@W\" state")

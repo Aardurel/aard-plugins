@@ -2,6 +2,34 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0047] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed bug that potentially lost item flags when identifying some rare items.  If
+           the id output had a flag line with no end space, it was mistakenly skipped.
+           NOTE: Unfortunately, regaining the "lost" flags requires either forgetting and
+           refreshing impacted items or performing a full build again.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed bug that could cause temporary hang during the remort process.  The "stats"
+           command is not available during the remort process and dinv had the potential to
+           stall and timeout if it attempted to check your stats during the remort window.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Updated regen mode to enable/disable the sleep/wake aliases when regen is enabled
+           or disabled.  This avoids a potential conflict with other plugins that sleep.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[There is the potential for a "sleep" custom exit to conflict with the sleep alias
+           enabled by the regen mode.  To work around this, use " sleep" for cexits.  The
+           regen "sleep" alias will no longer trigger if there is a space before "sleep".]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed bug where the regen mode could potentially try to wear a regen ring that was
+           too high a level for the character.]]
+  }
+}
+
 dbot.changelog[2.0046] =
 {
   { change = drlDbotChangeLogTypeNew,
