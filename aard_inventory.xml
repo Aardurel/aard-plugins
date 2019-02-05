@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0047"
+   version="2.0048"
    >
 <description trim="y">
 <![CDATA[
@@ -3234,7 +3234,7 @@ function inv.cli.analyzeCR()
   local endTag       = inv.cli.analyzePkg.endTag
 
   dbot.info("Performing equipment analysis for priority \"@C" .. priorityName .. "@W\"...")
-  dbot.info("This analysis could take up to a minute on a slow system.  Be patient!\n")
+  dbot.info("This analysis can potentially take several minutes.  Be patient!\n")
 
   local resultData = dbot.callback.new()
   retval = inv.analyze.sets(priorityName, 1 + tierLevel, resultData, intensity)
@@ -14092,7 +14092,7 @@ inv.set.createAndWearPkg = nil
 -- We spend more time trying to find optimal sets if we are only looking at one set instead of
 -- a full analysis of 200 sets.  The equipment search will be more rigorous at higher intensities.
 inv.set.analyzeIntensity = 8
-inv.set.createIntensity  = 20
+inv.set.createIntensity  = 16
 
 
 function inv.set.init.atActive()
@@ -14177,14 +14177,6 @@ function inv.set.create(priorityName, level, synchronous, intensity)
     synchronous = drlAsynchronous
   end -- if
 
-  -- This is a rather ugly kludge.  Checking if the char can access the dual wield skill is currently
-  -- the only reason (other than getting current stats) we might need to run asynchronously in a co-routine.
-  -- If we have already cached whether or not the ability is available, we can potentially run the set
-  -- creation synchronously.  If we haven't cached if the ability is available, we must go asynchronous.
-  if (dbot.ability.isCached("dual wield", level) == false) then
-    synchronous = drlAsynchronous
-  end -- if
-
   -- Check if the specified priority exists for the specified level
   priorityTable, retval = inv.priority.get(priorityName, level)
   if (priorityTable == nil) then
@@ -14251,7 +14243,7 @@ function inv.set.createCR()
   -- average for the level, we need to wait for the statBonus timer to complete.  In practice, we
   -- will only stall when we are creating a set for the user's current level.  We can skip this if
   -- the user is creating sets for analysis of other levels.
-    if (inv.set.createPkg.waitForStatBonus == true) then
+  if (inv.set.createPkg.waitForStatBonus == true) then
     -- Give the stat bonus timer a chance to run.  Yes, this is a little awkward and we probably
     -- should use a call-by-reference parameter as a callback mechanism to know when the timer
     -- completes.  This probably isn't as evil as it looks at first glance though.  This is not
@@ -14303,7 +14295,7 @@ function inv.set.createCR()
       local wearLoc
       local itemStruct
 
-      dbot.debug("Updating set based on handicap")
+      dbot.debug("Updating set based on handicap on iteration " .. numIters)
 
       for wearLoc,itemStruct in pairs(newSet) do
         if (bestSet ~= nil) and (bestSet[wearLoc] ~= nil) and (bestSet[wearLoc].id ~= itemStruct.id) then
@@ -14340,6 +14332,11 @@ function inv.set.createCR()
     if (numIters >= intensity) then
       dbot.debug("Breaking out of inv.set.createCR, looped over handicap " .. numIters .. " times")
       break
+    end -- if
+
+    -- Yield periodically so we don't appear to hang the system
+    if (numIters % 3 == 0) then
+      wait.time(0.1)
     end -- if
   until (score < (bestScore * 0.8)) -- Let things anneal a bit, but cut it off if we are < x% of previous best
 
@@ -14425,6 +14422,7 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
     local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
     local objDamType    = inv.items.getStatField(objId, invStatFieldDamType) or ""
+    local objWeaponType = inv.items.getStatField(objId, invStatFieldWeaponType) or ""
 
     -- Strip out commas in the flags to make searching easier
     local objFlags = inv.items.getStatField(objId, invStatFieldFlags) or ""
@@ -14453,9 +14451,15 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
         dbot.debug("Ignoring item " .. objId .. " for set")
 
       -- Check if the item is a weapon with a disallowed damage type
-      elseif (objDamType ~= nil) and (objDamType ~= "") and
+      elseif (objDamType ~= nil) and (objDamType ~= "") and 
              (not inv.priority.damTypeIsAllowed(objDamType, priorityName, level)) then
         -- Skip the current object because it is a weapon with a damtype we don't want
+
+      -- Check if the weapon type is one that the player can use
+      elseif (objWeaponType ~= nil) and (objWeaponType ~= "") and (not dbot.wish.has("Weapons")) and
+             (not dbot.ability.isAvailable(objWeaponType, level)) then
+        dbot.debug("Skipping " .. objWeaponType .. " (" .. objId .. ") -- weapon skill not available")
+        -- Skip the current weapon because the player can't use it
 
       -- The alignment is acceptable, the item isn't ignored, and it doesn't use a disallowed
       -- damage type.  Whew.  Check the other requirements...
@@ -14502,10 +14506,6 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
 
   -- Check if the char has access to dual weapons at this level by checking the char's
   -- class and checking if aard gloves are in the set
-  --
-  -- If the ability is not cached, this will need to be called asynchronously so that we can
-  -- call "showskill" and see at what level the ability is available.  If the ability is cached
-  -- then we can run this synchronously if we wish.
   local dualWieldAvailable = dbot.ability.isAvailable("dual wield", level)
 
   -- Check if the set has aard gloves in it.  If so, we automatically have access to dual wield :)
@@ -14868,7 +14868,7 @@ function inv.set.wear(equipSet)
   -- the equipment (if any) that is already equipped at that location.  However, some locations
   -- are incompatible with each other and we may be forced to store an item to avoid a conflict.
   -- For example, if a set does not have anything at the "second" location but it does include
-  -- a "hold" or "shield" item, them we don't have any choice.  We must store the item that
+  -- a "hold" or "shield" item, then we don't have any choice.  We must store the item that
   -- previously was at the "second" location.  The code below loops through all items to find
   -- all currently equipped items and then stores anything that would be incompatible with the
   -- new set.
@@ -18888,7 +18888,7 @@ dbot.init.initializedInstall = false
 dbot.init.initializedActive  = false
 
 -- storage should be first (to create state directories) and gmcp should be last (so we can save data)
-dbot.modules = "storage emptyLine backup notify ability prompt invmon wish execute pagesize gmcp"
+dbot.modules = "storage emptyLine backup notify prompt invmon wish execute pagesize gmcp"
 
 
 function dbot.init.atInstall()
@@ -21380,58 +21380,39 @@ invmon.typeStr[invmonTypeRunestone]      = "Runestone"
 --
 -- dbot.ability: Module to check if a character has access to a specific skill or spell
 --
--- dbot.ability.init.atInstall()
--- dbot.ability.fini(doSaveState)
+-- Note: Previous releases used a complicated caching scheme based on the output of the showskill
+--       command.  However, aard has now implemented a way to provide a class list via gmcp and
+--       that is what we now do.
 --
 -- dbot.ability.isAvailable
--- dbot.ability.isCached
---
--- dbot.ability.trigger.haveAbilityStart
--- dbot.ability.trigger.haveAbilityLevel
---
--- dbot.ability.setupFn() -- enable the ability trigger during a safe execute call
 --
 ----------------------------------------------------------------------------------------------------
 
--- This function can block so it must be called from a co-routine
-dbot.ability              = {}
-dbot.abilityPkg           = {}
-dbot.ability.init         = {}
-dbot.ability.trigger      = {}
-dbot.ability.isInProgress = false
+dbot.ability = {}
 
-dbot.ability.trigger.startName = "drlDbotAbilityTriggerStart"
-dbot.ability.trigger.levelName = "drlDbotAbilityTriggerLevel"
+-- Aard's gmcp implementation numbers each class from 0-6.  Use the text name here for easier debugging.
+dbot.ability.classes = {}
+dbot.ability.classes["0"] = "mag"
+dbot.ability.classes["1"] = "cle"
+dbot.ability.classes["2"] = "thi"
+dbot.ability.classes["3"] = "war"
+dbot.ability.classes["4"] = "ran"
+dbot.ability.classes["5"] = "pal"
+dbot.ability.classes["6"] = "psi"
 
-
-function dbot.ability.init.atInstall()
-  local retval = DRL_RET_SUCCESS
-
-  -- Trigger on the output of "showskill" and watch for an empty line indicating that we are done
-  check (AddTriggerEx(dbot.ability.trigger.levelName,
-                      "^(.*)$", -- This is only enabled when we confirm we have started the output
-                      "dbot.ability.trigger.levelFn(\"%1\")",
-                      drlTriggerFlagsBaseline + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11,
-                      0, "", "", sendto.script, 0))
-
-  check (EnableTrigger(dbot.ability.trigger.levelName, false)) -- default to off
-
-  return retval
-end -- dbot.ability.init.atInstall
-
-
-function dbot.ability.fini(doSaveState)
-  local retval = DRL_RET_SUCCESS
-
-  dbot.deleteTrigger(dbot.ability.trigger.levelName)
-  dbot.deleteTrigger(dbot.ability.trigger.startName)
-
-  -- NOTE: if we ever add persistent data to this module we should use the doSaveState param to determine
-  -- if we need to save it
-
-  return retval
-end -- dbot.ability.fini
+dbot.ability.table = {}
+dbot.ability.table["dual wield"] = { mag = 201, cle = 201, thi =  29, war =  32, ran =  25, pal =  35, psi = 201 }
+dbot.ability.table["axe"]        = { mag = nil, cle = nil, thi = nil, war =   2, ran =   1, pal = nil, psi = nil }
+dbot.ability.table["bow"]        = { mag = nil, cle = nil, thi = nil, war = nil, ran =   1, pal = nil, psi = nil }
+dbot.ability.table["dagger"]     = { mag =   1, cle = nil, thi =   1, war =   4, ran =   5, pal = nil, psi =  10 }
+dbot.ability.table["flail"]      = { mag = nil, cle =   5, thi = nil, war =   7, ran = nil, pal =   1, psi =  11 }
+dbot.ability.table["hammer"]     = { mag = nil, cle = nil, thi = nil, war =   1, ran = nil, pal = nil, psi = nil }
+dbot.ability.table["mace"]       = { mag = nil, cle =   1, thi =  10, war =   5, ran = nil, pal =   6, psi =   5 }
+dbot.ability.table["polearm"]    = { mag = nil, cle = nil, thi = nil, war =   7, ran =  13, pal =  10, psi = nil }
+dbot.ability.table["spear"]      = { mag =   1, cle = nil, thi = nil, war =  10, ran =  11, pal =  11, psi = nil }
+dbot.ability.table["sword"]      = { mag = nil, cle = nil, thi = nil, war =   1, ran =   2, pal =   2, psi = nil }
+dbot.ability.table["whip"]       = { mag =   5, cle =  10, thi =   3, war =   9, ran =  18, pal =   1, psi =   1 }
+dbot.ability.table["exotic"]     = { mag =   1, cle =   1, thi =   1, war =   1, ran =   1, pal =   1, psi =   1 }
 
 
 function dbot.ability.isAvailable(ability, level)
@@ -21440,140 +21421,49 @@ function dbot.ability.isAvailable(ability, level)
 
   if (ability == nil) or (ability == "") then
     dbot.warn("dbot.ability.isAvailable: missing ability parameter")
-    return DRL_RET_INVALID_PARAM
+    return abilityIsAvailable, DRL_RET_INVALID_PARAM
+  end -- if
+
+  if (dbot.ability.table[ability] == nil) then
+    dbot.warn("dbot.ability.isAvailable: request to check unsupported ability \"" .. ability .. "\"")
+    return abilityIsAvailable, DRL_RET_UNSUPPORTED
   end -- if
 
   if (level == nil) or (tonumber(level) == nil) then
     dbot.warn("dbot.ability.isAvailable: level parameter is not a number")
-    return DRL_RET_INVALID_PARAM
+    return abilityIsAvailable, DRL_RET_INVALID_PARAM
   end -- if
 
-  level = tonumber(level)
+  local reqLevel = tonumber(level)
 
-  if (dbot.ability.isInProgress) then
-    dbot.info("Skipping check for skill or spell availability: another request is in progress")
-    return false, DRL_RET_BUSY
+  local base = gmcp("char.base")
+  if (base == nil) or (base.classes == nil) or (base.classes == "") then
+    dbot.error("dbot.ability.isAvailable: Failed to retrieve class information via gmcp")
+    return abilityIsAvailable, DRL_INTERNAL_ERROR
   end -- if
+  local classList = base.classes
 
-  -- We are starting a new request
-  dbot.ability.isInProgress = true
+  dbot.debug("Checking for \"" .. ability .. "\" @@ level " .. level .. ", classes = \"" .. base.classes .. "\"")
 
-  -- If we already cached whether or not the user has the specified ability, use the cached value.
-  -- Otherwise, call "showskill" and pick out the level at which the ability is available.
-  if dbot.ability.isCached(ability, level) then
-    dbot.debug("Using cached ability useLevel = " .. dbot.abilityPkg.useLevel)
-  else
-    dbot.abilityPkg.ability    = ability
-    dbot.abilityPkg.checkLevel = level
-    dbot.abilityPkg.useLevel   = nil
-
-    -- Kick off the command that will trigger the level availability info
-    local resultData = dbot.callback.new()
-
-    local commandArray = {}
-    table.insert(commandArray, "showskill " .. ability)
-    table.insert(commandArray, "echo " .. dbot.ability.trigger.levelMsg)
-    retval = dbot.execute.safe.commands(commandArray, dbot.ability.setupFn, nil,
-                                        dbot.callback.default, resultData)
-    if (retval == DRL_RET_SUCCESS) then
-      -- Wait for the callback to confirm that the showskill safe command completed
-      retval = dbot.callback.wait(resultData, 10)
-      if (retval ~= DRL_RET_SUCCESS) then
-        dbot.note("Skipping ability \"showskill\" request: " .. dbot.retval.getString(retval))
-      end -- if
-
-      -- Wait for the trigger to find the info
-      local waitForHaveAbilityTimeout = 0
-      local waitForHaveAbilityThreshold = 10
-      while (dbot.abilityPkg.useLevel == nil) do
-        wait.time(drlSpinnerPeriodDefault)
-        waitForHaveAbilityTimeout = waitForHaveAbilityTimeout + drlSpinnerPeriodDefault
-        if (waitForHaveAbilityTimeout > waitForHaveAbilityThreshold) then
-          dbot.error("dbot.ability.isAvailable: Failed to get level availability: timed out")
-          dbot.deleteTrigger(dbot.ability.trigger.startName)
-          abilityIsAvailable = false
-          retval = DRL_RET_TIMEOUT
-          break
-        end -- if
-      end -- while
+  -- For each class in the char's mort list, check if they have access to the skill
+  for classNum in classList:gmatch("%d") do
+    local className = dbot.ability.classes[classNum]
+    if (className == nil) then
+      dbot.error("dbot.ability.isAvailable: Detected invalid class number \"" .. (classNum or "nil") .. "\"")
+      return abilityIsAvailble, DRL_RET_INTERNAL_ERROR
     end -- if
-  end -- if
 
-  -- Check the level info we found
-  if (dbot.abilityPkg.useLevel ~= nil) and 
-     (dbot.abilityPkg.useLevel + (10 * dbot.gmcp.getTier()) <= level) then
+    local classLevel = dbot.ability.table[ability][className]
+    if (classLevel ~= nil) and (reqLevel >= classLevel) then
+      dbot.debug("\"" .. ability .. "\" is available from class \"" .. className .. "\" @@ level " .. classLevel)
       abilityIsAvailable = true
-  end -- if
+      break
+    end -- if
+  end -- for
 
-  -- Clean up and return
-  dbot.ability.isInProgress = false
   return abilityIsAvailable, retval
 
 end -- dbot.ability.isAvailable
-
-
-function dbot.ability.isCached(ability, level)
-  -- Check if we already checked for this ability at a previous level.  If we are at a higher
-  -- level than before and we had the ability before, there is no need to check it again -- we
-  -- don't lose ability as we get higher level.  We could generate a big table for each ability
-  -- but we probably will only use this for one skill (dual wield) so we simply cache just the
-  -- previous ability.  We can extend this later if we want to.  The worst case is that we do
-  -- some extra "showskill" requests.
-  if (dbot.abilityPkg.ability    ~= nil) and (dbot.abilityPkg.ability    == ability) and
-     (dbot.abilityPkg.checkLevel ~= nil) and (dbot.abilityPkg.checkLevel <= level)   and
-     (dbot.abilityPkg.useLevel   ~= nil) then
-    return true
-  else
-    return false
-  end -- if
-end -- dbot.ability.isCached
-
-
-function drlHaveAbilityStartTriggerFn(line)
-  if string.find(line, "is not a valid skill or spell") or string.find(line, "You cannot use this") then
-    dbot.abilityPkg.useLevel = 300 -- we can't use this
-    return
-  end -- if
-
-  -- Enable a trigger to watch for the output of the ability availability output.  The trigger
-  -- will disable itself when it sees a fence message that indicates the output is done.
-  EnableTrigger(dbot.ability.trigger.levelName, true)
-end -- drlHaveAbilityStartTriggerFn
-
-
-dbot.ability.trigger.levelMsg = "DINV showskill fence"
-function dbot.ability.trigger.levelFn(line)
-  local useLevel
-  _, _, useLevel = string.find(line, "Your Level%s+:%s+(%d+)")
-
-  -- If we our fence echo message, we know that the output is done and we can disable this trigger
-  if (line == dbot.ability.trigger.levelMsg) then
-    EnableTrigger(dbot.ability.trigger.levelName, false)
-
-  -- If we can't use the skill, set the useLevel out of reach
-  elseif string.find(line, "You cannot use this") then
-    dbot.abilityPkg.useLevel = 300 
-
-  -- Check if we found our level in a line like: "Your Level   : 22                    Learned:  95% "
-  elseif (useLevel ~= nil) and (tonumber(useLevel) ~= nil) then
-    dbot.abilityPkg.useLevel = tonumber(useLevel) or 300
-  
-  end -- if
-end -- dbot.ability.trigger.levelFn
-
-
-function dbot.ability.setupFn()
-  -- Add a trigger series that will pull out the level at which the character can use the ability
-  check (AddTriggerEx(dbot.ability.trigger.startName,
-                      "^.*(" ..
-                           "------------------------------------------------------|" ..
-                           "is not a valid skill or spell" ..
-                      ").*$",
-                      "drlHaveAbilityStartTriggerFn(\"%1\")",
-                      drlTriggerFlagsBaseline + trigger_flag.OneShot + trigger_flag.OmitFromOutput,
-                      custom_colour.Custom11,
-                      0, "", "", sendto.script, 0))
-end -- dbot.ability.setupFn
 
 
 ----------------------------------------------------------------------------------------------------

@@ -2,6 +2,30 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0048] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug where dinv could mistakenly think you still had access to dual wield
+           if you tier without logging out/in.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Updated dinv to check if you have access to a particular weapon skill before
+           choosing that weapon for an equipment set.  Note that dinv does not check if you
+           have a weapon skill practiced -- that's up to you -- but dinv will no longer
+           select a weapon for you that is not even available to you at your current mort.
+           Also, note that weapons selected during an analysis are chosen based on weapon
+           skills available at the time the analysis is created.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Tweaked set creation settings to be slightly faster and more responsive if the
+           user sends commands to the mud while the set is being created.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Updated ability checking module (e.g., "dual wield") to use aard's new gmcp class
+           information instead of relying on an asynchronous call to "showskill".]]
+  }
+}
+
 dbot.changelog[2.0047] =
 {
   { change = drlDbotChangeLogTypeFix,
