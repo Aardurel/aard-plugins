@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0048"
+   version="2.0049"
    >
 <description trim="y">
 <![CDATA[
@@ -160,7 +160,7 @@ Usage
 
   Using equipment items
     dinv consume [add | remove | display | buy | small | big] <type> <name or quantity> <container>
-    dinv portal [use] <portal object ID>
+    dinv portal [use] <query>
     dinv pass <pass ID> <# of seconds>
 
   Plugin info
@@ -562,7 +562,7 @@ Feature Wishlist
 
   <alias
    script="inv.cli.portal.fn"
-   match="^[ ]*dinv[ ]+portal[ ]+(use)[ ]+([0-9]+)[ ]*$"
+   match="^[ ]*dinv[ ]+portal[ ]+(use)[ ]+(.*?)$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -4418,7 +4418,7 @@ end -- inv.cli.reload.examples
 inv.cli.portal = {}
 function inv.cli.portal.fn(name, line, wildcards)
   local command = wildcards[1] or ""
-  local portalId = tonumber(wildcards[2] or "")
+  local portalQuery = wildcards[2] or ""
 
   if (not inv.init.initializedActive) then
     dbot.info("Skipping portal request: plugin is not yet initialized (are you AFK or sleeping?)")
@@ -4428,17 +4428,14 @@ function inv.cli.portal.fn(name, line, wildcards)
     return DRL_RET_NOT_ACTIVE
   end -- if
 
-  if (portalId == nil) then
-    dbot.warn("inv.cli.portal.fn: portalId parameter is not a number")
-  else
-    dbot.debug("CLI: " .. pluginNameCmd .. " portal " .. command .. " " .. portalId)
-    inv.portal.use(portalId)
-  end -- if
+  dbot.debug("CLI: " .. pluginNameCmd .. " portal " .. command .. " " .. portalQuery)
+  inv.portal.use(portalQuery)
+
 end -- inv.cli.portal.fn
 
 
 function inv.cli.portal.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " portal @G[use] <portal object ID>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " portal @G[use] <query>@w")
 end -- inv.cli.portal.usage
 
 
@@ -4463,9 +4460,12 @@ The plugin's portal component currently supports only a single mode: "@Cuse@W". 
 may add additional modes in the future.  In the meantime, you can use the following
 syntax to automatically get a portal, hold it, enter it, restore anything at the
 portal's location, and then put the portal back from whence it came:
-"@Gdinv portal use [portal ID]@W".
+"@Gdinv portal use [query]@W".
 
-You can get a portal's unique ID by searching with the "objid" query mode.  See the
+If more than one portal matches the given query, the first portal found will be
+used.  As a result, you almost certainly will want to uniquely identify which portal
+you wish to use.  The easiest way to do this is to use the portal's unique ID.  You
+can find this ID by searching with the "objid" query mode.  See the
 "@Gdinv help search@W" helpfile for details.  As an example, you could see the IDs
 of all of your portals by typing "@Gdinv search objid type portal@W".
 
@@ -4474,11 +4474,22 @@ mapper's portal mode.
 
 Examples:
   1) Use the portal with a unique ID of 123456789
+     "@Gdinv portal use id 123456789@W"
+
+  2) It is so common to use a portal ID, if the query consists only of a number, it
+     is assumed to be a portal's unique ID
      "@Gdinv portal use 123456789@W"
 
-  2) Tell the mapper plugin to use a particular portal automatically from the room
+  3) Tell the mapper plugin to use a particular portal automatically from the room
      targeted by portal 123456789
      "@Gmapper portal dinv portal use 123456789@W"
+
+  4) Use a portal that leads to Qong (if more than one portal leads to Qong, the user
+     is warned and the first portal found will be used)
+     "@Gdinv portal use leadsTo qong@W"
+
+  5) Use a portal that has the keyword blahblahblah
+     "@Gdinv portal use key blahblahblah@W"
 ]])
 
 end -- inv.cli.portal.examples
@@ -18422,23 +18433,57 @@ end -- inv.consume.useItem
 --
 -- dinv portal use portalId
 --
--- inv.portal.use(portalId)
+-- inv.portal.use(portalQuery)
 --
 ----------------------------------------------------------------------------------------------------
 
 inv.portal = {}
 
-function inv.portal.use(portalId)
-
-  local origId, origLoc
-
-  local portalWish = dbot.wish.has("Portal")
-
-  portalId = tonumber(portalId) or "" 
-  if (portalId == nil) then
-    dbot.warn("inv.portal.use: Invalid portal ID parameter")
+function inv.portal.use(portalQuery)
+  if (portalQuery == nil) then
+    dbot.warn("inv.portal.use: Missing portal query parameter")
     return DRL_RET_INVALID_PARAM
   end -- if
+
+  -- If the query is simply the object ID of a portal, use it.  Otherwise, search the inventory
+  -- table to get an array of portals matching the query.  If there is more than one match, pick
+  -- the first one found.
+  local portalId = tonumber(portalQuery) or "" 
+  if (portalId == nil) or (portalId == "") then
+    -- Catch any relative location keys because they are not compatible with inv.items.searchCR() used
+    -- below.  By limiting this, we can use searchCR even when we aren't in a co-routine.  Yes, this
+    -- is a bit evil, but otherwise we'd need to run the "portal use" mode asynchronously which would
+    -- be a nightmare with the mapper and cexits.
+    if string.find(portalQuery, inv.stats.rname.name)     or
+       string.find(portalQuery, inv.stats.rloc.name)      or 
+       string.find(portalQuery, inv.stats.rlocation.name) then
+      dbot.warn("inv.portal.use: relative names and locations are not support by the portal mode")
+      return DRL_RET_UNSUPPORTED
+    end -- if
+
+    -- Get an array of object IDs that match the portal query string
+    local idArray, retval = inv.items.searchCR(portalQuery)
+    if (retval ~= DRL_RET_SUCCESS) then
+      dbot.warn("inv.portal.use: failed to search inventory table: " .. dbot.retval.getString(retval))
+      return retval
+    end -- if
+
+    -- Let the user know if no items matched their query
+    if (idArray == nil) or (#idArray == 0) then
+      dbot.info("No match found for portal query: \"" .. (portalQuery or "nil") .. "\"")
+      return DRL_RET_MISSING_ENTRY
+    end -- if
+
+    if (#idArray > 1) then
+      dbot.warn("Found multiple portals matching query \"" .. (portalQuery or "nil") .. "\"")
+    end -- if
+
+    portalId = idArray[1]
+
+  end -- if
+
+  local origId, origLoc
+  local portalWish = dbot.wish.has("Portal")
 
   -- If we have the portal wish, the new portal will go into the "portal" slot.  If we do not
   -- have the portal wish, we will use the "hold" or "second" slot.  This checks if anything is

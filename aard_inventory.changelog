@@ -2,6 +2,17 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0049] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added @Cportal use [query]@W mode.  This is backwards compatible with the previous
+           versions which required the unique ID of the portal.  However, you now have the
+           flexibility to use "dinv portal use leadsTo qong" or "dinv portal use key wok" or
+           another other query that uniquely identifies a portal.  See "@Gdinv help portal@W" for
+           more details.]]
+  }
+}
+
 dbot.changelog[2.0048] =
 {
   { change = drlDbotChangeLogTypeFix,
