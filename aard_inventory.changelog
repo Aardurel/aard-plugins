@@ -5,8 +5,8 @@ dbot.changelog = {}
 dbot.changelog[2.0050] =
 {
   { change = drlDbotChangeLogTypeMisc,
-    desc   = [[Prevent users from accidentally using "dinv portal use [query]" requests only on
-           items that are not portals]]
+    desc   = [[Prevent users from accidentally using "dinv portal use [query]" requests on items
+           that are not portals]]
   },
   { change = drlDbotChangeLogTypeMisc,
     desc   = [[Added logging to debug very intermittent failures when accessing tables on disk]]
