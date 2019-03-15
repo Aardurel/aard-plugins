@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0049"
+   version="2.0050"
    >
 <description trim="y">
 <![CDATA[
@@ -5283,6 +5283,7 @@ function inv.items.init.atInstall()
                          ".*does not have that item for sale.*|"       ..
                          "There is no auction item with that id.*|"    ..
                          ".*currently holds no inventory.*|"           ..
+                         ".* is closed.|"                              ..
                          "There is no marketplace item with that id.*" ..
                       ")$",
                       "inv.items.trigger.itemIdStart(\"%1\")",
@@ -18462,7 +18463,7 @@ function inv.portal.use(portalQuery)
     end -- if
 
     -- Get an array of object IDs that match the portal query string
-    local idArray, retval = inv.items.searchCR(portalQuery)
+    local idArray, retval = inv.items.searchCR(portalQuery .. " type portal")
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.portal.use: failed to search inventory table: " .. dbot.retval.getString(retval))
       return retval
@@ -20464,8 +20465,14 @@ function dbot.storage.loadTable(fileName, resetFn)
 
   local f = io.open(fileName, "r")
   if (f ~= nil) then
-    local fileVersion, fileHash, savedState = assert(f:read("*l", dbot.storage.hashChars, "*a"))
-    if (fileHash ~= utils.hash((savedState or "") .. fileVersion)) then
+    local fileVersion, fileHash, savedState = f:read("*l", dbot.storage.hashChars, "*a")
+    if (fileVersion == nil) then
+      dbot.error("dbot.storage.loadTable: failed to read table from file \"@R" .. fileName ..
+                 "@W\": OS reported \"" .. (fileHash or "nil") .. "\", err=" .. (savedState or "nil"))
+      resetFn()
+      return DRL_RET_INTERNAL_ERROR
+
+    elseif (fileHash ~= utils.hash((savedState or "") .. fileVersion)) then
       dbot.error("dbot.storage.loadTable: failed to load table from file \"@R" .. fileName ..
                  "@W\": file is corrupted -- see \"dinv help backup\" to restore from a backup)")
       resetFn()
@@ -20474,12 +20481,17 @@ function dbot.storage.loadTable(fileName, resetFn)
 
     -- This is a placeholder for if/when we ever change the format of our saved state files
     if (tonumber(fileVersion or "") ~= tonumber(dbot.storage.fileVersion or "")) then
-      dbot.error("File \"@G" .. fileName .. "@W\" uses an old file format")
+      dbot.error("dbot.storage.loadTable: File \"@G" .. fileName .. "@W\" uses an old file format")
       return DRL_RET_UNSUPPORTED
     end -- if
 
     loadstring(savedState)()
-    assert(f:close())
+
+    local retSuccess, errMsg, errCode = f:close()
+    if (retSuccess ~= true) then
+      dbot.error("dbot.storage.loadTable: Closing file \"" .. (fileName or "nil") ..
+                 "\" reported \"" .. (errMsg or "nil") .. "\", err=" .. (errCode or "nil"))
+    end -- if
   else
     retval = resetFn()
   end -- if
