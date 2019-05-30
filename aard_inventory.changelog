@@ -2,6 +2,19 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0051] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a case where dinv mistakenly treated items containing "%*" in their name
+           as a formatting string during "dinv usage ..." requests causing a potential crash]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a dinv bug that mistakenly toggled bprompt when dinv toggled the main
+           prompt.  As a result, if a user disabled bprompt, using dinv could re-enable it
+	   without the user's knowledge or consent.]]
+  }
+}
+
 dbot.changelog[2.0050] =
 {
   { change = drlDbotChangeLogTypeMisc,

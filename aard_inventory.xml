@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0050"
+   version="2.0051"
    >
 <description trim="y">
 <![CDATA[
@@ -200,18 +200,10 @@ Release Notes
    instead of an echo.  Triggers cannot catch notifications though so any code relying on end tags should
    either detect when you go AFK or cleanly time out after a reasonable amount of time.
 
-6) If you add the portal wish after you have built your inventory table, you will need to either rebuild
-   the table (dinv build confirm) or forget/re-identify your portals (dinv forget type portal) and
-   (dinv refresh all).
-
-
-Feature Wishlist
-================
-
-1) Implement a mechanism to (more) fully identify items if the identify wish is not available.
-   For example, we could use lore, the identify or object read spells, or Hester's identify
-   service found at "runto identify".  This would be a manual process to "clean up" partially
-   identified items.
+6) If you add the portal wish after you have built your inventory table, you will need to first reload
+   dinv (dinv reload) so that it detects you have the portal wish.  Next, you will need to either rebuild
+   the inventory table (dinv build confirm) or forget/re-identify your portals (dinv forget type portal)
+   and (dinv refresh all).
 
 ]]>
 </description>
@@ -1814,6 +1806,11 @@ be transparent to you.  However, anyone in the same room as you will see lots
 of activity as the plugin shuffles items around.  As a result, please be kind
 to those around you and find an out-of-the-way room for the build operation.
 Don't do this at recall! :)
+
+If you do not have the identify wish, it may be beneficial for you to do
+your build at Hester's room (from recall: runto ident).  When you identify
+something in Hester's room, you pay a small fee in gold, but you see a full
+identification including fields you normally wouldn't (e.g., weapon damtype).
 
 While the build executes, you are free to do your normal mudding activities.
 However, the build will halt if you sleep, go AFK, enter combat, or do
@@ -17276,8 +17273,8 @@ function inv.usage.displayItem(priorityName, objId, doDisplayUnused)
 
   -- Display the result for this item/priority if it is used or if the user wants to display unused items
   if ((levelUsage ~= nil) and (#levelUsage > 0)) or doDisplayUnused then
-    dbot.print(string.format("%s%3d%s " .. formattedName .. itemType .. " " .. priorityName ..
-                             " " .. levelStr, levelPrefix, itemLevel, levelSuffix))
+    local formattedLevel = string.format("%s%3d%s ", levelPrefix, itemLevel, levelSuffix)
+    dbot.print(formattedLevel .. formattedName .. itemType .. " " .. priorityName .. " " .. levelStr)
   end -- if
 end -- inv.usage.displayItem
 
@@ -20460,6 +20457,8 @@ function dbot.storage.loadTable(fileName, resetFn)
     return DRL_RET_INVALID_PARAM
   end -- if
 
+  --TODO: possibly replace spaces in file name with "\ "?
+
   local shortName = string.gsub(fileName, ".*\\", "")
   dbot.debug("dbot.storage.loadTable: Loading \"@G" .. shortName .. "@W\"")
 
@@ -21149,8 +21148,7 @@ function dbot.prompt.disable()
     -- could call multiple consecutive disables but we'd only do the disabling once.  
     dbot.prompt.statusEnables = dbot.prompt.statusEnables - 1
     if (dbot.prompt.statusEnables == 0) then
-      SendPkt(string.char (dbot.telnet.IAC, dbot.telnet.SB, 102, dbot.telnet.promptOption,
-                           dbot.telnet.optionOff, dbot.telnet.IAC, dbot.telnet.SE))
+      Execute("sendgmcp config prompt off")
     end -- if
   end -- if
 end -- dbot.prompt.disable
@@ -21160,8 +21158,7 @@ function dbot.prompt.enable()
   if (dbot.prompt.statusEnables ~= nil) then
     dbot.prompt.statusEnables = dbot.prompt.statusEnables + 1
     if (dbot.prompt.statusEnables == 1) then
-      SendPkt(string.char (dbot.telnet.IAC, dbot.telnet.SB, 102, dbot.telnet.promptOption,
-                           dbot.telnet.optionOn, dbot.telnet.IAC, dbot.telnet.SE))
+      Execute("sendgmcp config prompt on")
     end -- if
   end -- if
 end -- dbot.prompt.enable
