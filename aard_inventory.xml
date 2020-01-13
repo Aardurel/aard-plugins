@@ -8538,20 +8538,35 @@ end -- inv.items.searchCR
 -- Note: This function may be called externally with CallPlugin.
 --       As such, relative names and relative locations are not allowed.
 function getItemIds(rawQueryString)
-    local idArray, retval = inv.items.searchCR(rawQueryString)
-
     local itemIds = ''
-    local count = 0
-    for _, objId in ipairs(idArray) do
-        if count > 0 then
-            itemIds = itemIds .. ','
+
+    if queryContainsRelativeLocation(rawQueryString) then
+        dbot.warn('getItemIds: relative names and locations are not supported due to co-routine requirement')
+    else
+        local idArray, retval = inv.items.searchCR(rawQueryString)
+
+        local count = 0
+        for _, objId in ipairs(idArray) do
+            if count > 0 then
+                itemIds = itemIds .. ','
+            end
+            itemIds = itemIds .. objId
+            count = count + 1
         end
-        itemIds = itemIds .. objId
-        count = count + 1
     end
 
     return itemIds
 end -- getItemIds(rawQueryString)
+
+
+function queryContainsRelativeLocation(query)
+    local containsRelativeLocation = (
+        string.find(query, inv.stats.rname.name)
+        or string.find(query, inv.stats.rloc.name)
+        or string.find(query, inv.stats.rlocation.name)
+    )
+    return containsRelativeLocation
+end
 
 
 -- Return an array of objIds that is a sorted version of the idArray given as an input param
@@ -18473,9 +18488,7 @@ function inv.portal.use(portalQuery)
     -- below.  By limiting this, we can use searchCR even when we aren't in a co-routine.  Yes, this
     -- is a bit evil, but otherwise we'd need to run the "portal use" mode asynchronously which would
     -- be a nightmare with the mapper and cexits.
-    if string.find(portalQuery, inv.stats.rname.name)     or
-       string.find(portalQuery, inv.stats.rloc.name)      or 
-       string.find(portalQuery, inv.stats.rlocation.name) then
+    if queryContainsRelativeLocation(portalQuery) then
       dbot.warn("inv.portal.use: relative names and locations are not support by the portal mode")
       return DRL_RET_UNSUPPORTED
     end -- if
