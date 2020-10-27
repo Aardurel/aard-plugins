@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0051"
+   version="2.0052"
    >
 <description trim="y">
 <![CDATA[
@@ -281,7 +281,7 @@ Release Notes
 
   <alias
    script="inv.cli.set.fn"
-   match="^[ ]*dinv[ ]+set[ ]+(display|wear)[ ]+(.*?)[ ]*([0-9]*)?$"
+   match="^[ ]*dinv[ ]+set[ ]+(display|wear)[ ]+(.*?)([ ]+[0-9]*)?$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -4684,7 +4684,7 @@ the Level 60 "seekers60heal" potion instead.
 
 What's with the "small" and "big" options?  If you are in combat and need to
 use a healing potion, you probably want to quaff the biggest and baddest potion
-that you have available: "@Gdinv consume heal big@W".  However, if you aren't
+that you have available: "@Gdinv consume big heal@W".  However, if you aren't
 in the middle of combat and want to use up some lower-level healing pots that are
 just taking up space, you could use the "small" option instead.  That will use up
 the lowest-level "@Cheal@W" consumables in your inventory first before moving on to
@@ -6278,6 +6278,11 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     -- If it is in the cache, use the cached copy instead of manually identifying it.
     local idLevel = inv.items.getField(objId, invFieldIdentifyLevel)
     if (idLevel ~= nil) and (idLevel == invIdLevelNone) and (name ~= nil) then
+
+      -- invdata strips out commas in the names of items.  As a result, we won't find items in
+      -- the cache unless we also store them in a form without commas.
+      name = string.gsub(name, ",", "")
+
       local cachedEntry = inv.cache.get(inv.cache.frequent.table, name)
       if (cachedEntry ~= nil) then
         -- The cached entry doesn't know the actual location of this object or the object's actual
@@ -6339,6 +6344,11 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
     -- Grab the latest name because it may have been filled in during the ID
     name = inv.items.getStatField(objId, invStatFieldName) 
     if (name ~= nil) then
+
+      -- invdata strips out commas in the names of items.  As a result, we won't find items in
+      -- the cache unless we also store them in a form without commas.
+      name = string.gsub(name, ",", "")
+
       local cacheEntry = inv.cache.get(inv.cache.frequent.table, name)
       if (cacheEntry == nil) then
 
@@ -6349,10 +6359,10 @@ function inv.items.identifyCR(maxNumItems, refreshLocations)
         --       to manually identify each one :p
         itemType = inv.items.getStatField(objId, invStatFieldType)
         if (itemType == invmon.typeStr[invmonTypePotion]) or 
-           (itemType == invmon.typeStr[invmonTypePill]) or 
-           (itemType == invmon.typeStr[invmonTypeFood]) or 
-           (itemType == invmon.typeStr[invmonTypeWand]) or 
-           (itemType == invmon.typeStr[invmonTypeStaff]) or 
+           (itemType == invmon.typeStr[invmonTypePill])   or 
+           (itemType == invmon.typeStr[invmonTypeFood])   or 
+           (itemType == invmon.typeStr[invmonTypeWand])   or 
+           (itemType == invmon.typeStr[invmonTypeStaff])  or 
            (itemType == invmon.typeStr[invmonTypeScroll]) then
 
           colorName = inv.items.getField(objId, invFieldColorName)
@@ -9751,8 +9761,10 @@ function inv.items.trigger.itemIdStart(line)
 end -- inv.items.trigger.itemIdStart
 
 
-flagsContinuation = false
+flagsContinuation      = false
 affectModsContinuation = false
+keywordsContinuation   = false
+nameContinuation       = false
 function inv.items.trigger.itemIdStats(line)
   dbot.debug("stats for item " .. inv.items.identifyPkg.objId .. ":\"" .. line .. "\"")
 
@@ -9762,7 +9774,7 @@ function inv.items.trigger.itemIdStats(line)
   isPartialId = string.find(line, "A full appraisal will reveal further information on this item")
 
   _, _, id = string.find(line, "Id%s+:%s+(%d+)%s+")
-  _, _, name = string.find(line, "Name%s+:%s+(.-)%s*|")
+  _, _, name = string.find(line, "Name%s+:%s+(.-)%s*|$")
   _, _, level = string.find(line, "Level%s+:%s+(%d+)%s+")
   _, _, weight = string.find(line, "Weight%s+:%s+([0-9,-]+)%s+")
   _, _, wearable = string.find(line, "Wearable%s+:%s+(.*) %s+")
@@ -9865,11 +9877,19 @@ function inv.items.trigger.itemIdStats(line)
   if (id ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldId, dbot.tonumber(id or ""))
     dbot.debug("Id = \"" .. id .. "\"")
+
+    -- If we hit the id field, we know that there aren't any more name continuation lines
+    nameContinuation = false
   end -- if
 
   if (name ~= nil) then
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldName, name)
     dbot.debug("Name = \"" .. name .. "\"")
+
+    -- If we hit the name field, we know that there aren't any more keyword continuation lines.
+    -- Instead we assume the name will continue until we hit the Id field.
+    keywordsContinuation = false
+    nameContinuation = true
   end -- if
 
   if (level ~= nil) then
@@ -9912,6 +9932,10 @@ function inv.items.trigger.itemIdStats(line)
 
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldKeywords, mergedKeywords)
     dbot.debug("Keywords = \"" .. mergedKeywords .. "\"")
+
+    -- Assume that the keywords keep continuing on additional lines until we finally hit the name
+    -- field.  At that point we know that there are no more keyword lines.
+    keywordsContinuation = true
   end -- if
 
   if (itemType ~= nil) or (rawMaterial ~= nil) then
@@ -9971,9 +9995,9 @@ function inv.items.trigger.itemIdStats(line)
       if not (string.find(continuation, ",$")) then
         flagsContinuation = false
       end -- if
+
     elseif (affectModsContinuation) then
       -- Add the continuation to the existing affectMods
-
       inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods,
                             (inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods) 
                              or "") .. " " .. continuation)
@@ -9982,6 +10006,19 @@ function inv.items.trigger.itemIdStats(line)
       if not (string.find(continuation, ",$")) then
         affectModsContinuation = false
       end -- if
+
+    elseif (keywordsContinuation) then
+      -- Add the continuation to the existing keywords
+      inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldKeywords,
+                            (inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldKeywords) 
+                             or "") .. " " .. continuation)
+
+    elseif (nameContinuation) then
+      -- Add the continuation to the existing name
+      inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldName,
+                            (inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldName) 
+                             or "") .. " " .. continuation)
+
     else
       -- Placeholder to add continuation support for other things (notes? others?)
     end -- if
@@ -10503,6 +10540,22 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
   assert(timer     ~= nil, "invitem timer is nil")
   assert((isInvItem == true) or (isInvItem == false), "isInvItem parameter is not a boolean")
 
+  -- Leaflets from the academy auto-disappear the moment they arrive in your inventory.  I've heard
+  -- reports that this sometimes confuses dinv although I've never been able to replicate it.  We
+  -- can just ignore it entirely here and bypass the issue.
+  if (itemName == "an academy fundraising leaflet") then
+    dbot.debug("Skipping academy leaflet which will disappear in a moment anyway...")
+    return DRL_RET_UNSUPPORTED
+  end -- if
+
+  -- Dinv gets confused if an item is identified as an empty/blank item and then later is
+  -- changed to a brewed/scribed item.  We don't want to need to re-identify each item as
+  -- we brew/scribe it.  As a result, we skip identifying the empty/blank items and only
+  -- ID them when they are brewed/scribed and then discovered with a "refresh all".
+  if (itemName == "an empty vial") or (itemName == "a blank scroll") then
+    return DRL_RET_UNSUPPORTED
+  end -- if
+
   -- Verify the numeric input params are numbers
   objId = tonumber(objId)
   level = tonumber(level)
@@ -10540,6 +10593,7 @@ function inv.items.trigger.itemDataStats(objId, flags, itemName, level, typeFiel
       retval = inv.items.setField(objId, invFieldIdentifyLevel, invIdLevelNone)
     else
       -- Check if the item is in the frequent item cache.  If it is, there's no need to identify it :)
+
       local cachedEntry = inv.cache.get(inv.cache.frequent.table, itemName)
       if (cachedEntry ~= nil) then
         cachedEntry.stats.id = objId
@@ -11727,6 +11781,9 @@ function inv.cache.add(cache, objId)
     elseif (cache.name == inv.cache.frequent.name) then
       local name = inv.items.getStatField(objId, invStatFieldName)
       if (name ~= nil) and (name ~= "") then
+        -- invdata strips out commas in the names of items.  As a result, we won't find items in
+        -- the cache unless we also store them in a form without commas.
+        name = string.gsub(name, ",", "")
         cache.entries[name] = { timeCached = dbot.getTime(), entry = dbot.table.getCopy(entry) }
       end -- if
     elseif (cache.name == inv.cache.custom.name) then
@@ -17911,7 +17968,11 @@ function inv.consume.addCR()
   itemLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
   local fullName = inv.items.getStatField(objId, invStatFieldName) or ""
 
-  -- Remove the temporary item and ensure it isn't stuck in the cache
+  -- We keep consumable items in the frequent cache so we may as well add it now so that
+  -- we don't slow things down later when we buy the consumable item
+  inv.cache.add(inv.cache.frequent.table, objId)
+
+  -- Remove the temporary item and ensure it isn't stuck in the recent cache
   inv.items.remove(objId)
   inv.cache.remove(inv.cache.recent.table, objId)
 
@@ -18390,6 +18451,8 @@ function inv.consume.useItem(objId, commandArray)
     consumeCmd = "quaff"
   elseif (itemType == "Pill") then
     consumeCmd = "eat"
+  elseif (itemType == "Scroll") then
+    consumeCmd = "recite"
   elseif (itemType == "Staff") or (itemType == "Wand") then
     consumeCmd = "hold"
   else
@@ -18525,17 +18588,27 @@ function inv.portal.use(portalQuery)
   -- We have the portal ready.  Hold it and go whoosh.
   table.insert(commands, "hold " .. portalId)
   table.insert(commands, "enter")
-  table.insert(commands, "remove " .. portalId)
+
+  -- Ok, at this point we have the commands to enter the correct portal queued up.  We now want to
+  -- set up the commands to put the portal away and swap back to our original equipment.  We do this
+  -- after a short 0.5 second delay instead of immediately stacking it with entering the portal.  We
+  -- do this because nasty hookers like to sit at portal landing rooms and (definitely-not-illegally)
+  -- trigger attacks on hardcore players.  We don't want to be at that landing room any longer than
+  -- necessary and we want the mapper to start running us away from that spot asap.  As a result, we
+  -- schedule the eq swap shortly afterwords so we don't waste time in the portal landing room.
+  local delayedCommands = {}
 
   -- If we were holding something at the beginning, hold it again now
   if (origId ~= nil) then
-    table.insert(commands, "wear " .. origId .. " " .. origLoc)
+    table.insert(delayedCommands, "wear " .. origId .. " " .. origLoc)
   end -- if
 
   -- Put the portal away if we pulled it out of a container to use it here
   if (objLoc ~= invItemLocInventory) and (objLocNum ~= nil) then
-    table.insert(commands, "put " .. portalId .. " " .. objLoc)
+    table.insert(delayedCommands, "put " .. portalId .. " " .. objLoc)
   end -- if
+
+  DoAfterSpecial(0.5, (table.concat(delayedCommands, ";") or ""), sendto.execute)
 
   return dbot.execute.safe.commands(commands, nil, nil, nil, nil)
 end -- inv.portal.use
@@ -20440,9 +20513,10 @@ function dbot.storage.saveTable(fileName, tableName, theTable, doForceSave)
   if (f == nil) then
     dbot.warn("dbot.storage.saveTable: Failed to save file: @R" .. (errString or "unknown error") .. "@W")
   else
-    assert(f:write(dbot.storage.fileVersion .. "\n", fileHash, fileData))
-    assert(f:flush())
-    assert(f:close())
+    assert(f:write(dbot.storage.fileVersion .. "\n", fileHash, fileData),
+           "dbot.storage.saveTable failed write to file \"" .. (fileName or "nil") .. "\"")
+    assert(f:flush(), "dbot.storage.saveTable failed flush to file \"" .. (fileName or "nil") .. "\"")
+    assert(f:close(), "dbot.storage.saveTable failed close to file \"" .. (fileName or "nil") .. "\"")
   end -- if
 
   return retval
@@ -21143,6 +21217,7 @@ end -- dbot.prompt.fini
 
 
 function dbot.prompt.disable()
+  --dbot.debug("prompt disable: start statusEnables = " .. (dbot.prompt.statusEnables or "nil"))
   if (dbot.prompt.statusEnables ~= nil) then
     -- The moment we transition from having 1 enable to 0 enables, we disable the prompt.  Someone
     -- could call multiple consecutive disables but we'd only do the disabling once.  
@@ -21155,6 +21230,7 @@ end -- dbot.prompt.disable
 
 
 function dbot.prompt.enable()
+  --dbot.debug("prompt enable: start statusEnables = " .. (dbot.prompt.statusEnables or "nil"))
   if (dbot.prompt.statusEnables ~= nil) then
     dbot.prompt.statusEnables = dbot.prompt.statusEnables + 1
     if (dbot.prompt.statusEnables == 1) then

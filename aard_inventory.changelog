@@ -2,6 +2,51 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0052] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug where dinv detected the first line of the keyword and name
+           fields in an item's identify output.  In now properly handles multi-line
+	   names and keyword lists.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[There were reports (which alas, I couldn't reproduce) that dinv
+	   sometimes choked when an academy leaflet arrived and then immediately left
+	   the inventory.  Dinv now ignores all academy leaflets so this should no
+	   longer be an issue.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[If a priority name ended in a number (e.g., psi-melee2) then dinv previously
+           misinterpreted the number as a set's target level.  That is now fixed.]]
+  },
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[The invdata and identify commands report different names for items if the
+	   item name has a comma in it.  As a result, dinv previously failed to cache
+	   items with commas in their names.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added support for scrolls to the dinv "consume" mode.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Dinv now adds brewed pots and scribed scrolls to the cache for frequent
+	   items.  This should substantially speed up a refresh if you have many brewed
+	   and/or scribed items.]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Consumable items are now added to the frequent cache when they are added
+           to the "consume" mode.  This simplifies and speeds up subsequent purchases.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Dinv now adds a slight delay when re-wearing items after using a portal.
+           The intent is to allow the mapper to use a portal and immediately start moving
+	   so that people who sit at portal landing rooms and trigger attacks are less
+           likely to catch you in the middle of a speedwalk.]]
+  },
+  { change = drlDbotChangeLogTypeMisc,
+    desc   = [[Fixed typos in examples/docs.]]
+  }
+}
+
 dbot.changelog[2.0051] =
 {
   { change = drlDbotChangeLogTypeFix,
