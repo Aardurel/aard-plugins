@@ -14,8 +14,8 @@ dbot.changelog[2.0053] =
 dbot.changelog[2.0052] =
 {
   { change = drlDbotChangeLogTypeFix,
-    desc   = [[Fixed a bug where dinv detected the first line of the keyword and name
-           fields in an item's identify output.  In now properly handles multi-line
+    desc   = [[Fixed a bug where dinv only detected the first line of the keyword and
+           name fields in an item's identify output.  It now properly handles multi-line
 	   names and keyword lists.]]
   },
   { change = drlDbotChangeLogTypeFix,
