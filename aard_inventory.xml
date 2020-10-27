@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0052"
+   version="2.0053"
    >
 <description trim="y">
 <![CDATA[
@@ -8547,36 +8547,41 @@ end -- inv.items.searchCR
 -- Returns a comma-separated list of object ids as a string
 -- Note: This function may be called externally with CallPlugin.
 --       As such, relative names and relative locations are not allowed.
+-- Note: (Durel)
+--      The code below was largely written by jontsai and submitted as a pull request on github.
+--      I moved the bulk of the code from getItemIds() to inv.items.searchIdsCSV() just to keep the
+--      namespace consistent.  I left getItemIds() as a function though so I don't break any
+--      plugins that use the code.  It's the least I can do since he wrote this :P
 function getItemIds(rawQueryString)
-    local itemIds = ''
-
-    if queryContainsRelativeLocation(rawQueryString) then
-        dbot.warn('getItemIds: relative names and locations are not supported due to co-routine requirement')
-    else
-        local idArray, retval = inv.items.searchCR(rawQueryString)
-
-        local count = 0
-        for _, objId in ipairs(idArray) do
-            if count > 0 then
-                itemIds = itemIds .. ','
-            end
-            itemIds = itemIds .. objId
-            count = count + 1
-        end
-    end
-
-    return itemIds
+  return inv.items.searchIdsCSV(rawQueryString)
 end -- getItemIds(rawQueryString)
 
 
-function queryContainsRelativeLocation(query)
-    local containsRelativeLocation = (
-        string.find(query, inv.stats.rname.name)
-        or string.find(query, inv.stats.rloc.name)
-        or string.find(query, inv.stats.rlocation.name)
-    )
-    return containsRelativeLocation
-end
+function inv.items.searchIdsCSV(rawQueryString)
+  local itemIds = ''
+
+  -- If the query has anything dependent on a relative name or location, warn the caller and return
+  if  string.find(rawQueryString, inv.stats.rname.name)     or
+      string.find(rawQueryString, inv.stats.rloc.name)      or
+      string.find(rawQueryString, inv.stats.rlocation.name) then
+    dbot.warn("inv.items.searchIdsCSV: Skipping request containing relative names or locations which " ..
+              "are not available outside of a co-routine")
+
+  else
+    local idArray, retval = inv.items.searchCR(rawQueryString)
+
+    local count = 0
+    for _, objId in ipairs(idArray) do
+      if count > 0 then
+        itemIds = itemIds .. ','
+      end
+        itemIds = itemIds .. objId
+        count = count + 1
+    end
+  end
+
+  return itemIds
+end -- inv.items.searchIdsCSV(rawQueryString)
 
 
 -- Return an array of objIds that is a sorted version of the idArray given as an input param

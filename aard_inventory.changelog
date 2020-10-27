@@ -2,6 +2,15 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0053] =
+{
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Merged github pull request to expose a function allowing other plugins to
+           search the dinv database and retrieve a CSV string with the object IDs of
+           items matching the search.  See: inv.items.searchIdsCSV()]]
+  }
+}
+
 dbot.changelog[2.0052] =
 {
   { change = drlDbotChangeLogTypeFix,
