@@ -2,6 +2,15 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0054] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed an error that prevented you from using relative names in a request
+           to use a portal.  That's what I get for "fixing" a perfectly good github
+	   pull request for cosmetic reasons.  Whoops.]]
+  }
+}
+
 dbot.changelog[2.0053] =
 {
   { change = drlDbotChangeLogTypeNew,

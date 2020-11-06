@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0053"
+   version="2.0054"
    >
 <description trim="y">
 <![CDATA[
@@ -8561,9 +8561,7 @@ function inv.items.searchIdsCSV(rawQueryString)
   local itemIds = ''
 
   -- If the query has anything dependent on a relative name or location, warn the caller and return
-  if  string.find(rawQueryString, inv.stats.rname.name)     or
-      string.find(rawQueryString, inv.stats.rloc.name)      or
-      string.find(rawQueryString, inv.stats.rlocation.name) then
+  if inv.items.isSearchRelative() then
     dbot.warn("inv.items.searchIdsCSV: Skipping request containing relative names or locations which " ..
               "are not available outside of a co-routine")
 
@@ -8582,6 +8580,17 @@ function inv.items.searchIdsCSV(rawQueryString)
 
   return itemIds
 end -- inv.items.searchIdsCSV(rawQueryString)
+
+
+function inv.items.isSearchRelative(query)
+  if string.find(query, inv.stats.rname.name)     or
+     string.find(query, inv.stats.rloc.name)      or
+     string.find(query, inv.stats.rlocation.name) then
+    return true
+  else
+    return false
+  end -- if
+end -- inv.items.isSearchRelative
 
 
 -- Return an array of objIds that is a sorted version of the idArray given as an input param
@@ -18556,7 +18565,7 @@ function inv.portal.use(portalQuery)
     -- below.  By limiting this, we can use searchCR even when we aren't in a co-routine.  Yes, this
     -- is a bit evil, but otherwise we'd need to run the "portal use" mode asynchronously which would
     -- be a nightmare with the mapper and cexits.
-    if queryContainsRelativeLocation(portalQuery) then
+    if inv.items.isSearchRelative(portalQuery) then
       dbot.warn("inv.portal.use: relative names and locations are not support by the portal mode")
       return DRL_RET_UNSUPPORTED
     end -- if
