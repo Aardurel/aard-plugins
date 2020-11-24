@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0054"
+   version="2.0055"
    >
 <description trim="y">
 <![CDATA[
@@ -142,10 +142,10 @@ Usage
     dinv priority [list | display | create | clone | delete | edit | copy | paste | compare] <name 1> <name 2>
 
   Equipment analysis
-    dinv analyze [list | create | delete | display] <priority name> <positions>
+    dinv analyze [list | create | delete | display] <priority name> <positions | skip #>
     dinv usage <priority name | all | allUsed> <query>
-    dinv compare <priority name> <relative name>
-    dinv covet <priority name> <auction #>
+    dinv compare <priority name> <relative name> <skip #>
+    dinv covet <priority name> <auction #> <skip #>
 
   Advanced options
     dinv backup [list | create | delete | restore] <backup name>
@@ -454,7 +454,7 @@ Release Notes
 
   <alias
    script="inv.cli.compare.fn"
-   match="^[ ]*dinv[ ]+compare[ ]+([^ ]+)[ ]+([^ ]+)[ ]*$"
+   match="^[ ]*dinv[ ]+compare[ ]+([^ ]+)[ ]+([^ ]+)([ ]+[0-9]+)?[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -484,7 +484,7 @@ Release Notes
 
   <alias
    script="inv.cli.covet.fn"
-   match="^[ ]*dinv[ ]+covet[ ]+([^ ]+)[ ]+([^ ]+)[ ]*$"
+   match="^[ ]*dinv[ ]+covet[ ]+([^ ]+)[ ]+([^ ]+)([ ]+[0-9]+)?[ ]*$"
    enabled="y"
    regexp="y"
    send_to="12"
@@ -3143,6 +3143,7 @@ function inv.cli.analyze.fn(name, line, wildcards)
   local priorityName = wildcards[2] or ""
   local wearableLocs = wildcards[3] or ""
   local expandedLocs = ""
+  local skip         = tonumber(wildcards[3] or "")
   local endTag       = inv.tags.new(line, "Analysis results", nil, inv.tags.cleanup.timed)
   local retval
 
@@ -3158,7 +3159,7 @@ function inv.cli.analyze.fn(name, line, wildcards)
 
   -- If the user gave a wearable location, check if it is actually valid.  We also support the
   -- user giving us wearable types (e.g., "neck") in addition to wearable locations (e.g., "neck1 neck2").
-  if (wearableLocs ~= "") then
+  if (wearableLocs ~= "") and (skip == nil) then
     for loc in wearableLocs:gmatch("%S+") do
       if inv.items.isWearableLoc(loc) then
         expandedLocs = expandedLocs .. " " .. loc
@@ -3172,6 +3173,14 @@ function inv.cli.analyze.fn(name, line, wildcards)
     end -- for
   end -- if
 
+  if (skip ~= nil) then
+    if (skip < 1) then
+      skip = 1
+    elseif (skip > 200) then
+      skip = 200
+    end -- if
+  end -- if
+
   if (command == "create") then
     if (inv.cli.analyzePkg ~= nil) then
       dbot.info("Skipping analysis of priority \"@C" .. priorityName .. 
@@ -3181,6 +3190,7 @@ function inv.cli.analyze.fn(name, line, wildcards)
       inv.cli.analyzePkg              = {}
       inv.cli.analyzePkg.priorityName = priorityName
       inv.cli.analyzePkg.wearableLocs = expandedLocs
+      inv.cli.analyzePkg.skip         = skip or 1
       inv.cli.analyzePkg.intensity    = inv.set.analyzeIntensity --TODO: let user specify this?
       inv.cli.analyzePkg.endTag       = endTag
 
@@ -3227,6 +3237,7 @@ function inv.cli.analyzeCR()
 
   local priorityName = inv.cli.analyzePkg.priorityName or "nil"
   local wearableLocs = inv.cli.analyzePkg.wearableLocs
+  local skip         = inv.cli.analyzePkg.skip
   local intensity    = inv.cli.analyzePkg.intensity
   local endTag       = inv.cli.analyzePkg.endTag
 
@@ -3234,7 +3245,7 @@ function inv.cli.analyzeCR()
   dbot.info("This analysis can potentially take several minutes.  Be patient!\n")
 
   local resultData = dbot.callback.new()
-  retval = inv.analyze.sets(priorityName, 1 + tierLevel, resultData, intensity)
+  retval = inv.analyze.sets(priorityName, 1 + tierLevel, skip, resultData, intensity)
   if (retval ~= DRL_RET_SUCCESS) then
     dbot.warn("inv.cli.analyzeCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
   else
@@ -3260,7 +3271,7 @@ end -- inv.cli.analyzeCR
 
 function inv.cli.analyze.usage()
   dbot.print("@W    " .. pluginNameCmd ..
-             " analyze @G[list | create | delete | display] <priority name> @Y<positions>@w")
+             " analyze @G[list | create | delete | display] <priority name> @Y<positions | skip#>@w")
 end -- inv.cli.analyze.usage
 
 
@@ -3272,7 +3283,7 @@ function inv.cli.analyze.examples()
 [[@W
 The plugin has the ability to analyze your equipment relative to a priority group.  This
 analysis identifies the "best" equipment for you at each wearable location at each level.
-Creating a full analysis takes roughly 10 seconds (I'm using a 5-year old mac mini running
+Creating a full analysis takes roughly 60 seconds (I'm using a 5-year old mac mini running
 wine -- your times could be better or worse depending on your hardware.)
 
 You can "@Clist@W" all of the analyses that have been created.  If an analysis exists for all
@@ -3296,6 +3307,11 @@ For example, you could display results for the arms, head, and neck locations if
 to see the full analysis.
 
 You can "@Cdelete@W" an existing analysis by providing the name of the analysis.
+
+The default behavior is to analyze every possible level.  However, this can take considerable
+time to complete.  You may optionally request an analysis for every N levels and skip the
+analysis for other levels.  For example, "@Gdinv analyze create psi-melee 10@W" will only 
+perform an analysis every 10 levels.
 
 Examples:
   1) Create a set analysis for the psi-melee priority (see "@Gdinv help priority@W" for details.)
@@ -3398,6 +3414,9 @@ Examples:
   5) If you are done with the analysis, you can delete it.  You may wish to do this to save disk
      space or to speed up the speed of creating a backup.
      "@Gdinv analyze delete psi-melee@W"
+
+  6) Create a partial set analysis by only analyzing every 10 levels for the psi-melee priority.
+     "@Gdinv analyze create psi-melee 10@W"
 ]])
 
 end -- inv.cli.analyze.examples
@@ -3519,6 +3538,7 @@ inv.cli.compare = {}
 function inv.cli.compare.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local relativeName = wildcards[2] or ""
+  local levelSkip    = tonumber(wildcards[3] or "1")
   local endTag       = inv.tags.new(line, "Compare results", nil, inv.tags.cleanup.timed)
 
   dbot.debug("inv.cli.compare.fn: priority=\"" .. priorityName .. "\", relativeName=\"" ..
@@ -3532,18 +3552,24 @@ function inv.cli.compare.fn(name, line, wildcards)
     return inv.tags.stop(invTagsCompare, endTag, DRL_RET_NOT_ACTIVE)
   end -- if
 
+  if (levelSkip < 1) then
+    levelSkip = 1
+  elseif (levelSkip > 200) then
+    levelSkip = 200
+  end -- if
+
   if (priorityName == "") or (relativeName == "") then
     inv.cli.compare.usage()
     inv.tags.stop(invTagsCompare, endTag, DRL_RET_INVALID_PARAM)
   else
-    inv.set.compare(priorityName, relativeName, endTag)
+    inv.set.compare(priorityName, relativeName, levelSkip, endTag)
   end -- if
 
 end -- inv.cli.compare.fn
 
 
 function inv.cli.compare.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " compare @G<priority name> <relative name>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " compare @G<priority name> <relative name> @Y<skip #>@w")
 end -- inv.cli.compare.usage
 
 
@@ -3570,6 +3596,10 @@ Once these conditions are met, the plugin will temporarily remove the item from 
 inventory table and re-run a full equipment analysis for all levels potentially impacted
 by the item.  Once the analysis is complete, it will add the item back to your inventory
 and display the impact of the item at each level.
+
+By default, the "@Ccompare@W" mode analyzes every level.  However, this can take considerable
+time.  A user may wish a faster comparison that only checks results every N levels.  For
+example, checking every 10 levels might look like "@Gdinv compare psi-melee sword 10@W".
 
 Example:
   1) I removed my body item (A Pure and True Heart) and performed a comparison to see how
@@ -3610,6 +3640,7 @@ inv.cli.covet = {}
 function inv.cli.covet.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local auctionNum   = tonumber(wildcards[2] or "")
+  local levelSkip    = tonumber(wildcards[3] or "1")
   local endTag       = inv.tags.new(line, "Covet results", nil, inv.tags.cleanup.timed)
 
   if (not inv.init.initializedActive) then
@@ -3634,12 +3665,18 @@ function inv.cli.covet.fn(name, line, wildcards)
 
   dbot.debug("inv.cli.covet.fn: priority=\"" .. priorityName .. "\", auctionNum=" .. auctionNum)
 
-  inv.set.covet(priorityName, auctionNum, endTag)
+  if (levelSkip < 1) then
+    levelSkip = 1
+  elseif (levelSkip > 200) then
+    levelSkip = 200
+  end -- if
+
+  inv.set.covet(priorityName, auctionNum, levelSkip, endTag)
 end -- inv.cli.covet.fn
 
 
 function inv.cli.covet.usage()
-  dbot.print("@W    " .. pluginNameCmd .. " covet @G<priority name> <auction #>@w")
+  dbot.print("@W    " .. pluginNameCmd .. " covet @G<priority name> <auction #> @Y<skip #>@w")
 end -- inv.cli.covet.usage
 
 
@@ -3659,6 +3696,10 @@ add it to your inventory table, re-run a full analysis, and then discard the ite
 your inventory table.  By comparing your equipment sets both with and without the item you
 can determine the advantages/disadvantages of using that item.
 
+By default, the "@Ccovet@W" mode analyzes every level.  However, this can take considerable
+time.  A user may wish a faster comparison that only checks results every N levels.  For
+example, checking every 10 levels might look like "@Gdinv covet psi-melee 12345 10@W".
+
 Example:
   1) Evaluate a body item at long-term market #80561.  In this case, it wasn't better than
      my existing equipment, but that is still handy to know!  If it would have been better
@@ -3673,7 +3714,7 @@ Example:
 @w
 @WPriority "@Cpsi-melee@W" advantages with @Gauction #80561@w:
 @w
-@WNo set with item "Synthetic Power" is optimal for any level between 11 and 211@W
+@WNo set with item "Synthetic Power" is optimal between between levels 11 and 211@W
 ]])
 
 end -- inv.cli.covet.examples
@@ -8346,7 +8387,8 @@ function inv.items.search(arrayOfQueryArrays, allowIgnored)
               break
             end -- if
 
-          elseif (key == invStatFieldKeywords) or (key == invStatFieldFlags) or (key == invStatFieldClan) then
+          elseif (key == invStatFieldKeywords) or (key == invStatFieldFlags)    or
+                 (key == invStatFieldClan)     or (key == invStatFieldWearable) then
             local statField = statsVal or ""
             local element
             local isInField = false
@@ -9953,16 +9995,8 @@ function inv.items.trigger.itemIdStats(line)
   end -- if
 
   if (wearable ~= nil) then
-    wearable = Trim(wearable)
-
-    -- Portals can be either "hold" or "portal" depending on whether or not you have the portal wish
-    if (wearable == "hold, portal") then
-      if dbot.wish.has("Portal") then
-        wearable = inv.wearLoc[invWearableLocPortal]
-      else
-        wearable = inv.wearLoc[invWearableLocHold]
-      end -- if
-    end -- if
+    -- Strip out spaces and commas for items that can have more than one wearable location (e.g., "hold, light")
+    wearable = string.gsub(Trim(wearable), ",", "")
 
     inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldWearable, wearable)
     dbot.debug("Wearable = \"" .. wearable .. "\"")
@@ -10470,7 +10504,7 @@ function inv.items.trigger.itemIdEnd()
 
   local itemType = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldType) or ""
   local itemName = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldName) or ""
-  local itemWearable = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWearable) or ""
+  local itemWearable = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWearable) or "" 
   local affectMods = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods) or ""
 
   -- Add "pseudo-stats" based on item effects (aard terminology is "affect mods") and on
@@ -10489,25 +10523,9 @@ function inv.items.trigger.itemIdEnd()
     inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsIronGrip, 1)
   elseif (itemName == "Aardwolf Gloves of Dexterity") then
     inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsDualWield, 1)
-  elseif (itemWearable == "shield") then
+  elseif string.match(itemWearable, "shield") then
     inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsShield, 1)
   end -- if
-
-  -- Some items have item types that simply don't make sense.  For example, many aarditems that
-  -- are armor are labeled with type "Treasure".  Although they could certainly be considered
-  -- treasure, I think it makes more sense to treat them as armor.  Otherwise someone searching
-  -- for armor in the inventory table won't find them.  We use a kludge here to "fix" this...
---[[ TODO: do we really want this?
-  if (itemType == "Treasure") then
-    if (itemName == "Aardwolf Aura of Sanctuary")    or
-       (itemName == "Aardwolf Ring of Regeneration") or
-       (itemName == "Aardwolf Gloves of Dexterity")  or
-       (itemName == "Aardwolf Bracers of Iron Grip") or
-       (itemName == "a ring of the Dark Eight")      then
-      inv.items.setStatField(inv.items.identifyPkg.objId, invStatFieldType, "Armor")
-    end -- if
-  end -- if
---]]
 
   -- The identification process is done!
   inv.items.identifyPkg = nil
@@ -13965,7 +13983,7 @@ function inv.score.item(itemId, priorityName, handicap, level)
 
   -- Weapons can have two scores: a primary score, and an offhand score
   local itemType = inv.items.getStatField(itemId, invStatFieldWearable) or ""
-  if (itemType == "wield") then
+  if string.match(itemType, "wield") then
     offhandScore, retval = inv.score.extended(itemStats, priorityName, handicap, level, true)
   end -- if
 
@@ -14170,10 +14188,10 @@ end -- inv.score.set
 --
 -- inv.set.isItemInSet(objId, set)
 --
--- inv.set.compare(priorityName, rname, endTag)
+-- inv.set.compare(priorityName, rname, levelSkip, endTag)
 -- inv.set.compareCR()
 --
--- inv.set.covet(priorityName, auctionNum, endTag)
+-- inv.set.covet(priorityName, auctionNum, levelSkip, endTag)
 -- inv.set.covetCR()
 --
 -- We maintain a table holding the most recently created sets for each priority and level.  This
@@ -14535,8 +14553,9 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
   for objId,_ in pairs(inv.items.table) do
     local objIdentified = inv.items.getField(objId, invFieldIdentifyLevel) or ""
     local objLevel      = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
-    local objWearable   = inv.items.getStatField(objId, invStatFieldWearable) or ""
+    local objWearables  = inv.items.getStatField(objId, invStatFieldWearable) or ""
     local objWeight     = tonumber(inv.items.getStatField(objId, invStatFieldWeight) or 0)
+    local objType       = inv.items.getStatField(objId, invStatFieldType) or ""
     local objDamType    = inv.items.getStatField(objId, invStatFieldDamType) or ""
     local objWeaponType = inv.items.getStatField(objId, invStatFieldWeaponType) or ""
 
@@ -14554,67 +14573,87 @@ function inv.set.createWithHandicap(priorityName, level, handicap)
        (objLevel ~= nil) and (objLevel <= level) and
        ((not isHeroOnly) or (baseLevel >= 200)) then
 
-      -- Check the object alignment
-      if (dbot.isWordInString("anti-good",    objFlags) and isGood)      or
-         (dbot.isWordInString("anti-neutral", objFlags) and isNeutral) or
-         (dbot.isWordInString("anti-evil",    objFlags) and isEvil)    then
-        dbot.debug("Skipping item: align=" .. (dbot.gmcp.getAlign() or "nil") ..
-                   ", flags=\"" .. (objFlags or "nil") .. "\"")
+      for objWearable in objWearables:gmatch("%S+") do
 
-      -- Check if we are ignoring this item (it is flagged as "ignored" or is in a container
-      -- that is flagged as "ignored)
-      elseif inv.items.isIgnored(objId) then
-        dbot.debug("Ignoring item " .. objId .. " for set")
+        -- Check the object alignment
+        if (dbot.isWordInString("anti-good",    objFlags) and isGood)      or
+           (dbot.isWordInString("anti-neutral", objFlags) and isNeutral) or
+           (dbot.isWordInString("anti-evil",    objFlags) and isEvil)    then
+          dbot.debug("Skipping item: align=" .. (dbot.gmcp.getAlign() or "nil") ..
+                     ", flags=\"" .. (objFlags or "nil") .. "\"")
 
-      -- Check if the item is a weapon with a disallowed damage type
-      elseif (objDamType ~= nil) and (objDamType ~= "") and 
-             (not inv.priority.damTypeIsAllowed(objDamType, priorityName, level)) then
-        -- Skip the current object because it is a weapon with a damtype we don't want
+        -- Check if we are ignoring this item (it is flagged as "ignored" or is in a container
+        -- that is flagged as "ignored)
+        elseif inv.items.isIgnored(objId) then
+          dbot.debug("Ignoring item " .. objId .. " for set")
 
-      -- Check if the weapon type is one that the player can use
-      elseif (objWeaponType ~= nil) and (objWeaponType ~= "") and (not dbot.wish.has("Weapons")) and
-             (not dbot.ability.isAvailable(objWeaponType, level)) then
-        dbot.debug("Skipping " .. objWeaponType .. " (" .. objId .. ") -- weapon skill not available")
-        -- Skip the current weapon because the player can't use it
+        -- Don't fill the portal slot if the user doesn't have the portal wish
+        elseif (objWearable == "portal") and (not dbot.wish.has("Portal")) then
+          dbot.debug("Skipping item " .. objId .. " for portal slot because user does not have portal wish")
 
-      -- The alignment is acceptable, the item isn't ignored, and it doesn't use a disallowed
-      -- damage type.  Whew.  Check the other requirements...
-      elseif (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
-        score, offhandScore = inv.score.item(objId, priorityName, handicap, level)
-        local nextBest = { id = objId, score = score }
+        -- You can't wear a portal in the hold slot once you have the portal wish
+        elseif (objWearable == "hold") and dbot.wish.has("Portal") and (objType == "Portal") then
+          dbot.debug("Skipping item " .. objId .. " for hold slot because it is a portal and user has portal wish")
 
-        -- We keep track of all weapons so that we can evaluate the best combination after we
-        -- see everything in our inventory
-        if (objWearable == "wield") then
-          table.insert(weaponArray,
-                       { id = objId, score = score, offhand = offhandScore, weight = objWeight })
-        end -- if
+        -- Check if the item is a weapon with a disallowed damage type
+        elseif (objDamType ~= nil) and (objDamType ~= "") and 
+               (not inv.priority.damTypeIsAllowed(objDamType, priorityName, level)) then
+          -- Skip the current object because it is a weapon with a damtype we don't want
 
-        for _,w in ipairs(inv.wearables[objWearable]) do
-          -- Set a default (low) score if we haven't used this slot yet
-          if (newSet[w] == nil) then
-            newSet[w] = { id = -1, score = -1 }
+        -- Check if the weapon type is one that the player can use
+        elseif (objWeaponType ~= nil) and (objWeaponType ~= "") and (not dbot.wish.has("Weapons")) and
+               (not dbot.ability.isAvailable(objWeaponType, level)) then
+          dbot.debug("Skipping " .. objWeaponType .. " (" .. objId .. ") -- weapon skill not available")
+          -- Skip the current weapon because the player can't use it
+
+        -- The alignment is acceptable, the item isn't ignored, and it doesn't use a disallowed
+        -- damage type.  Whew.  Check the other requirements...
+        elseif (objWearable ~= nil) and (objWearable ~= "") and (inv.wearables[objWearable] ~= nil) then
+          score, offhandScore = inv.score.item(objId, priorityName, handicap, level)
+          local nextBest = { id = objId, score = score }
+
+          -- We keep track of all weapons so that we can evaluate the best combination after we
+          -- see everything in our inventory
+          if (objWearable == "wield") then
+            table.insert(weaponArray,
+                         { id = objId, score = score, offhand = offhandScore, weight = objWeight })
           end -- if
 
-          -- If the current item's score is greater than the slot's score, iterate and bump
-          if (nextBest.score > newSet[w].score) then
-            local tmp = newSet[w]
-            newSet[w] = nextBest
-            local nextBestName = inv.items.getStatField(nextBest.id, invStatFieldName)
-            if (nextBestName ~= nil) then
-              dbot.debug("Upgrading \"" .. w .. "\" to \"" .. nextBestName .. "\"")
+          local foundUpdate = false
+          for _,w in ipairs(inv.wearables[objWearable]) do
+            -- Set a default (low) score if we haven't used this slot yet
+            if (newSet[w] == nil) then
+              newSet[w] = { id = -1, score = -1 }
             end -- if
 
-            nextBest = tmp
-          end -- if
-        end -- for        
+            -- If the current item's score is greater than the slot's score, iterate and bump
+            if (nextBest.score > newSet[w].score) then
+              local tmp = newSet[w]
+              newSet[w] = nextBest
+              local nextBestName = inv.items.getStatField(nextBest.id, invStatFieldName)
+              if (nextBestName ~= nil) then
+                dbot.debug("Upgrading \"" .. w .. "\" to \"" .. nextBestName .. "\"")
+              end -- if
 
-        -- prune slots that don't have any items or slots that are ignored
-        for _,w in ipairs(inv.wearables[objWearable]) do
-          if (newSet[w].id == -1) or (not inv.priority.locIsAllowed(w, priorityName, level)) then
-            newSet[w] = nil
+              nextBest = tmp
+              foundUpdate = true
+            end -- if
+          end -- for        
+
+          -- prune slots that don't have any items or slots that are ignored
+          for _,w in ipairs(inv.wearables[objWearable]) do
+            if (newSet[w].id == -1) or (not inv.priority.locIsAllowed(w, priorityName, level)) then
+              newSet[w] = nil
+            end -- if
+          end -- for        
+
+          -- If an item was best-in-slot for one wearable location, don't try to use it in
+          -- another wearable location.  For example, this covers the case where an item might
+          -- be usable as both a hold item or a portal item.
+          if foundUpdate then
+            break
           end -- if
-        end -- for        
+        end -- for
 
       end -- if
     end -- if
@@ -15401,7 +15440,7 @@ end -- inv.set.isItemInSet
 
 
 inv.set.comparePkg = nil
-function inv.set.compare(priorityName, relativeName, endTag)
+function inv.set.compare(priorityName, relativeName, levelSkip, endTag)
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.set.compare: Missing priorityName parameter")
     return inv.tags.stop(invTagsCompare, endTag, DRL_RET_INVALID_PARAM)
@@ -15427,6 +15466,7 @@ function inv.set.compare(priorityName, relativeName, endTag)
   inv.set.comparePkg              = {}
   inv.set.comparePkg.priorityName = priorityName
   inv.set.comparePkg.queryString  = "rname " .. relativeName
+  inv.set.comparePkg.levelSkip    = levelSkip
   inv.set.comparePkg.endTag       = endTag
 
   wait.make(inv.set.compareCR)
@@ -15506,7 +15546,7 @@ function inv.set.compareCR()
       -- Analyze the priority with the item removed so that we can compare the results with what
       -- we had when the item was included
       local resultData = dbot.callback.new()
-      retval = inv.analyze.sets(inv.set.comparePkg.priorityName, itemLevel,
+      retval = inv.analyze.sets(inv.set.comparePkg.priorityName, itemLevel, inv.set.comparePkg.levelSkip,
                                 resultData, inv.set.analyzeIntensity)
       if (retval ~= DRL_RET_SUCCESS) then
         dbot.warn("inv.set.compareCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
@@ -15532,13 +15572,18 @@ function inv.set.compareCR()
       local doDisplayHeader = true
       local minCharLevel = 1 + (10 * dbot.gmcp.getTier())
       local maxCharLevel = 200 + minCharLevel
+      local isPartial = false
       for level = itemLevel, maxCharLevel do
         local s1 = inv.set.table[inv.set.comparePkg.priorityName][level]
         local s2 = tmpAnalysis[level]
 
         -- If both analyses exist and the compared item is used at this level in the set, then display
         -- the analysis differences at this level
-        if (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
+        if (s1 ~= nil) and (s2 == nil) then
+          isPartial = true
+          dbot.info("Comparison at level " .. level .. " failed due to missing @C" ..
+                    inv.set.comparePkg.priorityName .. " @Wanalysis for that level")
+        elseif (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
           didFindStat = inv.set.displayDiff(s1, s2, level, string.format("Level %3d: ", level), doDisplayHeader)
           if (didFindStat) then
             doDisplayHeader = false
@@ -15546,9 +15591,16 @@ function inv.set.compareCR()
         end -- if
       end -- for
 
+      if isPartial then
+        dbot.warn("Comparison may not be accurate due to a partial analysis for priority @C" ..
+                  inv.set.comparePkg.priorityName)
+        dbot.warn("You may need to re-run the comparion after executing @Gdinv analyze create " ..
+                  inv.set.comparePkg.priorityName)
+      end -- if
+
       if (doDisplayHeader) then
         dbot.print("No set with item \"" .. itemName .. DRL_ANSI_WHITE .. 
-                   "\" is optimal for any level between " .. minCharLevel .. " and " .. maxCharLevel)
+                   "\" is optimal between levels " .. minCharLevel .. " and " .. maxCharLevel)
       end -- if
 
     end -- if
@@ -15580,7 +15632,7 @@ end -- inv.set.compareCR
 
 
 inv.set.covetPkg = nil
-function inv.set.covet(priorityName, auctionNum, endTag)
+function inv.set.covet(priorityName, auctionNum, levelSkip, endTag)
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.set.covet: Missing priorityName parameter")
     return inv.tags.stop(invTagsCovet, endTag, DRL_RET_INVALID_PARAM)
@@ -15605,6 +15657,7 @@ function inv.set.covet(priorityName, auctionNum, endTag)
   inv.set.covetPkg              = {}
   inv.set.covetPkg.priorityName = priorityName
   inv.set.covetPkg.auctionNum   = auctionNum
+  inv.set.covetPkg.levelSkip    = levelSkip
   inv.set.covetPkg.endTag       = endTag
 
   wait.make(inv.set.covetCR)
@@ -15718,7 +15771,8 @@ function inv.set.covetCR()
     -- Analyze the priority with the item added so that we can compare the results with what
     -- we had when the item was not included
     local resultData = dbot.callback.new()
-    retval = inv.analyze.sets(inv.set.covetPkg.priorityName, itemLevel, resultData, inv.set.analyzeIntensity)
+    retval = inv.analyze.sets(inv.set.covetPkg.priorityName, itemLevel, inv.set.covetPkg.levelSkip,
+                              resultData, inv.set.analyzeIntensity)
     if (retval ~= DRL_RET_SUCCESS) then
       dbot.warn("inv.set.covetCR: Failed to analyze sets: " .. dbot.retval.getString(retval))
     else
@@ -15740,13 +15794,18 @@ function inv.set.covetCR()
     local doDisplayHeader = true
     local minCharLevel = 1 + (10 * dbot.gmcp.getTier())
     local maxCharLevel = 200 + minCharLevel
+    local isPartial = false
     for level = itemLevel, maxCharLevel do
       local s1 = tmpAnalysis[level]
       local s2 = inv.set.table[inv.set.covetPkg.priorityName][level]
 
       -- If both analyses exist and the coveted item is used at this level in the set, then display
       -- the analysis differences at this level
-      if (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
+      if (s1 == nil) and (s2 ~= nil) then
+        isPartial = true
+        dbot.info("Covet at level " .. level .. " failed due to missing @C" ..
+                  inv.set.covetPkg.priorityName .. " @Wanalysis for that level")
+      elseif (s1 ~= nil) and (s2 ~= nil) and inv.set.isItemInSet(objId, s2) then
         didFindStat = inv.set.displayDiff(s1, s2, level, string.format("Level %3d: ", level), doDisplayHeader)
         if (didFindStat) then
           doDisplayHeader = false
@@ -15754,9 +15813,16 @@ function inv.set.covetCR()
       end -- if
     end -- for
 
+    if isPartial then
+      dbot.warn("Covet may not be accurate due to a partial analysis for priority @C" ..
+                inv.set.covetPkg.priorityName)
+      dbot.warn("You may need to re-run the covet after executing @Gdinv analyze create " ..
+                inv.set.covetPkg.priorityName)
+    end -- if
+
     if (doDisplayHeader) then
       dbot.print("@WNo set with item \"" .. itemName .. DRL_ANSI_WHITE .. 
-                 "\" is optimal for any level between " .. minCharLevel .. " and " .. maxCharLevel)
+                 "\" is optimal between levels " .. minCharLevel .. " and " .. maxCharLevel)
     end -- if
   end -- if
 
@@ -16890,7 +16956,7 @@ end -- inv.statBonus.trigger.get
 --
 -- dinv analyze [list | create | delete | display] <priorityName> <wearable location>
 --
--- inv.analyze.sets(priorityName, minLevel, resultData, intensity)
+-- inv.analyze.sets(priorityName, minLevel, skipLevel, resultData, intensity)
 -- inv.analyze.setsCR()
 -- inv.analyze.delete(priorityName)
 -- inv.analyze.list()
@@ -16903,7 +16969,7 @@ inv.analyze.setsPkg          = nil
 inv.analyze.timeoutThreshold = 60
 
 
-function inv.analyze.sets(priorityName, minLevel, resultData, intensity)
+function inv.analyze.sets(priorityName, minLevel, skipLevel, resultData, intensity)
   if (priorityName == nil) or (priorityName == "") then
     dbot.warn("inv.analyze.sets: missing priorityName parameter")
     return DRL_RET_INVALID_PARAM
@@ -16924,6 +16990,7 @@ function inv.analyze.sets(priorityName, minLevel, resultData, intensity)
   inv.analyze.setsPkg               = {}
   inv.analyze.setsPkg.priorityName  = priorityName
   inv.analyze.setsPkg.minLevel      = minLevel
+  inv.analyze.setsPkg.skipLevel     = skipLevel
   inv.analyze.setsPkg.intensity     = intensity
   inv.analyze.setsPkg.resultData    = resultData
 
@@ -16980,8 +17047,8 @@ function inv.analyze.setsCR()
 
   dbot.prompt.hide()
 
-  for currentLevel = inv.analyze.setsPkg.minLevel,maxLevel do
-    dbot.debug("Creating analysis set for " .. inv.analyze.setsPkg.priorityName .. ", level=" .. currentLevel)
+  for currentLevel = inv.analyze.setsPkg.minLevel, maxLevel, inv.analyze.setsPkg.skipLevel do
+    dbot.debug("Creating @clevel " .. currentLevel .. " @Wanalysis set for @C" .. inv.analyze.setsPkg.priorityName)
 
     inv.set.table[inv.analyze.setsPkg.priorityName][currentLevel] = nil
     retval = inv.set.create(inv.analyze.setsPkg.priorityName, currentLevel,
@@ -17145,7 +17212,16 @@ function inv.analyze.display(priorityName, wearableLoc, endTag)
     for _,setWearLoc in pairs(inv.wearLoc) do
      if (wearableLoc == nil) or (wearableLoc == "") or dbot.isWordInString(setWearLoc, wearableLoc) then
         local set = inv.set.table[priorityName][currentLevel]
-        local prevSet = inv.set.table[priorityName][currentLevel - 1]
+
+        -- Find the closest previous level that has a completed analysis.  If someone only analyzes
+        -- every N levels, then the closest earlier analysis will be N levels prior.
+        local prevSet
+        for prevIdx = currentLevel - 1, startLevel, -1 do
+          prevSet = inv.set.table[priorityName][prevIdx]
+          if (prevSet ~= nil) then
+            break
+          end -- if
+        end -- for
 
         if (set ~= nil) and (set[setWearLoc] ~= nil) then
           local objId = tonumber(set[setWearLoc].id or "")
@@ -17402,29 +17478,32 @@ function inv.usage.get(priorityName, objId)
   dbot.debug("Usage: priority=\"" .. priorityName .. "\", objId=" .. objId)
 
   local startLevel = tonumber(inv.items.getStatField(objId, invStatFieldLevel) or "")
-  local endLevel = 201 + 10 * dbot.gmcp.getTier()
-  local wearType = inv.items.getStatField(objId, invStatFieldWearable)
+  local endLevel   = 201 + 10 * dbot.gmcp.getTier()
+  local wearTypes  = inv.items.getStatField(objId, invStatFieldWearable) or ""
   local levelArray = {}
 
-  -- wearType is a general location (e.g., wrist, finger, etc.)
-  -- wearLoc is a specific location of wearType (e.g., lwrist, rfinger, etc.)
-  --
-  -- Scan through every possible wearLoc in the priority at the specified level to
-  -- see if the current object is at that location.  If it is, remember it by putting
-  -- the level it is used in an array that we return to the caller.
-  if (wearType ~= nil) and (inv.wearables[wearType] ~= nil) then
-    for _, wearLoc in ipairs(inv.wearables[wearType]) do
-      if (wearLoc ~= nil) and (startLevel ~= nil) and (inv.set.table[priorityName] ~= nil) then
-        for level = startLevel, endLevel do
-          if (inv.set.table[priorityName][level] ~= nil) and 
-             (inv.set.table[priorityName][level][wearLoc] ~= nil) and
-             (inv.set.table[priorityName][level][wearLoc].id == objId) then
-            table.insert(levelArray, level)
-          end -- if
-        end -- for
-      end -- if
-    end -- for
-  end -- if
+  -- wearTypes is a list of locations an item might be at (e.g., a portal might be hold or portal)
+  for wearType in wearTypes:gmatch("%S+") do
+    -- wearType is a general location (e.g., wrist, finger, etc.)
+    -- wearLoc is a specific location of wearType (e.g., lwrist, rfinger, etc.)
+    --
+    -- Scan through every possible wearLoc in the priority at the specified level to
+    -- see if the current object is at that location.  If it is, remember it by putting
+    -- the level it is used in an array that we return to the caller.
+    if (wearType ~= nil) and (inv.wearables[wearType] ~= nil) then
+      for _, wearLoc in ipairs(inv.wearables[wearType]) do
+        if (wearLoc ~= nil) and (startLevel ~= nil) and (inv.set.table[priorityName] ~= nil) then
+          for level = startLevel, endLevel do
+            if (inv.set.table[priorityName][level] ~= nil) and 
+               (inv.set.table[priorityName][level][wearLoc] ~= nil) and
+               (inv.set.table[priorityName][level][wearLoc].id == objId) then
+              table.insert(levelArray, level)
+            end -- if
+          end -- for
+        end -- if
+      end -- for
+    end -- if
+  end -- for
 
   return levelArray, DRL_RET_SUCCESS
 end -- inv.usage.get

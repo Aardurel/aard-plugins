@@ -2,6 +2,19 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0055] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed a bug where dinv would not use gear with multiple potential
+           wearable locations (e.g., "hold, light")]]
+  },
+  { change = drlDbotChangeLogTypeNew,
+    desc   = [[Added option to only analyze/compare/covet gear every "N" levels to
+           speed up those modes.  Checking every level could take considerable time
+           in some situations.]]
+  }
+}
+
 dbot.changelog[2.0054] =
 {
   { change = drlDbotChangeLogTypeFix,
