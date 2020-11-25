@@ -2,6 +2,13 @@
 dbot.changelog = {}
 
 
+dbot.changelog[2.0056] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Fixed an issue where certain inputs could cause a crash with the compare and covet modes]]
+  }
+}
+
 dbot.changelog[2.0055] =
 {
   { change = drlDbotChangeLogTypeFix,

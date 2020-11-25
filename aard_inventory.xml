@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0055"
+   version="2.0056"
    >
 <description trim="y">
 <![CDATA[
@@ -3538,7 +3538,7 @@ inv.cli.compare = {}
 function inv.cli.compare.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local relativeName = wildcards[2] or ""
-  local levelSkip    = tonumber(wildcards[3] or "1")
+  local levelSkip    = tonumber(wildcards[3] or "1") or 1
   local endTag       = inv.tags.new(line, "Compare results", nil, inv.tags.cleanup.timed)
 
   dbot.debug("inv.cli.compare.fn: priority=\"" .. priorityName .. "\", relativeName=\"" ..
@@ -3640,7 +3640,7 @@ inv.cli.covet = {}
 function inv.cli.covet.fn(name, line, wildcards)
   local priorityName = wildcards[1] or ""
   local auctionNum   = tonumber(wildcards[2] or "")
-  local levelSkip    = tonumber(wildcards[3] or "1")
+  local levelSkip    = tonumber(wildcards[3] or "1") or 1
   local endTag       = inv.tags.new(line, "Covet results", nil, inv.tags.cleanup.timed)
 
   if (not inv.init.initializedActive) then
