@@ -8603,7 +8603,7 @@ function inv.items.searchIdsCSV(rawQueryString)
   local itemIds = ''
 
   -- If the query has anything dependent on a relative name or location, warn the caller and return
-  if inv.items.isSearchRelative() then
+  if inv.items.isSearchRelative(rawQueryString) then
     dbot.warn("inv.items.searchIdsCSV: Skipping request containing relative names or locations which " ..
               "are not available outside of a co-routine")
 
