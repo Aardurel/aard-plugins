@@ -89,7 +89,7 @@ dbot.version  : Module to track version and changelog information and update the
    save_state="y"
    date_written="2017-08-12 08:45:15"
    requires="4.98"
-   version="2.0056"
+   version="2.0057"
    >
 <description trim="y">
 <![CDATA[
@@ -2943,6 +2943,7 @@ Examples:
 @C   dualwield@G  20.00@R   0.00   0.00   0.00   0.00   0.00@W  : @cValue of an item's dual wield effect
 @C    irongrip@g   2.00   3.00@G  20.00  20.00  25.00  30.00@W  : @cValue of an item's irongrip effect
 @C      shield@G   5.00   5.00  10.00  20.00  25.00  40.00@W  : @cValue of a shield's damage reduction effect
+@C hammerswing@G 100.00 100.00 100.00 100.00 100.00 100.00@W  : @cValue of an item's hammerswing effect
 @C    allmagic@r   0.03   0.03   0.05   0.05   0.05   0.05@W  : @cValue of 1 point in each magical resist type
 @C     allphys@r   0.03   0.05   0.10   0.10   0.10   0.10@W  : @cValue of 1 point in each physical resist type
 @C      maxint@R   0.00   0.00   0.00   0.00@G   5.00  20.00@W  : @cValue of hitting a level's intelligence ceiling
@@ -10506,6 +10507,7 @@ function inv.items.trigger.itemIdEnd()
   local itemName = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldName) or ""
   local itemWearable = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWearable) or "" 
   local affectMods = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldAffectMods) or ""
+  local weaponType = inv.items.getStatField(inv.items.identifyPkg.objId, invStatFieldWeaponType) or ""
 
   -- Add "pseudo-stats" based on item effects (aard terminology is "affect mods") and on
   -- skills specific to particular items or item types.  These make it easier to score
@@ -10525,6 +10527,9 @@ function inv.items.trigger.itemIdEnd()
     inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsDualWield, 1)
   elseif string.match(itemWearable, "shield") then
     inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsShield, 1)
+  elseif (weaponType == "hammer") then 
+	
+    inv.items.setStatField(inv.items.identifyPkg.objId, invItemEffectsHammerswing, 1)									   																				 
   end -- if
 
   -- The identification process is done!
@@ -11463,6 +11468,7 @@ invItemEffectsIronGrip  = "irongrip"
 invItemEffectsDualWield = "dualwield"
 invItemEffectsShield    = "shield"
 
+invItemEffectsHammerswing = "hammerswing"										 
 
 ----------------------------------------------------------------------------------------------------
 -- Inventory cache subsystem
@@ -13835,6 +13841,7 @@ inv.priority.fieldTable = {
   { "dualwield"   , "Value of an item's dual wield effect" },
   { "irongrip"    , "Value of an item's irongrip effect" },
   { "shield"      , "Value of a shield's damage reduction effect" },
+  { "hammerswing"    , "Value of an item's hammerswing effect (that you can hammerswing it i.e. it's a hammer)" },
 
   { "maxstr"      , "Value of hitting a level's strength ceiling" },
   { "maxint"      , "Value of hitting a level's intelligence ceiling" },
@@ -15262,7 +15269,7 @@ function inv.set.getStats(set, level)
 
                      haste = 0, regeneration = 0, sanctuary = 0, invis = 0, flying = 0, 
                      detectgood = 0, detectevil = 0, detecthidden = 0, detectinvis = 0, detectmagic = 0,
-                     dualwield = 0, irongrip = 0, shield = 0 -- these last 3 are not official "affect mods"
+                     dualwield = 0, irongrip = 0, shield = 0, hammerswing = 0 -- these last 3 are not official "affect mods"
                    }
 
   for itemLoc, itemStruct in pairs(set) do
@@ -15354,7 +15361,7 @@ function inv.set.displayStats(setStats, msgString, doPrintHeader, doDisplayIfZer
   end -- for
 
   -- Effects (these are known on aard as affectMods)
-  local effectList = "haste regeneration sanctuary invis flying dualwield irongrip shield " ..
+  local effectList = "haste regeneration sanctuary invis flying dualwield irongrip shield hammerswing " ..
                      "detectgood detectevil detecthidden detectinvis detectmagic"
   local effectStr = ""
   for effect in effectList:gmatch("%S+") do

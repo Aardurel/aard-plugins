@@ -1,6 +1,12 @@
 
 dbot.changelog = {}
 
+dbot.changelog[2.0057] =
+{
+  { change = drlDbotChangeLogTypeFix,
+    desc   = [[Added Hammerswing (equipping a hammer) as an "effect" that can receive a priority score in dinv priority]]
+  }
+}
 
 dbot.changelog[2.0056] =
 {
